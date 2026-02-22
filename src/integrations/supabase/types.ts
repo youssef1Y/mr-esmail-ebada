@@ -290,6 +290,80 @@ export type Database = {
         }
         Relationships: []
       }
+      video_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_reply: boolean | null
+          parent_id: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_reply?: boolean | null
+          parent_id?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_reply?: boolean | null
+          parent_id?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_comments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_views: {
+        Row: {
+          id: string
+          user_id: string
+          video_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          video_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          video_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_views_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           access_type: string

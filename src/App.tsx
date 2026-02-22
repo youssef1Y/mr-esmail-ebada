@@ -13,6 +13,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import SubjectVideos from "./pages/SubjectVideos";
 import TakeExam from "./pages/TakeExam";
+import MyResults from "./pages/MyResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/subject/:subject" element={<SubjectVideos />} />
           <Route path="/exam/:examId" element={<TakeExam />} />
+          <Route path="/my-results" element={<MyResults />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

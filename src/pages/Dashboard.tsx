@@ -124,7 +124,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats">("subscribers");
 
   // Grade videos for admin preview
   const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
@@ -156,6 +156,9 @@ const Dashboard = () => {
   const [viewingExamResults, setViewingExamResults] = useState<string | null>(null);
   const [examResults, setExamResults] = useState<ExamAttemptResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
+
+  // Admin stats
+  const [statsData, setStatsData] = useState<{ totalViews: number; gradeStats: { grade: string; count: number }[]; topVideos: { title: string; views: number }[] } | null>(null);
 
   // Student notifications
   const [studentNotifs, setStudentNotifs] = useState<Notification[]>([]);
@@ -354,11 +357,35 @@ const Dashboard = () => {
     }
   }, [isAdmin, selectedGrade]);
 
+  const fetchAdminStats = async () => {
+    const { data: views } = await supabase.from("video_views").select("video_id, viewed_at");
+    const { data: allVideos } = await supabase.from("videos").select("id, title, grade");
+    if (views && allVideos) {
+      const videoMap = new Map(allVideos.map(v => [v.id, v]));
+      const gradeCounts: Record<string, number> = {};
+      const videoCounts: Record<string, number> = {};
+      views.forEach(v => {
+        const vid = videoMap.get(v.video_id);
+        if (vid) {
+          gradeCounts[vid.grade] = (gradeCounts[vid.grade] || 0) + 1;
+          videoCounts[vid.id] = (videoCounts[vid.id] || 0) + 1;
+        }
+      });
+      const topVideos = Object.entries(videoCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([id, count]) => ({ title: videoMap.get(id)?.title || "", views: count }));
+      const gradeStats = Object.entries(gradeCounts).map(([grade, count]) => ({ grade: grade.replace("الصف ", ""), count }));
+      setStatsData({ totalViews: views.length, gradeStats, topVideos });
+    }
+  };
+
   useEffect(() => {
     if (adminUnlocked) {
       if (adminTab === "videos") fetchVideos();
       if (adminTab === "notifications") fetchNotifications();
       if (adminTab === "exams") fetchExams();
+      if (adminTab === "stats") fetchAdminStats();
     }
   }, [adminTab, videoGrade, videoSubject, adminUnlocked]);
 
@@ -601,6 +628,7 @@ const Dashboard = () => {
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
                 { key: "exams" as const, label: "الامتحانات", icon: FileText },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
+                { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className="gap-1">
                   <t.icon className="w-4 h-4" />
@@ -987,6 +1015,78 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Stats */}
+              {adminTab === "stats" && (
+                <div className="space-y-4">
+                  <h3 className="font-bold text-sm flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" /> إحصائيات المنصة
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold">{totalStudents}</span>
+                      <p className="text-xs text-muted-foreground">طالب</p>
+                    </div>
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold text-primary">{subscribedCount}</span>
+                      <p className="text-xs text-muted-foreground">مشترك</p>
+                    </div>
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold">{statsData?.totalViews || 0}</span>
+                      <p className="text-xs text-muted-foreground">مشاهدة</p>
+                    </div>
+                  </div>
+
+                  {statsData && statsData.gradeStats.length > 0 && (
+                    <div className="bg-muted rounded-xl p-4">
+                      <h4 className="font-bold text-xs mb-3">المشاهدات حسب الصف</h4>
+                      <div className="space-y-2">
+                        {statsData.gradeStats.map(g => (
+                          <div key={g.grade} className="flex items-center gap-2">
+                            <span className="text-xs w-32 truncate">{g.grade}</span>
+                            <div className="flex-1 bg-background rounded-full h-4 overflow-hidden">
+                              <div
+                                className="bg-primary h-full rounded-full transition-all"
+                                style={{ width: `${Math.min((g.count / (statsData.totalViews || 1)) * 100, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold w-8 text-left">{g.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {statsData && statsData.topVideos.length > 0 && (
+                    <div className="bg-muted rounded-xl p-4">
+                      <h4 className="font-bold text-xs mb-3">أكثر الفيديوهات مشاهدة</h4>
+                      <div className="space-y-2">
+                        {statsData.topVideos.map((v, i) => (
+                          <div key={i} className="flex items-center justify-between bg-background rounded-lg p-2">
+                            <span className="text-xs font-bold truncate flex-1">{i + 1}. {v.title}</span>
+                            <span className="text-xs text-primary font-bold mr-2">{v.views} مشاهدة</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-muted rounded-xl p-4">
+                    <h4 className="font-bold text-xs mb-3">الطلاب حسب الصف</h4>
+                    <div className="space-y-2">
+                      {allGrades.map(g => {
+                        const count = profiles.filter(p => p.grade === g).length;
+                        return count > 0 ? (
+                          <div key={g} className="flex items-center justify-between bg-background rounded-lg p-2">
+                            <span className="text-xs">{g.replace("الصف ", "")}</span>
+                            <span className="text-xs font-bold">{count} طالب</span>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1027,7 +1127,17 @@ const Dashboard = () => {
               </span>
             </div>
           </div>
-        </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex justify-center gap-3 mb-8">
+            <Link to="/my-results">
+              <Button variant="outline" size="sm" className="gap-1">
+                <BarChart3 className="w-4 h-4" />
+                نتائجي
+              </Button>
+            </Link>
+          </div>
 
         {/* Why Choose Us */}
         <div className="text-center mb-6">
