@@ -1085,7 +1085,7 @@ const Dashboard = () => {
                     {profile?.madhab && subject.title === "الفقه" ? `${subject.title} ${profile.madhab.replace("الفقه ", "")}` : subject.title}
                   </h3>
                   <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
-                  {(isAdmin ? adminViewSubscribed : profile?.is_subscribed) ? (
+                  {(isAdmin || profile?.is_subscribed) ? (
                     <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
                       <Button size="sm" variant="outline" className="gap-1">
                         ابدأ المشاهدة
@@ -1105,6 +1105,42 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* Subscription CTA for non-subscribed students */}
+        {!isAdmin && !profile?.is_subscribed && (
+          <div className="mt-12 mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-8 text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Star className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold font-amiri mb-3">اشترك الآن وابدأ رحلتك التعليمية</h2>
+            <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
+              احصل على وصول كامل لجميع المحتوى التعليمي والامتحانات
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-md mx-auto text-right">
+              {[
+                "شرح مفصل لجميع المواد الشرعية",
+                "فيديوهات تعليمية عالية الجودة",
+                "امتحانات تفاعلية مع تصحيح تلقائي",
+                "متابعة مستمرة لمستواك الدراسي",
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mb-4">
+              <span className="text-3xl font-bold text-primary">{subscriptionPrice}</span>
+              <span className="text-muted-foreground text-sm mr-1">جنيه / شهرياً</span>
+            </div>
+            <Link to="/subscribe">
+              <Button size="lg" className="gap-2 px-8">
+                اشترك للوصول للمحتوى
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

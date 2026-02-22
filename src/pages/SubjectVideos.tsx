@@ -22,12 +22,17 @@ const SubjectVideos = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
+
+      // Check admin role
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
+      if (roles && roles.length > 0) setIsAdmin(true);
 
       // Check subscription
       const { data: profile } = await supabase
@@ -88,7 +93,7 @@ const SubjectVideos = () => {
           <p className="text-sm text-muted-foreground">{grade}</p>
         </div>
 
-        {!isSubscribed ? (
+        {!isSubscribed && !isAdmin ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Lock className="w-8 h-8 text-muted-foreground" />
