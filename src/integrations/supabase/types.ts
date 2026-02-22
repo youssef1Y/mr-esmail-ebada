@@ -14,6 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
+      exam_answers: {
+        Row: {
+          answer: string | null
+          attempt_id: string
+          id: string
+          is_correct: boolean | null
+          question_id: string
+        }
+        Insert: {
+          answer?: string | null
+          attempt_id: string
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+        }
+        Update: {
+          answer?: string | null
+          attempt_id?: string
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_attempts: {
+        Row: {
+          exam_id: string
+          id: string
+          score: number | null
+          submitted_at: string
+          total: number | null
+          user_id: string
+        }
+        Insert: {
+          exam_id: string
+          id?: string
+          score?: number | null
+          submitted_at?: string
+          total?: number | null
+          user_id: string
+        }
+        Update: {
+          exam_id?: string
+          id?: string
+          score?: number | null
+          submitted_at?: string
+          total?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_questions: {
+        Row: {
+          correct_answer: string | null
+          exam_id: string
+          id: string
+          options: Json | null
+          question_text: string
+          question_type: string
+          sort_order: number | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          exam_id: string
+          id?: string
+          options?: Json | null
+          question_text: string
+          question_type?: string
+          sort_order?: number | null
+        }
+        Update: {
+          correct_answer?: string | null
+          exam_id?: string
+          id?: string
+          options?: Json | null
+          question_text?: string
+          question_type?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          access_type: string
+          created_at: string
+          grade: string
+          id: string
+          subject: string
+          title: string
+          video_id: string | null
+        }
+        Insert: {
+          access_type?: string
+          created_at?: string
+          grade: string
+          id?: string
+          subject: string
+          title: string
+          video_id?: string | null
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          grade?: string
+          id?: string
+          subject?: string
+          title?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string
