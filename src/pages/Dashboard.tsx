@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +119,9 @@ const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications">("subscribers");
 
+  // Grade videos for admin preview
+  const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
+
   // Admin data
   const [profiles, setProfiles] = useState<ProfileFull[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -191,10 +194,22 @@ const Dashboard = () => {
     if (data) setVideos(data);
   };
 
+  const fetchGradeVideos = async (grade: string) => {
+    const { data } = await supabase.from("videos").select("*").eq("grade", grade).order("created_at", { ascending: false });
+    if (data) setGradeVideos(data);
+  };
+
   const fetchNotifications = async () => {
     const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
     if (data) setNotifications(data);
   };
+
+  // Fetch videos when grade changes (for admin)
+  useEffect(() => {
+    if (isAdmin && selectedGrade) {
+      fetchGradeVideos(selectedGrade);
+    }
+  }, [isAdmin, selectedGrade]);
 
   useEffect(() => {
     if (adminUnlocked) {
@@ -223,12 +238,13 @@ const Dashboard = () => {
     }
     const { error } = await supabase.from("videos").insert(newVideo);
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" }); setShowAddVideo(false); fetchVideos(); }
+    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" }); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
   };
 
   const deleteVideo = async (id: string) => {
     await supabase.from("videos").delete().eq("id", id);
     fetchVideos();
+    fetchGradeVideos(selectedGrade);
     toast({ title: "تم حذف الفيديو" });
   };
 
@@ -274,7 +290,7 @@ const Dashboard = () => {
     );
   }
 
-  const displayGrade = isAdmin && adminUnlocked ? selectedGrade : (profile?.grade || "");
+  const displayGrade = isAdmin ? selectedGrade : (profile?.grade || "");
   const subjects = gradeSubjects[displayGrade] || [];
   const subscriptionPrice = displayGrade?.includes("إعدادي") ? 150 : 200;
   const totalStudents = profiles.length;
@@ -296,13 +312,13 @@ const Dashboard = () => {
             {isAdmin && !adminUnlocked && (
               <Button variant="ghost" size="sm" onClick={() => setShowAdminLogin(true)} className="gap-1">
                 <Shield className="w-4 h-4" />
-                <span className="hidden sm:inline">أدمن</span>
+                <span className="hidden sm:inline">لوحة التحكم</span>
               </Button>
             )}
             {isAdmin && adminUnlocked && (
               <Button variant="ghost" size="sm" onClick={() => setAdminUnlocked(false)} className="gap-1 text-primary">
                 <Shield className="w-4 h-4" />
-                <span className="hidden sm:inline">عرض كطالب</span>
+                <span className="hidden sm:inline">إغلاق لوحة التحكم</span>
               </Button>
             )}
             <Link to="/profile">
@@ -347,27 +363,70 @@ const Dashboard = () => {
       )}
 
       <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Admin: Grade Switcher - always visible for admin */}
+        {isAdmin && (
+          <div className="mb-6">
+            {/* Grade tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {allGrades.map(g => (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGrade(g)}
+                  className={`whitespace-nowrap px-3 py-2 rounded-xl text-xs font-medium border transition-colors flex-shrink-0 ${
+                    selectedGrade === g
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {g.replace("الصف ", "")}
+                </button>
+              ))}
+            </div>
+
+            {/* Subscription status */}
+            <div className="flex items-center gap-2 mt-3">
+              <CheckCircle className={`w-4 h-4 ${profile?.is_subscribed ? "text-primary" : "text-muted-foreground"}`} />
+              <span className={`text-sm ${profile?.is_subscribed ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
+              </span>
+            </div>
+
+            {/* Videos for this grade */}
+            {gradeVideos.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  فيديوهات {selectedGrade.replace("الصف ", "")} ({gradeVideos.length})
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {gradeVideos.map(v => (
+                    <div key={v.id} className="bg-card rounded-xl border border-border p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Play className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm truncate">{v.title}</h4>
+                        <p className="text-xs text-muted-foreground">{v.subject}</p>
+                      </div>
+                      <a href={v.video_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1 h-7 text-xs">
+                          مشاهدة
+                        </Button>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {gradeVideos.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-3">لا توجد فيديوهات لهذا الصف حتى الآن</p>
+            )}
+          </div>
+        )}
+
         {/* Admin Panel (when unlocked) */}
         {isAdmin && adminUnlocked && (
           <div className="mb-8">
-            {/* Grade Switcher */}
-            <div className="bg-card rounded-2xl border border-border p-4 mb-4">
-              <Label className="text-xs text-muted-foreground mb-2 block">التنقل بين الصفوف (عرض كطالب)</Label>
-              <select
-                value={selectedGrade}
-                onChange={e => setSelectedGrade(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <div className="flex items-center gap-2 mt-3">
-                <CheckCircle className={`w-4 h-4 ${profile?.is_subscribed ? "text-primary" : "text-muted-foreground"}`} />
-                <span className={`text-sm ${profile?.is_subscribed ? "text-primary font-medium" : "text-muted-foreground"}`}>
-                  {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
-                </span>
-              </div>
-            </div>
-
             {/* Admin Tabs */}
             <div className="flex gap-2 mb-4 justify-center flex-wrap">
               {[
