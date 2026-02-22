@@ -59,49 +59,28 @@ const allGrades = [
 
 const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
 
+const prepSubjects = [
+  { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
+  { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
+  { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
+  { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
+  { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
+];
+
+const secSubjects = [
+  { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
+  { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
+  { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
+  { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
+];
+
 const gradeSubjects: Record<string, { title: string; icon: any; description: string }[]> = {
-  "الصف الأول الإعدادي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
-  "الصف الثاني الإعدادي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
-  "الصف الثالث الإعدادي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
-  "الصف الأول الثانوي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
-  "الصف الثاني الثانوي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
-  "الصف الثالث الثانوي": [
-    { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
-    { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
-    { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
-    { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
-    { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
-  ],
+  "الصف الأول الإعدادي": prepSubjects,
+  "الصف الثاني الإعدادي": prepSubjects,
+  "الصف الثالث الإعدادي": prepSubjects,
+  "الصف الأول الثانوي": secSubjects,
+  "الصف الثاني الثانوي": secSubjects,
+  "الصف الثالث الثانوي": secSubjects,
 };
 
 const Dashboard = () => {
@@ -133,7 +112,8 @@ const Dashboard = () => {
   const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "" });
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all", target_grades: [] as string[] });
+  const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all" as "all" | "subscribed" | "unsubscribed", target_grades: [] as string[] });
+  const [adminViewSubscribed, setAdminViewSubscribed] = useState(true);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -255,7 +235,7 @@ const Dashboard = () => {
     }
     const { error } = await supabase.from("notifications").insert({
       title: newNotif.title, body: newNotif.body,
-      target_audience: newNotif.target_grades.length > 0 ? "specific" : "all",
+      target_audience: newNotif.target_audience,
       target_grades: newNotif.target_grades,
     });
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
@@ -383,11 +363,23 @@ const Dashboard = () => {
               ))}
             </div>
 
-            {/* Subscription status */}
-            <div className="flex items-center gap-2 mt-3">
-              <CheckCircle className={`w-4 h-4 ${profile?.is_subscribed ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-sm ${profile?.is_subscribed ? "text-primary font-medium" : "text-muted-foreground"}`}>
-                {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
+            {/* Subscription status toggle */}
+            <div className="flex items-center gap-3 mt-3">
+              <span className="text-xs text-muted-foreground">عرض كـ:</span>
+              <button
+                onClick={() => setAdminViewSubscribed(true)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${adminViewSubscribed ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"}`}
+              >
+                مشترك
+              </button>
+              <button
+                onClick={() => setAdminViewSubscribed(false)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${!adminViewSubscribed ? "bg-destructive text-destructive-foreground border-destructive" : "bg-card border-border text-foreground"}`}
+              >
+                غير مشترك
+              </button>
+              <span className="text-xs text-muted-foreground mr-2">
+                ({subscriptionPrice} جنيه)
               </span>
             </div>
 
@@ -585,6 +577,24 @@ const Dashboard = () => {
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">استهداف حسب الاشتراك</Label>
+                    <div className="flex gap-2 mb-3">
+                      {[
+                        { value: "all" as const, label: "الكل" },
+                        { value: "subscribed" as const, label: "المشتركين فقط" },
+                        { value: "unsubscribed" as const, label: "غير المشتركين فقط" },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setNewNotif({ ...newNotif, target_audience: opt.value })}
+                          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newNotif.target_audience === opt.value ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
                     <Label className="text-xs text-muted-foreground">الصفوف المستهدفة (اتركها فارغة للجميع)</Label>
                     <div className="grid grid-cols-2 gap-1 mt-2">
                       {allGrades.map(g => (
@@ -613,7 +623,8 @@ const Dashboard = () => {
                         <h4 className="font-bold text-xs">{n.title}</h4>
                         <p className="text-xs text-muted-foreground">{n.body}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {n.target_grades.length > 0 ? n.target_grades.join("، ") : "الجميع"} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
+                          {n.target_audience === "subscribed" ? "المشتركين" : n.target_audience === "unsubscribed" ? "غير المشتركين" : "الكل"}
+                          {n.target_grades.length > 0 ? ` · ${n.target_grades.join("، ")}` : ""} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
                         </p>
                       </div>
                     ))}
@@ -682,7 +693,7 @@ const Dashboard = () => {
                     {profile?.madhab && subject.title === "الفقه" ? `${subject.title} ${profile.madhab.replace("الفقه ", "")}` : subject.title}
                   </h3>
                   <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
-                  {profile?.is_subscribed ? (
+                  {(isAdmin ? adminViewSubscribed : profile?.is_subscribed) ? (
                     <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
                       <Button size="sm" variant="outline" className="gap-1">
                         ابدأ المشاهدة
