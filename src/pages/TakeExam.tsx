@@ -61,12 +61,9 @@ const TakeExam = () => {
         .single();
       if (examData) setExam(examData);
 
-      // Fetch questions WITHOUT correct_answer
+      // Fetch questions WITHOUT correct_answer using secure RPC
       const { data: questionsData } = await supabase
-        .from("exam_questions")
-        .select("id, question_text, question_type, options, sort_order")
-        .eq("exam_id", examId!)
-        .order("sort_order", { ascending: true });
+        .rpc("get_exam_questions", { p_exam_id: examId! });
       if (questionsData) {
         setQuestions(questionsData.map(q => ({
           ...q,
