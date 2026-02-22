@@ -22,7 +22,7 @@ const HeroSection = () => {
               <span>منصة تعليمية متخصصة</span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold font-amiri text-gold leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight" style={{ fontFamily: "'Aref Ruqaa', serif" }}>
               مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
             </h1>
 
