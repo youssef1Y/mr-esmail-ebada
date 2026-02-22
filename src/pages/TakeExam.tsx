@@ -10,7 +10,6 @@ interface Question {
   question_text: string;
   question_type: string;
   options: string[] | null;
-  correct_answer: string | null;
   sort_order: number;
 }
 
@@ -58,10 +57,10 @@ const TakeExam = () => {
         .single();
       if (examData) setExam(examData);
 
-      // Fetch questions
+      // Fetch questions WITHOUT correct_answer
       const { data: questionsData } = await supabase
         .from("exam_questions")
-        .select("*")
+        .select("id, question_text, question_type, options, sort_order")
         .eq("exam_id", examId!)
         .order("sort_order", { ascending: true });
       if (questionsData) {
@@ -84,49 +83,26 @@ const TakeExam = () => {
     }
 
     setSubmitting(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
 
-    // Calculate score for MCQ
-    let score = 0;
-    const mcqQuestions = questions.filter(q => q.question_type === "mcq");
-    const details = questions.map(q => {
-      if (q.question_type === "mcq") {
-        const isCorrect = answers[q.id] === q.correct_answer;
-        if (isCorrect) score++;
-        return { questionId: q.id, correct: isCorrect, correctAnswer: q.correct_answer };
+    try {
+      // Grade server-side via edge function
+      const { data, error } = await supabase.functions.invoke("grade-exam", {
+        body: { exam_id: examId, answers },
+      });
+
+      if (error || !data?.success) {
+        toast({ title: "خطأ", description: data?.error || "حدث خطأ في التصحيح", variant: "destructive" });
+        setSubmitting(false);
+        return;
       }
-      return { questionId: q.id, correct: false, correctAnswer: null };
-    });
 
-    const total = mcqQuestions.length;
-
-    // Insert attempt
-    const { data: attempt, error: attemptError } = await supabase
-      .from("exam_attempts")
-      .insert({ exam_id: examId!, user_id: session.user.id, score, total })
-      .select()
-      .single();
-
-    if (attemptError) {
-      toast({ title: "خطأ", description: attemptError.message, variant: "destructive" });
-      setSubmitting(false);
-      return;
+      setResult({ score: data.score, total: data.total, details: data.details });
+      toast({ title: "تم تسليم الامتحان بنجاح" });
+    } catch {
+      toast({ title: "خطأ", description: "حدث خطأ في التصحيح", variant: "destructive" });
     }
 
-    // Insert answers
-    const answersToInsert = questions.map(q => ({
-      attempt_id: attempt.id,
-      question_id: q.id,
-      answer: answers[q.id] || "",
-      is_correct: q.question_type === "mcq" ? answers[q.id] === q.correct_answer : false,
-    }));
-
-    await supabase.from("exam_answers").insert(answersToInsert);
-
-    setResult({ score, total, details });
     setSubmitting(false);
-    toast({ title: "تم تسليم الامتحان بنجاح" });
   };
 
   if (loading) {
@@ -187,7 +163,7 @@ const TakeExam = () => {
             {!alreadyTaken && result.details.length > 0 && (
               <div className="mt-6 space-y-3 text-right">
                 {questions.map((q, i) => {
-                  const detail = result.details.find(d => d.questionId === q.id);
+                  const detail = result.details.find((d: any) => d.questionId === q.id);
                   if (q.question_type !== "mcq") return null;
                   return (
                     <div key={q.id} className={`p-3 rounded-xl border ${detail?.correct ? "border-green-500/30 bg-green-50 dark:bg-green-950/20" : "border-destructive/30 bg-red-50 dark:bg-red-950/20"}`}>
