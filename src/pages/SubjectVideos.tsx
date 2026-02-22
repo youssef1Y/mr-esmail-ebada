@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Play, Lock, BookOpen } from "lucide-react";
+import { ChevronRight, Play, BookOpen, Search, Send, Trash2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 
 interface VideoItem {
@@ -15,6 +16,15 @@ interface VideoItem {
   created_at: string;
 }
 
+interface Comment {
+  id: string;
+  video_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user_name?: string;
+}
+
 const SubjectVideos = () => {
   const { subject } = useParams();
   const [searchParams] = useSearchParams();
@@ -25,28 +35,32 @@ const SubjectVideos = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Comments
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
+      setUserId(session.user.id);
 
-      // Check admin role
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
       if (roles && roles.length > 0) setIsAdmin(true);
 
-      // Check subscription
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_subscribed")
         .eq("user_id", session.user.id)
         .single();
-      
       if (profile) setIsSubscribed(profile.is_subscribed);
 
       const isAdminUser = roles && roles.length > 0;
 
-      // Fetch videos
       if (subject && grade) {
         const { data } = await supabase
           .from("videos")
@@ -55,17 +69,68 @@ const SubjectVideos = () => {
           .eq("subject", decodeURIComponent(subject))
           .order("sort_order", { ascending: true });
         if (data) {
-          // Admin sees all, subscribed sees all, unsubscribed sees only 'all' access_type
           const filtered = isAdminUser || profile?.is_subscribed
             ? data
             : data.filter(v => v.access_type === "all");
           setVideos(filtered);
+
+          // Track views
+          for (const v of filtered) {
+            supabase.from("video_views").insert({ video_id: v.id, user_id: session.user.id }).then(() => {});
+          }
         }
       }
       setLoading(false);
     };
     init();
   }, [subject, grade, navigate]);
+
+  const fetchComments = async (videoId: string) => {
+    const { data } = await supabase
+      .from("video_comments")
+      .select("*")
+      .eq("video_id", videoId)
+      .order("created_at", { ascending: true });
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map(c => c.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      setComments(prev => ({
+        ...prev,
+        [videoId]: data.map(c => ({ ...c, user_name: nameMap.get(c.user_id) || "مستخدم" })),
+      }));
+    } else {
+      setComments(prev => ({ ...prev, [videoId]: [] }));
+    }
+  };
+
+  const addComment = async (videoId: string) => {
+    if (!newComment.trim() || !userId) return;
+    await supabase.from("video_comments").insert({ video_id: videoId, user_id: userId, content: newComment.trim() });
+    setNewComment("");
+    fetchComments(videoId);
+  };
+
+  const deleteComment = async (commentId: string, videoId: string) => {
+    await supabase.from("video_comments").delete().eq("id", commentId);
+    fetchComments(videoId);
+  };
+
+  const toggleComments = (videoId: string) => {
+    if (showComments === videoId) {
+      setShowComments(null);
+    } else {
+      setShowComments(videoId);
+      if (!comments[videoId]) fetchComments(videoId);
+    }
+  };
+
+  const filteredVideos = videos.filter(v =>
+    !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
+  );
 
   if (loading) {
     return (
@@ -97,18 +162,31 @@ const SubjectVideos = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold font-amiri mb-1">{decodedSubject}</h1>
           <p className="text-sm text-muted-foreground">{grade}</p>
         </div>
 
-        {videos.length === 0 ? (
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="ابحث في الفيديوهات..."
+            className="pr-10"
+          />
+        </div>
+
+        {filteredVideos.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <p className="text-muted-foreground">لا توجد فيديوهات لهذه المادة حتى الآن</p>
+            <p className="text-muted-foreground">
+              {searchQuery ? "لا توجد نتائج للبحث" : "لا توجد فيديوهات لهذه المادة حتى الآن"}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {videos.map((v, i) => (
+            {filteredVideos.map((v, i) => (
               <div key={v.id} className="bg-card rounded-xl border border-border overflow-hidden">
                 {playingId === v.id ? (
                   <video
@@ -133,7 +211,60 @@ const SubjectVideos = () => {
                     {v.title}
                   </h3>
                   {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
+
+                  {/* Comments Toggle */}
+                  <button
+                    onClick={() => toggleComments(v.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-2 transition-colors"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    {showComments === v.id ? "إخفاء التعليقات" : "التعليقات والأسئلة"}
+                    {comments[v.id] && comments[v.id].length > 0 && (
+                      <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px]">{comments[v.id].length}</span>
+                    )}
+                  </button>
                 </div>
+
+                {/* Comments Section */}
+                {showComments === v.id && (
+                  <div className="border-t border-border p-4 space-y-3">
+                    {comments[v.id]?.map(c => (
+                      <div key={c.id} className="bg-muted rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-xs">{c.user_name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(c.created_at).toLocaleDateString("ar-EG")}
+                            </span>
+                            {(c.user_id === userId || isAdmin) && (
+                              <button onClick={() => deleteComment(c.id, v.id)} className="text-destructive hover:text-destructive/80">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs">{c.content}</p>
+                      </div>
+                    ))}
+
+                    {comments[v.id]?.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">لا توجد تعليقات بعد</p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        placeholder="اكتب تعليق أو سؤال..."
+                        className="text-xs h-9"
+                        onKeyDown={e => e.key === "Enter" && addComment(v.id)}
+                      />
+                      <Button size="sm" onClick={() => addComment(v.id)} className="h-9 px-3" disabled={!newComment.trim()}>
+                        <Send className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
