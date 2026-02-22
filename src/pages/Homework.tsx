@@ -76,8 +76,9 @@ const Homework = () => {
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
       const { error } = await supabase.storage.from("submissions").upload(path, file);
       if (!error) {
-        const { data } = supabase.storage.from("submissions").getPublicUrl(path);
-        imageUrls.push(data.publicUrl);
+        // Use signed URLs for private submissions bucket
+        const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400);
+        if (data) imageUrls.push(data.signedUrl);
       }
     }
 
