@@ -27,17 +27,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Extract user_id from JWT instead of accepting it as parameter
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const { password } = await req.json();
     const adminPassword = Deno.env.get("ADMIN_PASSWORD");
