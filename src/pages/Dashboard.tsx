@@ -202,12 +202,19 @@ const Dashboard = () => {
                   </h3>
                   <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
                   {profile?.is_subscribed ? (
-                    <Button size="sm" variant="outline" className="gap-1">
-                      ابدأ المشاهدة
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
+                    <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(profile?.grade || '')}`}>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        ابدأ المشاهدة
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                    </Link>
                   ) : (
-                    <p className="text-xs text-destructive">يرجى الاشتراك أولاً ({subscriptionPrice} جنيه)</p>
+                    <Link to="/subscribe">
+                      <Button size="sm" className="bg-primary text-primary-foreground gap-1">
+                        اشترك للوصول للمحتوى
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                    </Link>
                   )}
                 </div>
               </div>

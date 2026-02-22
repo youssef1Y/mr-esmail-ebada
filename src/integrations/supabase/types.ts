@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          receipt_url: string | null
+          sender_phone: string
+          status: string
+          transfer_number: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          receipt_url?: string | null
+          sender_phone: string
+          status?: string
+          transfer_number: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          receipt_url?: string | null
+          sender_phone?: string
+          status?: string
+          transfer_number?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

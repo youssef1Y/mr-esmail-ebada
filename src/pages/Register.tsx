@@ -81,6 +81,21 @@ const Register = () => {
     if (error) {
       toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
     } else {
+      // Notify admin about new registration
+      try {
+        await supabase.functions.invoke("notify-registration", {
+          body: {
+            fullName: form.fullName,
+            grade: form.grade,
+            studentPhone: form.studentPhone,
+            school: form.school,
+            governorate: form.governorate,
+            madhab: form.madhab,
+          },
+        });
+      } catch (e) {
+        console.error("Notification error:", e);
+      }
       toast({ title: "تم التسجيل بنجاح", description: "مرحباً بك في المنصة" });
       navigate("/dashboard");
     }

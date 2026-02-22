@@ -14,14 +14,9 @@ const HeroSection = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10 pt-20">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Teacher Image */}
-          <div className="w-48 h-48 md:w-72 md:h-72 rounded-full border-4 border-gold/50 overflow-hidden flex-shrink-0 shadow-2xl">
-            <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-          </div>
-
+        <div className="flex flex-col items-center gap-6 md:gap-8">
           {/* Content */}
-          <div className="text-center md:text-right space-y-4 md:space-y-6">
+          <div className="text-center space-y-4 md:space-y-6">
             <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 rounded-full px-4 py-2 text-primary-foreground text-sm">
               <BookOpen className="w-4 h-4" />
               <span>منصة تعليمية متخصصة</span>
@@ -31,15 +26,22 @@ const HeroSection = () => {
               مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
             </h1>
 
-            <p className="text-primary-foreground/80 text-sm md:text-base max-w-xl leading-relaxed">
+            <p className="text-primary-foreground/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
               مُعِدُّ ومُراجعُ كتاب المرشد الأزهري | صاحبُ سلسلةِ الأزهريّ في العلومِ الشرعيةِ
             </p>
+          </div>
 
-            <p className="text-primary-foreground/70 text-xs md:text-sm max-w-lg leading-relaxed">
+          {/* Teacher Image - Below the name */}
+          <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-gold/50 overflow-hidden flex-shrink-0 shadow-2xl">
+            <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
+          </div>
+
+          <div className="text-center space-y-4">
+            <p className="text-primary-foreground/70 text-xs md:text-sm max-w-lg mx-auto leading-relaxed">
               المِنَصَّةُ مُتَخَصِّصَةٌ فِي: تَعْلِيمِ الفِقْهِ الشّافِعِيِّ، وَ المَالِكِيِّ، وَ الْحَنَفِيِّ، وَ أُصُولِ الدِّينِ (التَّوْحِيدِ– التَّفْسِيرِ– الْحَدِيثِ– السِّيرَةِ).
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/auth/register">
                 <Button size="lg" className="bg-gold hover:bg-gold-light text-primary font-bold px-8">
                   سجل الآن مجانًا
@@ -52,7 +54,7 @@ const HeroSection = () => {
               </a>
             </div>
 
-            <div className="flex items-center gap-6 justify-center md:justify-start text-primary-foreground/70 text-sm pt-2">
+            <div className="flex items-center gap-6 justify-center text-primary-foreground/70 text-sm pt-2">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
                 <span>مناهج معتمدة</span>
