@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import Subscribe from "./pages/Subscribe";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
+import SubjectVideos from "./pages/SubjectVideos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/subscribe" element={<Subscribe />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/subject/:subject" element={<SubjectVideos />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
