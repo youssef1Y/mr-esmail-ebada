@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, ChevronRight, FileText, Upload, CheckCircle, Clock, Image as ImageIcon, X } from "lucide-react";
+import { BookOpen, ChevronRight, FileText, Upload, CheckCircle, Clock, Image as ImageIcon, X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -154,13 +154,24 @@ const Homework = () => {
 
                 <div>
                   <label className="text-sm font-medium mb-1 block">رفع صور الحل</label>
-                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <ImageIcon className="w-6 h-6 text-muted-foreground mb-1" />
-                    <span className="text-xs text-muted-foreground">اضغط لرفع صور</span>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                      if (e.target.files) setAnswerImages(prev => [...prev, ...Array.from(e.target.files!)]);
-                    }} />
-                  </label>
+                  <div className="flex gap-2">
+                    {/* Camera capture */}
+                    <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-primary/50 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-colors">
+                      <Camera className="w-6 h-6 text-primary mb-1" />
+                      <span className="text-xs text-primary font-medium">التقاط من الكاميرا</span>
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => {
+                        if (e.target.files) setAnswerImages(prev => [...prev, ...Array.from(e.target.files!)]);
+                      }} />
+                    </label>
+                    {/* Gallery pick */}
+                    <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <ImageIcon className="w-6 h-6 text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">اختيار من المعرض</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                        if (e.target.files) setAnswerImages(prev => [...prev, ...Array.from(e.target.files!)]);
+                      }} />
+                    </label>
+                  </div>
                   {answerImages.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {answerImages.map((f, i) => (
