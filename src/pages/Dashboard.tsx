@@ -439,6 +439,13 @@ const Dashboard = () => {
   const [viewingExamResults, setViewingExamResults] = useState<string | null>(null);
   const [examResults, setExamResults] = useState<ExamAttemptResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  
+  // Exam answer grading state
+  const [viewingAttemptAnswers, setViewingAttemptAnswers] = useState<string | null>(null);
+  const [attemptAnswers, setAttemptAnswers] = useState<any[]>([]);
+  const [attemptQuestions, setAttemptQuestions] = useState<any[]>([]);
+  const [loadingAnswers, setLoadingAnswers] = useState(false);
+  const [essayScores, setEssayScores] = useState<Record<string, string>>({});
 
   // Admin stats
   const [statsData, setStatsData] = useState<{ totalViews: number; gradeStats: { grade: string; count: number }[]; topVideos: { title: string; views: number }[] } | null>(null);
@@ -572,6 +579,71 @@ const Dashboard = () => {
       setExamResults([]);
     }
     setLoadingResults(false);
+  };
+
+  const fetchAttemptAnswers = async (attemptId: string, examId: string) => {
+    setLoadingAnswers(true);
+    setViewingAttemptAnswers(attemptId);
+    const { data: answers } = await supabase
+      .from("exam_answers")
+      .select("*")
+      .eq("attempt_id", attemptId);
+    const { data: questions } = await supabase
+      .from("exam_questions")
+      .select("id, question_text, question_type, correct_answer, sort_order")
+      .eq("exam_id", examId)
+      .order("sort_order", { ascending: true });
+    setAttemptAnswers(answers || []);
+    setAttemptQuestions(questions || []);
+    // Initialize essay scores
+    const scores: Record<string, string> = {};
+    (answers || []).forEach((a: any) => {
+      const q = (questions || []).find((qq: any) => qq.id === a.question_id);
+      if (q?.question_type === "essay" && a.is_correct !== null) {
+        // Use existing score if any
+      }
+    });
+    setEssayScores(scores);
+    setLoadingAnswers(false);
+  };
+
+  const saveEssayGrades = async (attemptId: string) => {
+    // Update each essay answer's is_correct based on score
+    for (const [answerId, scoreStr] of Object.entries(essayScores)) {
+      const score = parseInt(scoreStr);
+      if (!isNaN(score)) {
+        await supabase.from("exam_answers").update({ is_correct: score > 0 }).eq("id", answerId);
+      }
+    }
+    
+    // Recalculate total score for the attempt
+    const { data: allAnswers } = await supabase.from("exam_answers").select("*").eq("attempt_id", attemptId);
+    const attempt = examResults.find(r => r.id === attemptId);
+    if (allAnswers && attempt) {
+      // MCQ score stays the same, add essay points
+      const { data: questions } = await supabase.from("exam_questions").select("id, question_type").eq("exam_id", viewingExamResults!);
+      const qMap = new Map((questions || []).map((q: any) => [q.id, q]));
+      
+      let totalScore = 0;
+      let totalQuestions = 0;
+      for (const ans of allAnswers) {
+        const q = qMap.get(ans.question_id);
+        if (q) {
+          totalQuestions++;
+          if (q.question_type === "mcq" && ans.is_correct) totalScore++;
+          else if (q.question_type === "essay") {
+            const essayScore = essayScores[ans.id];
+            if (essayScore) totalScore += parseInt(essayScore) > 0 ? 1 : 0;
+          }
+        }
+      }
+      
+      await supabase.from("exam_attempts").update({ score: totalScore, total: totalQuestions }).eq("id", attemptId);
+    }
+    
+    toast({ title: "تم حفظ التصحيح" });
+    setViewingAttemptAnswers(null);
+    if (viewingExamResults) fetchExamResults(viewingExamResults);
   };
 
   const fetchNotifications = async () => {
@@ -1246,7 +1318,7 @@ const Dashboard = () => {
                   )}
 
                   {/* Exam Results View */}
-                  {viewingExamResults && (
+                  {viewingExamResults && !viewingAttemptAnswers && (
                     <div className="bg-muted rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-sm flex items-center gap-2">
@@ -1265,24 +1337,126 @@ const Dashboard = () => {
                         <p className="text-center text-muted-foreground text-sm py-6">لا توجد نتائج بعد</p>
                       ) : (
                         <div className="space-y-2 max-h-80 overflow-y-auto">
-                          <div className="text-xs text-muted-foreground mb-2">عدد المحاولات: {examResults.length}</div>
+                          <div className="text-xs text-muted-foreground mb-2">عدد المحاولات: {examResults.length} - اضغط على الطالب لعرض إجاباته</div>
                           {examResults.map(r => (
-                            <div key={r.id} className="bg-background rounded-lg border border-border p-3 flex items-center justify-between">
+                            <div
+                              key={r.id}
+                              className="bg-background rounded-lg border border-border p-3 flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                              onClick={() => fetchAttemptAnswers(r.id, viewingExamResults!)}
+                            >
                               <div>
                                 <p className="font-bold text-sm">{r.student_name}</p>
                                 <p className="text-xs text-muted-foreground">{r.student_grade}</p>
                                 <p className="text-xs text-muted-foreground">{new Date(r.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                               </div>
-                              <div className="text-center">
-                                <span className={`text-lg font-bold ${(r.score || 0) >= ((r.total || 1) * 0.5) ? "text-primary" : "text-destructive"}`}>
-                                  {r.score || 0}/{r.total || 0}
-                                </span>
-                                <p className="text-xs text-muted-foreground">{r.total ? Math.round(((r.score || 0) / r.total) * 100) : 0}%</p>
+                              <div className="flex items-center gap-2">
+                                <Eye className="w-4 h-4 text-muted-foreground" />
+                                <div className="text-center">
+                                  <span className={`text-lg font-bold ${(r.score || 0) >= ((r.total || 1) * 0.5) ? "text-primary" : "text-destructive"}`}>
+                                    {r.score || 0}/{r.total || 0}
+                                  </span>
+                                  <p className="text-xs text-muted-foreground">{r.total ? Math.round(((r.score || 0) / r.total) * 100) : 0}%</p>
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Viewing a specific attempt's answers */}
+                  {viewingAttemptAnswers && (
+                    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setViewingAttemptAnswers(null)}>
+                      <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-bold text-lg">إجابات الطالب</h3>
+                          <Button variant="ghost" size="sm" onClick={() => setViewingAttemptAnswers(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {loadingAnswers ? (
+                          <div className="flex justify-center py-6">
+                            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {attemptQuestions.map((q: any, i: number) => {
+                              const ans = attemptAnswers.find((a: any) => a.question_id === q.id);
+                              const isEssay = q.question_type === "essay";
+                              return (
+                                <div key={q.id} className={`rounded-xl border p-4 ${isEssay ? "border-primary/30 bg-primary/5" : "border-border bg-background"}`}>
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <span className="text-xs font-bold text-muted-foreground">{i + 1}.</span>
+                                    <div className="flex-1">
+                                      <p className="font-bold text-sm">{q.question_text}</p>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({isEssay ? "مقالي" : "اختيار من متعدد"})
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Student's answer */}
+                                  {ans?.answer && (
+                                    <div className="bg-muted rounded-lg p-3 mb-2">
+                                      <p className="text-xs font-medium mb-1">إجابة الطالب:</p>
+                                      <p className="text-sm">{ans.answer}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Student's images */}
+                                  {ans?.image_urls && ans.image_urls.length > 0 && (
+                                    <div className="mb-2">
+                                      <p className="text-xs font-medium mb-1">صور الحل:</p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {ans.image_urls.map((url: string, j: number) => (
+                                          <a key={j} href={url} target="_blank" rel="noopener noreferrer">
+                                            <img src={url} className="w-full rounded-lg border border-border" alt={`صورة ${j + 1}`} />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* MCQ result */}
+                                  {!isEssay && (
+                                    <div className={`flex items-center gap-2 text-xs ${ans?.is_correct ? "text-green-600" : "text-destructive"}`}>
+                                      {ans?.is_correct ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                      {ans?.is_correct ? "إجابة صحيحة" : `خطأ - الصحيح: ${q.correct_answer}`}
+                                    </div>
+                                  )}
+
+                                  {/* Essay grading */}
+                                  {isEssay && ans && (
+                                    <div className="mt-2 border-t border-border pt-2">
+                                      <label className="text-xs font-medium block mb-1">تقييم السؤال المقالي:</label>
+                                      <div className="flex items-center gap-2">
+                                        <select
+                                          value={essayScores[ans.id] || ""}
+                                          onChange={e => setEssayScores(prev => ({ ...prev, [ans.id]: e.target.value }))}
+                                          className="rounded-lg border border-input bg-background px-3 py-2 text-sm flex-1"
+                                        >
+                                          <option value="">لم يُقيّم</option>
+                                          <option value="0">0 - غير صحيح</option>
+                                          <option value="1">1 - صحيح</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Save button */}
+                            {attemptQuestions.some((q: any) => q.question_type === "essay") && (
+                              <Button onClick={() => saveEssayGrades(viewingAttemptAnswers!)} className="w-full gap-2">
+                                <CheckCircle className="w-4 h-4" /> حفظ التصحيح
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
