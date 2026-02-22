@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,10 +46,50 @@ interface Notification {
   created_at: string;
 }
 
+interface HomeworkSubmissionWithDetails {
+  id: string;
+  homework_id: string;
+  user_id: string;
+  content: string | null;
+  image_urls: string[];
+  score: number | null;
+  feedback: string | null;
+  submitted_at: string;
+  homework_title: string;
+  homework_subject: string;
+  homework_grade: string;
+  student_name: string;
+  student_phone: string;
+  parent_phone: string | null;
+  student_grade: string;
+  student_school: string | null;
+  student_governorate: string | null;
+  student_madhab: string | null;
+}
+
+interface ExamAttemptWithDetails {
+  id: string;
+  exam_id: string;
+  user_id: string;
+  score: number | null;
+  total: number | null;
+  submitted_at: string;
+  exam_title: string;
+  exam_subject: string;
+  exam_grade: string;
+  student_name: string;
+  student_phone: string;
+  parent_phone: string | null;
+  student_grade: string;
+  student_school: string | null;
+  student_governorate: string | null;
+  student_madhab: string | null;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -69,6 +109,22 @@ const Admin = () => {
   // Notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all", target_grades: [] as string[] });
+
+  // Homework submissions state
+  const [hwSubmissions, setHwSubmissions] = useState<HomeworkSubmissionWithDetails[]>([]);
+  const [hwFilterGrade, setHwFilterGrade] = useState("");
+  const [hwSearchQuery, setHwSearchQuery] = useState("");
+  const [hwLoadingData, setHwLoadingData] = useState(false);
+  const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
+  const [editScore, setEditScore] = useState("");
+  const [editFeedback, setEditFeedback] = useState("");
+  const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+
+  // Exams state
+  const [examAttempts, setExamAttempts] = useState<ExamAttemptWithDetails[]>([]);
+  const [examFilterGrade, setExamFilterGrade] = useState("");
+  const [examSearchQuery, setExamSearchQuery] = useState("");
+  const [examLoadingData, setExamLoadingData] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -112,9 +168,90 @@ const Admin = () => {
     if (data) setNotifications(data);
   };
 
+  const fetchHomeworkSubmissions = async () => {
+    setHwLoadingData(true);
+    // Fetch submissions
+    const { data: subs } = await supabase.from("homework_submissions").select("*").order("submitted_at", { ascending: false });
+    if (!subs) { setHwLoadingData(false); return; }
+
+    // Fetch related homework and profiles
+    const hwIds = [...new Set(subs.map(s => s.homework_id))];
+    const userIds = [...new Set(subs.map(s => s.user_id))];
+
+    const [hwResult, profilesResult] = await Promise.all([
+      hwIds.length > 0 ? supabase.from("homework").select("*").in("id", hwIds) : { data: [] },
+      userIds.length > 0 ? supabase.from("profiles").select("*").in("user_id", userIds) : { data: [] },
+    ]);
+
+    const hwMap = new Map((hwResult.data || []).map(h => [h.id, h]));
+    const profileMap = new Map((profilesResult.data || []).map(p => [p.user_id, p]));
+
+    const enriched: HomeworkSubmissionWithDetails[] = subs.map(s => {
+      const hw = hwMap.get(s.homework_id);
+      const profile = profileMap.get(s.user_id);
+      return {
+        ...s,
+        image_urls: s.image_urls || [],
+        homework_title: hw?.title || "غير معروف",
+        homework_subject: hw?.subject || "",
+        homework_grade: hw?.grade || "",
+        student_name: profile?.full_name || "غير معروف",
+        student_phone: profile?.student_phone || "",
+        parent_phone: profile?.parent_phone || null,
+        student_grade: profile?.grade || "",
+        student_school: profile?.school || null,
+        student_governorate: profile?.governorate || null,
+        student_madhab: profile?.madhab || null,
+      };
+    });
+
+    setHwSubmissions(enriched);
+    setHwLoadingData(false);
+  };
+
+  const fetchExamAttempts = async () => {
+    setExamLoadingData(true);
+    const { data: attempts } = await supabase.from("exam_attempts").select("*").order("submitted_at", { ascending: false });
+    if (!attempts) { setExamLoadingData(false); return; }
+
+    const examIds = [...new Set(attempts.map(a => a.exam_id))];
+    const userIds = [...new Set(attempts.map(a => a.user_id))];
+
+    const [examsResult, profilesResult] = await Promise.all([
+      examIds.length > 0 ? supabase.from("exams").select("*").in("id", examIds) : { data: [] },
+      userIds.length > 0 ? supabase.from("profiles").select("*").in("user_id", userIds) : { data: [] },
+    ]);
+
+    const examMap = new Map((examsResult.data || []).map(e => [e.id, e]));
+    const profileMap = new Map((profilesResult.data || []).map(p => [p.user_id, p]));
+
+    const enriched: ExamAttemptWithDetails[] = attempts.map(a => {
+      const exam = examMap.get(a.exam_id);
+      const profile = profileMap.get(a.user_id);
+      return {
+        ...a,
+        exam_title: exam?.title || "غير معروف",
+        exam_subject: exam?.subject || "",
+        exam_grade: exam?.grade || "",
+        student_name: profile?.full_name || "غير معروف",
+        student_phone: profile?.student_phone || "",
+        parent_phone: profile?.parent_phone || null,
+        student_grade: profile?.grade || "",
+        student_school: profile?.school || null,
+        student_governorate: profile?.governorate || null,
+        student_madhab: profile?.madhab || null,
+      };
+    });
+
+    setExamAttempts(enriched);
+    setExamLoadingData(false);
+  };
+
   useEffect(() => {
     if (tab === "videos") fetchVideos();
     if (tab === "notifications") fetchNotifications();
+    if (tab === "homework") fetchHomeworkSubmissions();
+    if (tab === "exams") fetchExamAttempts();
   }, [tab, videoGrade, videoSubject]);
 
   const toggleSubscription = async (profile: Profile) => {
@@ -186,11 +323,41 @@ const Admin = () => {
     }));
   };
 
+  const saveSubmissionGrade = async (submissionId: string) => {
+    const { error } = await supabase.from("homework_submissions").update({
+      score: editScore ? parseInt(editScore) : null,
+      feedback: editFeedback || null,
+    }).eq("id", submissionId);
+
+    if (error) {
+      console.error("Update submission error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء حفظ الدرجة", variant: "destructive" });
+    } else {
+      toast({ title: "تم حفظ الدرجة والملاحظات" });
+      setEditingSubmission(null);
+      setEditScore("");
+      setEditFeedback("");
+      fetchHomeworkSubmissions();
+    }
+  };
+
   const filteredProfiles = profiles.filter(p => {
     if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
     if (filterGrade && p.grade !== filterGrade) return false;
     if (filterSubscription === "subscribed" && !p.is_subscribed) return false;
     if (filterSubscription === "unsubscribed" && p.is_subscribed) return false;
+    return true;
+  });
+
+  const filteredHwSubmissions = hwSubmissions.filter(s => {
+    if (hwFilterGrade && s.homework_grade !== hwFilterGrade) return false;
+    if (hwSearchQuery && !s.student_name.includes(hwSearchQuery) && !s.student_phone.includes(hwSearchQuery)) return false;
+    return true;
+  });
+
+  const filteredExamAttempts = examAttempts.filter(a => {
+    if (examFilterGrade && a.exam_grade !== examFilterGrade) return false;
+    if (examSearchQuery && !a.student_name.includes(examSearchQuery) && !a.student_phone.includes(examSearchQuery)) return false;
     return true;
   });
 
@@ -202,6 +369,21 @@ const Admin = () => {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  // Student info card component
+  const StudentInfoCard = ({ name, phone, parentPhone, grade, school, governorate, madhab }: {
+    name: string; phone: string; parentPhone: string | null; grade: string;
+    school: string | null; governorate: string | null; madhab: string | null;
+  }) => (
+    <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-0.5">
+      <p className="font-bold text-sm">{name}</p>
+      <p>{grade}</p>
+      {school && <p>{school}{governorate ? ` - ${governorate}` : ""}</p>}
+      {madhab && <p>{madhab}</p>}
+      <p>📱 الطالب: {phone}</p>
+      {parentPhone && <p>📱 ولي الأمر: {parentPhone}</p>}
+    </div>
+  );
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -242,11 +424,13 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 justify-center">
+        <div className="flex gap-2 mb-6 justify-center flex-wrap">
           {[
             { key: "notifications" as const, label: "الإشعارات", icon: Bell },
             { key: "videos" as const, label: "الفيديوهات", icon: Video },
             { key: "subscribers" as const, label: "المشتركين", icon: Users },
+            { key: "homework" as const, label: "الواجبات", icon: FileText },
+            { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
           ].map(t => (
             <Button
               key={t.key}
@@ -260,6 +444,23 @@ const Admin = () => {
             </Button>
           ))}
         </div>
+
+        {/* Image Viewer Modal */}
+        {viewingImages && (
+          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setViewingImages(null)}>
+            <div className="bg-card rounded-2xl border border-border p-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">صور الإجابة</h3>
+                <Button variant="ghost" size="sm" onClick={() => setViewingImages(null)}>✕</Button>
+              </div>
+              <div className="space-y-4">
+                {viewingImages.map((url, i) => (
+                  <img key={i} src={url} className="w-full rounded-lg border border-border" alt={`صورة ${i + 1}`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications Tab */}
         {tab === "notifications" && (
@@ -544,6 +745,256 @@ const Admin = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Homework Tab */}
+        {tab === "homework" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold font-amiri">تسليمات الواجبات</h2>
+              <Button variant="outline" size="sm" onClick={fetchHomeworkSubmissions} className="gap-1">
+                <RefreshCw className="w-3 h-3" />
+                تحديث
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <div>
+                <Label className="text-xs">بحث بالاسم أو رقم الموبايل</Label>
+                <div className="relative">
+                  <Input value={hwSearchQuery} onChange={e => setHwSearchQuery(e.target.value)} placeholder="اسم الطالب أو رقم الموبايل..." className="pr-10" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">المرحلة</Label>
+                <select value={hwFilterGrade} onChange={e => setHwFilterGrade(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">الكل</option>
+                  {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">عرض {filteredHwSubmissions.length} تسليم</p>
+
+            {hwLoadingData ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : filteredHwSubmissions.length === 0 ? (
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">لا توجد تسليمات بعد</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredHwSubmissions.map(s => (
+                  <div key={s.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                    {/* Homework info */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm">{s.homework_title}</h3>
+                        <p className="text-xs text-muted-foreground">{s.homework_subject} · {s.homework_grade}</p>
+                        <p className="text-xs text-muted-foreground">تاريخ التسليم: {new Date(s.submitted_at).toLocaleDateString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                      {s.score !== null && (
+                        <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-bold">
+                          {s.score} درجة
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Student info */}
+                    <StudentInfoCard
+                      name={s.student_name}
+                      phone={s.student_phone}
+                      parentPhone={s.parent_phone}
+                      grade={s.student_grade}
+                      school={s.student_school}
+                      governorate={s.student_governorate}
+                      madhab={s.student_madhab}
+                    />
+
+                    {/* Answer content */}
+                    {s.content && (
+                      <div className="bg-background rounded-lg p-3 border border-border">
+                        <p className="text-xs font-medium mb-1">الإجابة النصية:</p>
+                        <p className="text-sm whitespace-pre-wrap">{s.content}</p>
+                      </div>
+                    )}
+
+                    {/* Answer images */}
+                    {s.image_urls.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium mb-2">صور الإجابة ({s.image_urls.length}):</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {s.image_urls.map((url, i) => (
+                            <img
+                              key={i}
+                              src={url}
+                              className="w-20 h-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => setViewingImages(s.image_urls)}
+                              alt={`صورة ${i + 1}`}
+                            />
+                          ))}
+                        </div>
+                        <Button variant="outline" size="sm" className="mt-2 gap-1" onClick={() => setViewingImages(s.image_urls)}>
+                          <Eye className="w-3 h-3" />
+                          عرض الصور بالحجم الكامل
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Feedback */}
+                    {s.feedback && !editingSubmission && (
+                      <div className="bg-primary/5 rounded-lg p-3">
+                        <p className="text-xs font-medium">ملاحظات الأستاذ:</p>
+                        <p className="text-sm">{s.feedback}</p>
+                      </div>
+                    )}
+
+                    {/* Grade/Feedback editing */}
+                    {editingSubmission === s.id ? (
+                      <div className="space-y-3 border-t border-border pt-3">
+                        <div>
+                          <Label className="text-xs">الدرجة</Label>
+                          <Input type="number" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="أدخل الدرجة" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">ملاحظات</Label>
+                          <textarea
+                            value={editFeedback}
+                            onChange={e => setEditFeedback(e.target.value)}
+                            placeholder="اكتب ملاحظاتك..."
+                            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => saveSubmissionGrade(s.id)} className="flex-1 gap-1">
+                            <Star className="w-3 h-3" />
+                            حفظ
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingSubmission(null)}>إلغاء</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full gap-1"
+                        onClick={() => {
+                          setEditingSubmission(s.id);
+                          setEditScore(s.score?.toString() || "");
+                          setEditFeedback(s.feedback || "");
+                        }}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        {s.score !== null ? "تعديل الدرجة والملاحظات" : "إضافة درجة وملاحظات"}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Exams Tab */}
+        {tab === "exams" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold font-amiri">نتائج الامتحانات</h2>
+              <Button variant="outline" size="sm" onClick={fetchExamAttempts} className="gap-1">
+                <RefreshCw className="w-3 h-3" />
+                تحديث
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <div>
+                <Label className="text-xs">بحث بالاسم أو رقم الموبايل</Label>
+                <div className="relative">
+                  <Input value={examSearchQuery} onChange={e => setExamSearchQuery(e.target.value)} placeholder="اسم الطالب أو رقم الموبايل..." className="pr-10" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">المرحلة</Label>
+                <select value={examFilterGrade} onChange={e => setExamFilterGrade(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">الكل</option>
+                  {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">عرض {filteredExamAttempts.length} محاولة</p>
+
+            {examLoadingData ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : filteredExamAttempts.length === 0 ? (
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">لا توجد نتائج امتحانات بعد</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredExamAttempts.map(a => (
+                  <div key={a.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                    {/* Exam info */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm">{a.exam_title}</h3>
+                        <p className="text-xs text-muted-foreground">{a.exam_subject} · {a.exam_grade}</p>
+                        <p className="text-xs text-muted-foreground">تاريخ التقديم: {new Date(a.submitted_at).toLocaleDateString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                        a.score !== null && a.total !== null && a.score >= a.total * 0.6
+                          ? "bg-primary/10 text-primary"
+                          : "bg-destructive/10 text-destructive"
+                      }`}>
+                        {a.score ?? 0} / {a.total ?? 0}
+                      </span>
+                    </div>
+
+                    {/* Student info */}
+                    <StudentInfoCard
+                      name={a.student_name}
+                      phone={a.student_phone}
+                      parentPhone={a.parent_phone}
+                      grade={a.student_grade}
+                      school={a.student_school}
+                      governorate={a.student_governorate}
+                      madhab={a.student_madhab}
+                    />
+
+                    {/* Score bar */}
+                    {a.score !== null && a.total !== null && a.total > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>النتيجة</span>
+                          <span>{Math.round((a.score / a.total) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              a.score >= a.total * 0.6 ? "bg-primary" : "bg-destructive"
+                            }`}
+                            style={{ width: `${Math.min(100, (a.score / a.total) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
