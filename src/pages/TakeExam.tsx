@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { BookOpen, ChevronRight, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { BookOpen, ChevronRight, CheckCircle, XCircle, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { User as AuthUser } from "@supabase/supabase-js";
 
 interface Question {
   id: string;
@@ -27,8 +28,10 @@ const TakeExam = () => {
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answerImages, setAnswerImages] = useState<Record<string, File[]>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [userId, setUserId] = useState("");
   const [result, setResult] = useState<{ score: number; total: number; details: { questionId: string; correct: boolean; correctAnswer: string | null }[] } | null>(null);
   const [alreadyTaken, setAlreadyTaken] = useState(false);
 
@@ -36,6 +39,7 @@ const TakeExam = () => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
+      setUserId(session.user.id);
 
       // Check if already taken
       const { data: attempts } = await supabase
@@ -76,7 +80,7 @@ const TakeExam = () => {
   }, [examId, navigate]);
 
   const handleSubmit = async () => {
-    const unanswered = questions.filter(q => !answers[q.id]);
+    const unanswered = questions.filter(q => !answers[q.id] && !(answerImages[q.id]?.length > 0));
     if (unanswered.length > 0) {
       toast({ title: "تنبيه", description: `يوجد ${unanswered.length} سؤال بدون إجابة`, variant: "destructive" });
       return;
@@ -84,10 +88,26 @@ const TakeExam = () => {
 
     setSubmitting(true);
 
+    // Upload images for essay questions
+    const imageUrlsMap: Record<string, string[]> = {};
+    for (const [qId, files] of Object.entries(answerImages)) {
+      if (files.length === 0) continue;
+      const urls: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split(".").pop();
+        const path = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error } = await supabase.storage.from("submissions").upload(path, file);
+        if (!error) {
+          const { data } = supabase.storage.from("submissions").getPublicUrl(path);
+          urls.push(data.publicUrl);
+        }
+      }
+      imageUrlsMap[qId] = urls;
+    }
+
     try {
-      // Grade server-side via edge function
       const { data, error } = await supabase.functions.invoke("grade-exam", {
-        body: { exam_id: examId, answers },
+        body: { exam_id: examId, answers, image_urls: imageUrlsMap },
       });
 
       if (error || !data?.success) {
@@ -95,6 +115,15 @@ const TakeExam = () => {
         setSubmitting(false);
         return;
       }
+
+      // Award points
+      await supabase.from("student_points").insert({
+        user_id: userId,
+        points: Math.max(5, Math.round((data.score / (data.total || 1)) * 20)),
+        reason: `امتحان: ${exam?.title}`,
+        source_type: "exam",
+        source_id: examId,
+      });
 
       setResult({ score: data.score, total: data.total, details: data.details });
       toast({ title: "تم تسليم الامتحان بنجاح" });
@@ -225,12 +254,43 @@ const TakeExam = () => {
                     ))}
                   </div>
                 ) : (
-                  <textarea
-                    value={answers[q.id] || ""}
-                    onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    placeholder="اكتب إجابتك هنا..."
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
+                  <div className="space-y-3">
+                    <textarea
+                      value={answers[q.id] || ""}
+                      onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      placeholder="اكتب إجابتك هنا..."
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <div>
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <ImageIcon className="w-5 h-5 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">ارفع صور الحل</span>
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                          if (e.target.files) {
+                            setAnswerImages(prev => ({
+                              ...prev,
+                              [q.id]: [...(prev[q.id] || []), ...Array.from(e.target.files!)],
+                            }));
+                          }
+                        }} />
+                      </label>
+                      {answerImages[q.id]?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {answerImages[q.id].map((f, fi) => (
+                            <div key={fi} className="relative">
+                              <img src={URL.createObjectURL(f)} className="w-14 h-14 object-cover rounded-lg border border-border" />
+                              <button onClick={() => setAnswerImages(prev => ({
+                                ...prev,
+                                [q.id]: prev[q.id].filter((_, idx) => idx !== fi),
+                              }))} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}

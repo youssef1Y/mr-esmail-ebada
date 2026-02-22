@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,6 +111,223 @@ const gradeSubjects: Record<string, { title: string; icon: any; description: str
   "الصف الثالث الثانوي": secSubjects,
 };
 
+// Admin Homework Tab Component
+const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subjects: string[]; toast: any }) => {
+  const [homeworkList, setHomeworkList] = useState<any[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+
+  const fetchHomework = async () => {
+    const { data } = await supabase.from("homework").select("*").order("created_at", { ascending: false });
+    if (data) setHomeworkList(data);
+  };
+
+  useEffect(() => { fetchHomework(); }, []);
+
+  const addHomework = async () => {
+    if (!newHw.title || !newHw.grade || !newHw.subject) {
+      toast({ title: "خطأ", description: "أكمل الحقول المطلوبة", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("homework").insert({
+      title: newHw.title,
+      description: newHw.description || null,
+      grade: newHw.grade,
+      subject: newHw.subject,
+      due_date: newHw.due_date || null,
+    });
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "تم إضافة الواجب" });
+      setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      setShowAdd(false);
+      fetchHomework();
+    }
+  };
+
+  const deleteHomework = async (id: string) => {
+    await supabase.from("homework").delete().eq("id", id);
+    fetchHomework();
+    toast({ title: "تم حذف الواجب" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-sm">إدارة الواجبات</h3>
+        <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1"><Plus className="w-3 h-3" /> إضافة</Button>
+      </div>
+      {showAdd && (
+        <div className="bg-muted rounded-xl p-4 space-y-3">
+          <Input value={newHw.title} onChange={e => setNewHw({ ...newHw, title: e.target.value })} placeholder="عنوان الواجب" />
+          <textarea value={newHw.description} onChange={e => setNewHw({ ...newHw, description: e.target.value })} placeholder="تفاصيل الواجب..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={newHw.grade} onChange={e => setNewHw({ ...newHw, grade: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+              <option value="">المرحلة</option>
+              {grades.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+            <select value={newHw.subject} onChange={e => setNewHw({ ...newHw, subject: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+              <option value="">المادة</option>
+              {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">الموعد النهائي (اختياري)</Label>
+            <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={addHomework} size="sm" className="flex-1">حفظ</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
+          </div>
+        </div>
+      )}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {homeworkList.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-6">لا توجد واجبات</p>
+        ) : homeworkList.map(hw => (
+          <div key={hw.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between">
+            <div>
+              <h4 className="font-bold text-sm">{hw.title}</h4>
+              <p className="text-xs text-muted-foreground">{hw.grade} · {hw.subject}</p>
+              {hw.due_date && <p className="text-xs text-muted-foreground">الموعد: {new Date(hw.due_date).toLocaleDateString("ar-EG")}</p>}
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => deleteHomework(hw.id)} className="text-destructive h-7 w-7">
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Admin Submissions Tab Component
+const AdminSubmissionsTab = ({ toast }: { toast: any }) => {
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSub, setSelectedSub] = useState<any>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [scoreValue, setScoreValue] = useState("");
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+
+  const fetchSubmissions = async () => {
+    setLoading(true);
+    // Get homework submissions
+    const { data: hwSubs } = await supabase.from("homework_submissions").select("*").order("submitted_at", { ascending: false });
+    if (hwSubs && hwSubs.length > 0) {
+      const userIds = [...new Set(hwSubs.map((s: any) => s.user_id))];
+      const hwIds = [...new Set(hwSubs.map((s: any) => s.homework_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, grade").in("user_id", userIds);
+      const { data: homeworks } = await supabase.from("homework").select("id, title").in("id", hwIds);
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const hwMap = new Map(homeworks?.map(h => [h.id, h]) || []);
+      setSubmissions(hwSubs.map((s: any) => ({
+        ...s,
+        student_name: profileMap.get(s.user_id)?.full_name || "غير معروف",
+        student_grade: profileMap.get(s.user_id)?.grade || "",
+        homework_title: hwMap.get(s.homework_id)?.title || "",
+        type: "homework",
+      })));
+    } else {
+      setSubmissions([]);
+    }
+    setLoading(false);
+  };
+
+  const submitFeedback = async () => {
+    if (!selectedSub) return;
+    const updates: any = {};
+    if (feedbackText) updates.feedback = feedbackText;
+    if (scoreValue) updates.score = parseInt(scoreValue);
+    await supabase.from("homework_submissions").update(updates).eq("id", selectedSub.id);
+    toast({ title: "تم حفظ التقييم" });
+    setSelectedSub(null);
+    setFeedbackText("");
+    setScoreValue("");
+    fetchSubmissions();
+  };
+
+  if (loading) return <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4" /> حلول الطلاب</h3>
+        <Button variant="outline" size="sm" onClick={fetchSubmissions} className="gap-1 h-7"><RefreshCw className="w-3 h-3" /> تحديث</Button>
+      </div>
+
+      {selectedSub && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedSub(null)}>
+          <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1">{selectedSub.homework_title}</h3>
+            <p className="text-xs text-muted-foreground mb-3">الطالب: {selectedSub.student_name} - {selectedSub.student_grade}</p>
+            {selectedSub.content && (
+              <div className="bg-muted rounded-lg p-3 mb-3">
+                <p className="text-sm">{selectedSub.content}</p>
+              </div>
+            )}
+            {selectedSub.image_urls && selectedSub.image_urls.length > 0 && (
+              <div className="space-y-2 mb-4">
+                <p className="text-xs font-medium">صور الحل:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedSub.image_urls.map((url: string, i: number) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} className="w-full rounded-lg border border-border" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm">الدرجة</Label>
+                <Input type="number" value={scoreValue} onChange={e => setScoreValue(e.target.value)} placeholder="أدخل الدرجة" />
+              </div>
+              <div>
+                <Label className="text-sm">ملاحظات</Label>
+                <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} placeholder="ملاحظاتك على الحل..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={submitFeedback} className="flex-1">حفظ التقييم</Button>
+                <Button variant="outline" onClick={() => setSelectedSub(null)}>إغلاق</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {submissions.length === 0 ? (
+        <p className="text-center text-muted-foreground text-sm py-6">لا توجد حلول بعد</p>
+      ) : (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {submissions.map(s => (
+            <div key={s.id} className="bg-background rounded-xl border border-border p-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => { setSelectedSub(s); setFeedbackText(s.feedback || ""); setScoreValue(s.score?.toString() || ""); }}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-bold text-sm">{s.homework_title}</h4>
+                  <p className="text-xs text-muted-foreground">{s.student_name} - {s.student_grade}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(s.submitted_at).toLocaleDateString("ar-EG")}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {s.image_urls?.length > 0 && <ImageIcon className="w-4 h-4 text-muted-foreground" />}
+                  {s.score !== null ? (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{s.score} درجة</span>
+                  ) : (
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">لم يُقيّم</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -124,7 +341,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions">("subscribers");
 
   // Grade videos for admin preview
   const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
@@ -635,6 +852,8 @@ const Dashboard = () => {
                 { key: "subscribers" as const, label: "المشتركين", icon: Users },
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
                 { key: "exams" as const, label: "الامتحانات", icon: FileText },
+                { key: "homework" as const, label: "الواجبات", icon: ClipboardList },
+                { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
               ].map(t => (
@@ -1024,6 +1243,16 @@ const Dashboard = () => {
                 </div>
               )}
 
+              {/* Homework Admin */}
+              {adminTab === "homework" && (
+                <AdminHomeworkTab grades={allGrades} subjects={subjectsList} toast={toast} />
+              )}
+
+              {/* Submissions Admin */}
+              {adminTab === "submissions" && (
+                <AdminSubmissionsTab toast={toast} />
+              )}
+
               {/* Stats */}
               {adminTab === "stats" && (
                 <div className="space-y-4">
@@ -1138,11 +1367,30 @@ const Dashboard = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex justify-center gap-3 mb-8">
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
             <Link to="/my-results">
               <Button variant="outline" size="sm" className="gap-1">
-                <BarChart3 className="w-4 h-4" />
-                نتائجي
+                <BarChart3 className="w-4 h-4" /> نتائجي
+              </Button>
+            </Link>
+            <Link to="/homework">
+              <Button variant="outline" size="sm" className="gap-1">
+                <ClipboardList className="w-4 h-4" /> الواجبات
+              </Button>
+            </Link>
+            <Link to="/leaderboard">
+              <Button variant="outline" size="sm" className="gap-1">
+                <Trophy className="w-4 h-4" /> لوحة الشرف
+              </Button>
+            </Link>
+            <Link to="/question-bank">
+              <Button variant="outline" size="sm" className="gap-1">
+                <Library className="w-4 h-4" /> بنك الأسئلة
+              </Button>
+            </Link>
+            <Link to="/report">
+              <Button variant="outline" size="sm" className="gap-1">
+                <BarChart3 className="w-4 h-4" /> تقرير أدائي
               </Button>
             </Link>
           </div>

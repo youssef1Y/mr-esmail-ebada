@@ -14,6 +14,10 @@ import Admin from "./pages/Admin";
 import SubjectVideos from "./pages/SubjectVideos";
 import TakeExam from "./pages/TakeExam";
 import MyResults from "./pages/MyResults";
+import Homework from "./pages/Homework";
+import Leaderboard from "./pages/Leaderboard";
+import QuestionBank from "./pages/QuestionBank";
+import StudentReport from "./pages/StudentReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +40,10 @@ const App = () => (
           <Route path="/subject/:subject" element={<SubjectVideos />} />
           <Route path="/exam/:examId" element={<TakeExam />} />
           <Route path="/my-results" element={<MyResults />} />
+          <Route path="/homework" element={<Homework />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/question-bank" element={<QuestionBank />} />
+          <Route path="/report" element={<StudentReport />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
