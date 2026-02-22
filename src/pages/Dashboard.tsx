@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { User as AuthUser } from "@supabase/supabase-js";
+
+const ADMIN_PASSWORD = "Esmail01097602493";
 
 interface Profile {
   full_name: string;
@@ -13,6 +18,46 @@ interface Profile {
   school: string | null;
   governorate: string | null;
 }
+
+interface ProfileFull {
+  id: string;
+  user_id: string;
+  full_name: string;
+  grade: string;
+  school: string | null;
+  governorate: string | null;
+  madhab: string | null;
+  student_phone: string;
+  parent_phone: string | null;
+  is_subscribed: boolean;
+  created_at: string;
+}
+
+interface VideoItem {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  grade: string;
+  subject: string;
+  created_at: string;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  body: string;
+  target_audience: string;
+  target_grades: string[];
+  created_at: string;
+}
+
+const allGrades = [
+  "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
+  "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
+];
+
+const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
 
 const gradeSubjects: Record<string, { title: string; icon: any; description: string }[]> = {
   "الصف الأول الإعدادي": [
@@ -61,26 +106,43 @@ const gradeSubjects: Record<string, { title: string; icon: any; description: str
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications">("subscribers");
+
+  // Admin data
+  const [profiles, setProfiles] = useState<ProfileFull[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterGrade, setFilterGrade] = useState("");
+  const [filterSubscription, setFilterSubscription] = useState("");
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [videoGrade, setVideoGrade] = useState("");
+  const [videoSubject, setVideoSubject] = useState("");
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "" });
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all", target_grades: [] as string[] });
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) {
-        navigate("/auth/login");
-        return;
-      }
+      if (!session) { navigate("/auth/login"); return; }
       setUser(session.user);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth/login");
-        return;
-      }
+      if (!session) { navigate("/auth/login"); return; }
       setUser(session.user);
       fetchProfile(session.user.id);
+      checkAdminRole(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -92,10 +154,112 @@ const Dashboard = () => {
       .select("full_name, grade, madhab, is_subscribed, school, governorate")
       .eq("user_id", userId)
       .single();
-    
-    if (data) setProfile(data);
+    if (data) {
+      setProfile(data);
+      setSelectedGrade(data.grade);
+    }
     setLoading(false);
   };
+
+  const checkAdminRole = async (userId: string) => {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin");
+    if (data && data.length > 0) setIsAdmin(true);
+  };
+
+  const handleAdminLogin = () => {
+    if (adminPassword === ADMIN_PASSWORD) {
+      setAdminUnlocked(true);
+      setShowAdminLogin(false);
+      setAdminPassword("");
+      toast({ title: "تم الدخول كأدمن" });
+      fetchProfiles();
+    } else {
+      toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
+    }
+  };
+
+  const fetchProfiles = async () => {
+    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (data) setProfiles(data);
+  };
+
+  const fetchVideos = async () => {
+    let query = supabase.from("videos").select("*").order("created_at", { ascending: false });
+    if (videoGrade) query = query.eq("grade", videoGrade);
+    if (videoSubject) query = query.eq("subject", videoSubject);
+    const { data } = await query;
+    if (data) setVideos(data);
+  };
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
+    if (data) setNotifications(data);
+  };
+
+  useEffect(() => {
+    if (adminUnlocked) {
+      if (adminTab === "videos") fetchVideos();
+      if (adminTab === "notifications") fetchNotifications();
+    }
+  }, [adminTab, videoGrade, videoSubject, adminUnlocked]);
+
+  const toggleSubscription = async (p: ProfileFull) => {
+    const newPrice = p.grade.includes("إعدادي") ? 150 : 200;
+    await supabase.from("profiles").update({ is_subscribed: !p.is_subscribed, subscription_price: p.is_subscribed ? 0 : newPrice }).eq("id", p.id);
+    fetchProfiles();
+    toast({ title: p.is_subscribed ? "تم إلغاء الاشتراك" : "تم تفعيل الاشتراك" });
+  };
+
+  const deleteProfile = async (id: string) => {
+    await supabase.from("profiles").delete().eq("id", id);
+    fetchProfiles();
+    toast({ title: "تم حذف الطالب" });
+  };
+
+  const addVideo = async () => {
+    if (!newVideo.title || !newVideo.video_url || !newVideo.grade || !newVideo.subject) {
+      toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("videos").insert(newVideo);
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" }); setShowAddVideo(false); fetchVideos(); }
+  };
+
+  const deleteVideo = async (id: string) => {
+    await supabase.from("videos").delete().eq("id", id);
+    fetchVideos();
+    toast({ title: "تم حذف الفيديو" });
+  };
+
+  const sendNotification = async () => {
+    if (!newNotif.title || !newNotif.body) {
+      toast({ title: "خطأ", description: "أدخل عنوان ونص الإشعار", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("notifications").insert({
+      title: newNotif.title, body: newNotif.body,
+      target_audience: newNotif.target_grades.length > 0 ? "specific" : "all",
+      target_grades: newNotif.target_grades,
+    });
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "تم إرسال الإشعار" }); setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] }); fetchNotifications(); }
+  };
+
+  const toggleGradeTarget = (grade: string) => {
+    setNewNotif(prev => ({
+      ...prev,
+      target_grades: prev.target_grades.includes(grade) ? prev.target_grades.filter(g => g !== grade) : [...prev.target_grades, grade],
+    }));
+  };
+
+  const filteredProfiles = profiles.filter(p => {
+    if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
+    if (filterGrade && p.grade !== filterGrade) return false;
+    if (filterSubscription === "subscribed" && !p.is_subscribed) return false;
+    if (filterSubscription === "unsubscribed" && p.is_subscribed) return false;
+    return true;
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -110,8 +274,12 @@ const Dashboard = () => {
     );
   }
 
-  const subjects = profile ? gradeSubjects[profile.grade] || [] : [];
-  const subscriptionPrice = profile?.grade?.includes("إعدادي") ? 150 : 200;
+  const displayGrade = isAdmin && adminUnlocked ? selectedGrade : (profile?.grade || "");
+  const subjects = gradeSubjects[displayGrade] || [];
+  const subscriptionPrice = displayGrade?.includes("إعدادي") ? 150 : 200;
+  const totalStudents = profiles.length;
+  const subscribedCount = profiles.filter(p => p.is_subscribed).length;
+  const unsubscribedCount = profiles.filter(p => !p.is_subscribed).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,31 +293,287 @@ const Dashboard = () => {
             <span className="font-bold text-sm">منصة الأستاذ إسماعيل</span>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && !adminUnlocked && (
+              <Button variant="ghost" size="sm" onClick={() => setShowAdminLogin(true)} className="gap-1">
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">أدمن</span>
+              </Button>
+            )}
+            {isAdmin && adminUnlocked && (
+              <Button variant="ghost" size="sm" onClick={() => setAdminUnlocked(false)} className="gap-1 text-primary">
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">عرض كطالب</span>
+              </Button>
+            )}
             <Link to="/profile">
               <Button variant="ghost" size="sm">
                 <User className="w-4 h-4 ml-1" />
-                الملف الشخصي
+                <span className="hidden sm:inline">الملف الشخصي</span>
               </Button>
             </Link>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 ml-1" />
-              خروج
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Welcome */}
+      {/* Admin Password Dialog */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setShowAdminLogin(false)}>
+          <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <Lock className="w-6 h-6 text-primary" />
+              </div>
+              <h2 className="font-bold font-amiri text-lg">دخول لوحة التحكم</h2>
+              <p className="text-xs text-muted-foreground mt-1">أدخل كلمة مرور الأدمن</p>
+            </div>
+            <div className="space-y-3">
+              <Input
+                type="password"
+                value={adminPassword}
+                onChange={e => setAdminPassword(e.target.value)}
+                placeholder="كلمة مرور الأدمن"
+                onKeyDown={e => e.key === "Enter" && handleAdminLogin()}
+              />
+              <Button onClick={handleAdminLogin} className="w-full gap-2">
+                <Shield className="w-4 h-4" />
+                دخول
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Admin Panel (when unlocked) */}
+        {isAdmin && adminUnlocked && (
+          <div className="mb-8">
+            {/* Grade Switcher */}
+            <div className="bg-card rounded-2xl border border-border p-4 mb-4">
+              <Label className="text-xs text-muted-foreground mb-2 block">التنقل بين الصفوف (عرض كطالب)</Label>
+              <select
+                value={selectedGrade}
+                onChange={e => setSelectedGrade(e.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <div className="flex items-center gap-2 mt-3">
+                <CheckCircle className={`w-4 h-4 ${profile?.is_subscribed ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-sm ${profile?.is_subscribed ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
+                </span>
+              </div>
+            </div>
+
+            {/* Admin Tabs */}
+            <div className="flex gap-2 mb-4 justify-center flex-wrap">
+              {[
+                { key: "subscribers" as const, label: "المشتركين", icon: Users },
+                { key: "videos" as const, label: "الفيديوهات", icon: Video },
+                { key: "notifications" as const, label: "الإشعارات", icon: Bell },
+              ].map(t => (
+                <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className="gap-1">
+                  <t.icon className="w-4 h-4" />
+                  {t.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Admin Content */}
+            <div className="bg-card rounded-2xl border-2 border-primary/20 p-4">
+              {/* Subscribers */}
+              {adminTab === "subscribers" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold">{totalStudents}</span>
+                      <p className="text-xs text-muted-foreground">إجمالي</p>
+                    </div>
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold text-primary">{subscribedCount}</span>
+                      <p className="text-xs text-muted-foreground">مشترك</p>
+                    </div>
+                    <div className="bg-muted rounded-xl p-3 text-center">
+                      <span className="text-xl font-bold text-destructive">{unsubscribedCount}</span>
+                      <p className="text-xs text-muted-foreground">غير مشترك</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="بحث بالاسم أو الرقم..." />
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                        <option value="">كل الصفوف</option>
+                        {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      <select value={filterSubscription} onChange={e => setFilterSubscription(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                        <option value="">الكل</option>
+                        <option value="subscribed">مشترك</option>
+                        <option value="unsubscribed">غير مشترك</option>
+                      </select>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchProfiles} className="gap-1">
+                      <RefreshCw className="w-3 h-3" /> تحديث
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">عرض {filteredProfiles.length} من {totalStudents}</p>
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {filteredProfiles.map(p => (
+                      <div key={p.id} className="bg-background rounded-xl border border-border p-3">
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="font-bold text-sm">{p.full_name}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${p.is_subscribed ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+                            {p.is_subscribed ? "مشترك" : "غير مشترك"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          <p>{p.grade}</p>
+                          {p.school && <p>{p.school} - {p.governorate}</p>}
+                          <p>{p.student_phone}</p>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id)} className="text-destructive h-7 px-2">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant={p.is_subscribed ? "outline" : "default"} onClick={() => toggleSubscription(p)} className="gap-1 flex-1 h-7">
+                            {p.is_subscribed ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                            {p.is_subscribed ? "إلغاء" : "تفعيل"}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Videos */}
+              {adminTab === "videos" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-sm">إدارة الفيديوهات</h3>
+                    <Button size="sm" onClick={() => setShowAddVideo(!showAddVideo)} className="gap-1">
+                      <Plus className="w-3 h-3" /> إضافة
+                    </Button>
+                  </div>
+
+                  {showAddVideo && (
+                    <div className="bg-muted rounded-xl p-4 space-y-3">
+                      <Input value={newVideo.title} onChange={e => setNewVideo({ ...newVideo, title: e.target.value })} placeholder="عنوان الفيديو" />
+                      <Input value={newVideo.description} onChange={e => setNewVideo({ ...newVideo, description: e.target.value })} placeholder="وصف (اختياري)" />
+                      <Input value={newVideo.video_url} onChange={e => setNewVideo({ ...newVideo, video_url: e.target.value })} placeholder="رابط الفيديو" dir="ltr" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select value={newVideo.grade} onChange={e => setNewVideo({ ...newVideo, grade: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                          <option value="">المرحلة</option>
+                          {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <select value={newVideo.subject} onChange={e => setNewVideo({ ...newVideo, subject: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                          <option value="">المادة</option>
+                          {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={addVideo} size="sm" className="flex-1">حفظ</Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowAddVideo(false)}>إلغاء</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={videoGrade} onChange={e => setVideoGrade(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">كل المراحل</option>
+                      {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <select value={videoSubject} onChange={e => setVideoSubject(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">كل المواد</option>
+                      {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {videos.length === 0 ? (
+                      <p className="text-center text-muted-foreground text-sm py-6">لا توجد فيديوهات</p>
+                    ) : videos.map(v => (
+                      <div key={v.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold text-sm">{v.title}</h4>
+                          <p className="text-xs text-muted-foreground">{v.grade} · {v.subject}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => deleteVideo(v.id)} className="text-destructive h-7 w-7">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notifications */}
+              {adminTab === "notifications" && (
+                <div className="space-y-4">
+                  <h3 className="font-bold text-sm flex items-center gap-2">
+                    <Send className="w-4 h-4" /> إرسال إشعار جديد
+                  </h3>
+                  <Input value={newNotif.title} onChange={e => setNewNotif({ ...newNotif, title: e.target.value })} placeholder="عنوان الإشعار" />
+                  <textarea
+                    value={newNotif.body}
+                    onChange={e => setNewNotif({ ...newNotif, body: e.target.value })}
+                    placeholder="محتوى الإشعار..."
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <div>
+                    <Label className="text-xs text-muted-foreground">الصفوف المستهدفة (اتركها فارغة للجميع)</Label>
+                    <div className="grid grid-cols-2 gap-1 mt-2">
+                      {allGrades.map(g => (
+                        <label key={g} className="flex items-center gap-2 text-xs cursor-pointer">
+                          <input type="checkbox" checked={newNotif.target_grades.includes(g)} onChange={() => toggleGradeTarget(g)} className="rounded" />
+                          {g}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={sendNotification} className="w-full gap-2" size="sm">
+                    <Send className="w-4 h-4" /> إرسال
+                  </Button>
+
+                  <div className="border-t border-border pt-4 space-y-2 max-h-64 overflow-y-auto">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-sm">الإشعارات السابقة</h4>
+                      <Button variant="outline" size="sm" onClick={fetchNotifications} className="gap-1 h-7">
+                        <RefreshCw className="w-3 h-3" /> تحديث
+                      </Button>
+                    </div>
+                    {notifications.length === 0 ? (
+                      <p className="text-center text-muted-foreground text-sm py-4">لا توجد إشعارات</p>
+                    ) : notifications.map(n => (
+                      <div key={n.id} className="bg-background rounded-xl border border-border p-3">
+                        <h4 className="font-bold text-xs">{n.title}</h4>
+                        <p className="text-xs text-muted-foreground">{n.body}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {n.target_grades.length > 0 ? n.target_grades.join("، ") : "الجميع"} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Student View */}
         <div className="bg-card rounded-2xl border border-border p-6 mb-8 text-center">
           <h1 className="text-2xl font-bold font-amiri mb-2">أهلاً بك يا {profile?.full_name}</h1>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
             مرحبًا بك في منصة الأستاذ إسماعيل أحمد عباده لتعليم أصول الدين والفقه الإسلامي
           </p>
-
           <div className="inline-block bg-muted rounded-xl p-4 text-sm space-y-1">
             <div className="font-bold">{profile?.full_name}</div>
-            <div className="text-muted-foreground">{profile?.grade}</div>
+            <div className="text-muted-foreground">{displayGrade}</div>
             {profile?.school && <div className="text-muted-foreground">{profile.school} - {profile.governorate}</div>}
             <div className="text-muted-foreground">{profile?.madhab}</div>
             <div className="flex items-center justify-center gap-1 mt-2">
@@ -181,9 +605,7 @@ const Dashboard = () => {
 
         {/* Subjects */}
         <div className="mb-6">
-          <h2 className="text-xl font-bold font-amiri text-center mb-2">
-            المواد الدراسية - {profile?.grade}
-          </h2>
+          <h2 className="text-xl font-bold font-amiri text-center mb-2">المواد الدراسية - {displayGrade}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6 max-w-lg mx-auto">
             نقدم لك شرحًا شاملاً ومتميزًا لجميع مواد التربية الدينية الإسلامية بأسلوب سهل ومبسط
           </p>
@@ -202,7 +624,7 @@ const Dashboard = () => {
                   </h3>
                   <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
                   {profile?.is_subscribed ? (
-                    <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(profile?.grade || '')}`}>
+                    <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
                       <Button size="sm" variant="outline" className="gap-1">
                         ابدأ المشاهدة
                         <ChevronLeft className="w-3 h-3" />
