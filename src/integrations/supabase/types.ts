@@ -19,6 +19,7 @@ export type Database = {
           answer: string | null
           attempt_id: string
           id: string
+          image_urls: string[] | null
           is_correct: boolean | null
           question_id: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           answer?: string | null
           attempt_id: string
           id?: string
+          image_urls?: string[] | null
           is_correct?: boolean | null
           question_id: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           answer?: string | null
           attempt_id?: string
           id?: string
+          image_urls?: string[] | null
           is_correct?: boolean | null
           question_id?: string
         }
@@ -164,6 +167,77 @@ export type Database = {
           },
         ]
       }
+      homework: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          grade: string
+          id: string
+          subject: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          grade: string
+          id?: string
+          subject: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          grade?: string
+          id?: string
+          subject?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      homework_submissions: {
+        Row: {
+          content: string | null
+          feedback: string | null
+          homework_id: string
+          id: string
+          image_urls: string[] | null
+          score: number | null
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          feedback?: string | null
+          homework_id: string
+          id?: string
+          image_urls?: string[] | null
+          score?: number | null
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          feedback?: string | null
+          homework_id?: string
+          id?: string
+          image_urls?: string[] | null
+          score?: number | null
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_submissions_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homework"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string
@@ -235,6 +309,72 @@ export type Database = {
           student_phone?: string
           subscription_price?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      question_bank: {
+        Row: {
+          correct_answer: string | null
+          created_at: string
+          grade: string
+          id: string
+          lesson: string | null
+          options: Json | null
+          question_text: string
+          question_type: string
+          subject: string
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string
+          grade: string
+          id?: string
+          lesson?: string | null
+          options?: Json | null
+          question_text: string
+          question_type?: string
+          subject: string
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string
+          grade?: string
+          id?: string
+          lesson?: string | null
+          options?: Json | null
+          question_text?: string
+          question_type?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      student_points: {
+        Row: {
+          created_at: string
+          id: string
+          points: number
+          reason: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason?: string
+          source_id?: string | null
+          source_type?: string
           user_id?: string
         }
         Relationships: []
