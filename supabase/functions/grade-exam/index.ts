@@ -36,13 +36,64 @@ serve(async (req) => {
     }
 
     const userId = user.id;
-    const { exam_id, answers, image_urls } = await req.json();
+    const body = await req.json();
+    const { exam_id, answers, image_urls } = body;
 
-    if (!exam_id || !answers || typeof answers !== "object") {
-      return new Response(JSON.stringify({ error: "بيانات غير صالحة" }), {
+    // Validate exam_id is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!exam_id || typeof exam_id !== "string" || !uuidRegex.test(exam_id)) {
+      return new Response(JSON.stringify({ error: "معرف الامتحان غير صالح" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Validate answers is a non-null object
+    if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+      return new Response(JSON.stringify({ error: "بيانات الإجابات غير صالحة" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Validate each answer key is UUID and value is a string with max length
+    for (const [key, value] of Object.entries(answers)) {
+      if (!uuidRegex.test(key)) {
+        return new Response(JSON.stringify({ error: "معرف سؤال غير صالح" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      if (typeof value !== "string" || (value as string).length > 5000) {
+        return new Response(JSON.stringify({ error: "إجابة غير صالحة" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    // Validate image_urls if provided
+    const imageUrlsMap: Record<string, string[]> = {};
+    if (image_urls && typeof image_urls === "object" && !Array.isArray(image_urls)) {
+      for (const [key, value] of Object.entries(image_urls)) {
+        if (!uuidRegex.test(key)) continue;
+        if (!Array.isArray(value) || (value as unknown[]).length > 5) {
+          return new Response(JSON.stringify({ error: "عدد الصور غير صالح" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        // Validate each URL is a string
+        for (const url of value as unknown[]) {
+          if (typeof url !== "string" || (url as string).length > 2000) {
+            return new Response(JSON.stringify({ error: "رابط صورة غير صالح" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+        }
+        imageUrlsMap[key] = value as string[];
+      }
     }
 
     const supabaseAdmin = createClient(
@@ -78,6 +129,17 @@ serve(async (req) => {
       });
     }
 
+    // Validate submitted answer keys match actual question IDs
+    const questionIds = new Set(questions.map(q => q.id));
+    for (const key of Object.keys(answers)) {
+      if (!questionIds.has(key)) {
+        return new Response(JSON.stringify({ error: "سؤال غير موجود في الامتحان" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     // Grade
     let score = 0;
     const mcqCount = questions.filter(q => q.question_type === "mcq").length;
@@ -102,14 +164,13 @@ serve(async (req) => {
       .single();
 
     if (attemptError) {
-      return new Response(JSON.stringify({ error: attemptError.message }), {
+      return new Response(JSON.stringify({ error: "حدث خطأ أثناء حفظ النتيجة" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Insert answers with image_urls
-    const imageUrlsMap = image_urls || {};
+    // Insert answers with validated image_urls
     const answersToInsert = questions.map(q => ({
       attempt_id: attempt.id,
       question_id: q.id,
