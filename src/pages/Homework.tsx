@@ -88,20 +88,12 @@ const Homework = () => {
       image_urls: imageUrls,
     });
 
-    // Award points for submission
-    if (!error) {
-      await supabase.from("student_points").insert({
-        user_id: user.id,
-        points: 5,
-        reason: `تسليم واجب: ${selectedHw.title}`,
-        source_type: "homework",
-        source_id: selectedHw.id,
-      });
-    }
+    // Points are awarded server-side only (admin or edge functions)
 
     setSubmitting(false);
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      console.error("Homework submission error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء تسليم الواجب", variant: "destructive" });
     } else {
       toast({ title: "تم التسليم", description: "تم تسليم الواجب بنجاح" });
       setSelectedHw(null);
