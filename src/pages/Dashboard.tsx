@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +67,16 @@ interface ExamQuestion {
   question_type: "mcq" | "essay";
   options: string[];
   correct_answer: string;
+}
+
+interface ExamAttemptResult {
+  id: string;
+  user_id: string;
+  score: number | null;
+  total: number | null;
+  submitted_at: string;
+  student_name?: string;
+  student_grade?: string;
 }
 
 const allGrades = [
@@ -140,6 +150,11 @@ const Dashboard = () => {
   const [showAddExam, setShowAddExam] = useState(false);
   const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+
+  // Exam results state
+  const [viewingExamResults, setViewingExamResults] = useState<string | null>(null);
+  const [examResults, setExamResults] = useState<ExamAttemptResult[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
 
   // Student notifications
   const [studentNotifs, setStudentNotifs] = useState<Notification[]>([]);
@@ -236,6 +251,32 @@ const Dashboard = () => {
   const fetchGradeVideos = async (grade: string) => {
     const { data } = await supabase.from("videos").select("*").eq("grade", grade).order("created_at", { ascending: false });
     if (data) setGradeVideos(data);
+  };
+
+  const fetchExamResults = async (examId: string) => {
+    setLoadingResults(true);
+    setViewingExamResults(examId);
+    const { data: attempts } = await supabase
+      .from("exam_attempts")
+      .select("*")
+      .eq("exam_id", examId)
+      .order("submitted_at", { ascending: false });
+    if (attempts && attempts.length > 0) {
+      const userIds = [...new Set(attempts.map(a => a.user_id))];
+      const { data: studentProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, grade")
+        .in("user_id", userIds);
+      const profileMap = new Map(studentProfiles?.map(p => [p.user_id, p]) || []);
+      setExamResults(attempts.map(a => ({
+        ...a,
+        student_name: profileMap.get(a.user_id)?.full_name || "غير معروف",
+        student_grade: profileMap.get(a.user_id)?.grade || "",
+      })));
+    } else {
+      setExamResults([]);
+    }
+    setLoadingResults(false);
   };
 
   const fetchNotifications = async () => {
@@ -874,6 +915,47 @@ const Dashboard = () => {
                     </div>
                   )}
 
+                  {/* Exam Results View */}
+                  {viewingExamResults && (
+                    <div className="bg-muted rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4" />
+                          نتائج: {exams.find(e => e.id === viewingExamResults)?.title}
+                        </h4>
+                        <Button variant="outline" size="sm" onClick={() => setViewingExamResults(null)} className="h-7 text-xs">
+                          رجوع
+                        </Button>
+                      </div>
+                      {loadingResults ? (
+                        <div className="flex justify-center py-6">
+                          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                        </div>
+                      ) : examResults.length === 0 ? (
+                        <p className="text-center text-muted-foreground text-sm py-6">لا توجد نتائج بعد</p>
+                      ) : (
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                          <div className="text-xs text-muted-foreground mb-2">عدد المحاولات: {examResults.length}</div>
+                          {examResults.map(r => (
+                            <div key={r.id} className="bg-background rounded-lg border border-border p-3 flex items-center justify-between">
+                              <div>
+                                <p className="font-bold text-sm">{r.student_name}</p>
+                                <p className="text-xs text-muted-foreground">{r.student_grade}</p>
+                                <p className="text-xs text-muted-foreground">{new Date(r.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                              </div>
+                              <div className="text-center">
+                                <span className={`text-lg font-bold ${(r.score || 0) >= ((r.total || 1) * 0.5) ? "text-primary" : "text-destructive"}`}>
+                                  {r.score || 0}/{r.total || 0}
+                                </span>
+                                <p className="text-xs text-muted-foreground">{r.total ? Math.round(((r.score || 0) / r.total) * 100) : 0}%</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {exams.length === 0 ? (
                       <p className="text-center text-muted-foreground text-sm py-6">لا توجد امتحانات</p>
@@ -884,9 +966,14 @@ const Dashboard = () => {
                           <p className="text-xs text-muted-foreground">{e.grade} · {e.subject}</p>
                           <p className="text-xs text-muted-foreground">{e.access_type === "subscribers_only" ? "للمشتركين فقط" : "لكل الطلاب"}</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => deleteExam(e.id)} className="text-destructive h-7 w-7">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="icon" onClick={() => fetchExamResults(e.id)} className="h-7 w-7" title="عرض النتائج">
+                            <BarChart3 className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteExam(e.id)} className="text-destructive h-7 w-7">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
