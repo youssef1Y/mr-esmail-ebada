@@ -1085,21 +1085,12 @@ const Dashboard = () => {
                     {profile?.madhab && subject.title === "الفقه" ? `${subject.title} ${profile.madhab.replace("الفقه ", "")}` : subject.title}
                   </h3>
                   <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
-                  {(isAdmin || profile?.is_subscribed) ? (
-                    <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
-                      <Button size="sm" variant="outline" className="gap-1">
-                        ابدأ المشاهدة
-                        <ChevronLeft className="w-3 h-3" />
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Link to="/subscribe">
-                      <Button size="sm" className="bg-primary text-primary-foreground gap-1">
-                        اشترك للوصول للمحتوى
-                        <ChevronLeft className="w-3 h-3" />
-                      </Button>
-                    </Link>
-                  )}
+                  <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      ابدأ المشاهدة
+                      <ChevronLeft className="w-3 h-3" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

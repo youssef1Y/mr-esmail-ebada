@@ -93,18 +93,7 @@ const SubjectVideos = () => {
           <p className="text-sm text-muted-foreground">{grade}</p>
         </div>
 
-        {!isSubscribed && !isAdmin ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h2 className="font-bold text-lg mb-2">المحتوى للمشتركين فقط</h2>
-            <p className="text-sm text-muted-foreground mb-4">اشترك الآن للوصول لجميع الفيديوهات</p>
-            <Link to="/subscribe">
-              <Button className="gap-2">اشترك الآن</Button>
-            </Link>
-          </div>
-        ) : videos.length === 0 ? (
+        {videos.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <p className="text-muted-foreground">لا توجد فيديوهات لهذه المادة حتى الآن</p>
           </div>
