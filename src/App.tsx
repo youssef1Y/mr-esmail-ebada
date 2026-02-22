@@ -12,6 +12,7 @@ import Subscribe from "./pages/Subscribe";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import SubjectVideos from "./pages/SubjectVideos";
+import TakeExam from "./pages/TakeExam";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/subject/:subject" element={<SubjectVideos />} />
+          <Route path="/exam/:examId" element={<TakeExam />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

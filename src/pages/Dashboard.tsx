@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,23 @@ interface Notification {
   created_at: string;
 }
 
+interface ExamItem {
+  id: string;
+  title: string;
+  grade: string;
+  subject: string;
+  video_id: string | null;
+  access_type: string;
+  created_at: string;
+}
+
+interface ExamQuestion {
+  question_text: string;
+  question_type: "mcq" | "essay";
+  options: string[];
+  correct_answer: string;
+}
+
 const allGrades = [
   "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
   "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
@@ -96,7 +113,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams">("subscribers");
 
   // Grade videos for admin preview
   const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
@@ -117,6 +134,17 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all" as "all" | "subscribed" | "unsubscribed", target_grades: [] as string[] });
   const [adminViewSubscribed, setAdminViewSubscribed] = useState(true);
+
+  // Exam admin state
+  const [exams, setExams] = useState<ExamItem[]>([]);
+  const [showAddExam, setShowAddExam] = useState(false);
+  const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
+  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+
+  // Student notifications
+  const [studentNotifs, setStudentNotifs] = useState<Notification[]>([]);
+  const [studentExams, setStudentExams] = useState<ExamItem[]>([]);
+  const [dismissedNotifs, setDismissedNotifs] = useState<string[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -143,8 +171,36 @@ const Dashboard = () => {
     if (data) {
       setProfile(data);
       setSelectedGrade(data.grade);
+      fetchStudentNotifications(data.grade, data.is_subscribed);
+      fetchStudentExams(data.grade, data.is_subscribed);
     }
     setLoading(false);
+  };
+
+  const fetchStudentNotifications = async (grade: string, isSubscribed: boolean) => {
+    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(10);
+    if (data) {
+      const filtered = data.filter(n => {
+        // Filter by target audience
+        if (n.target_audience === "subscribed" && !isSubscribed) return false;
+        if (n.target_audience === "unsubscribed" && isSubscribed) return false;
+        // Filter by target grades
+        if (n.target_grades && n.target_grades.length > 0 && !n.target_grades.includes(grade)) return false;
+        return true;
+      });
+      setStudentNotifs(filtered);
+    }
+  };
+
+  const fetchStudentExams = async (grade: string, isSubscribed: boolean) => {
+    const { data } = await supabase.from("exams").select("*").eq("grade", grade).order("created_at", { ascending: false });
+    if (data) {
+      const filtered = data.filter(e => {
+        if (e.access_type === "subscribers_only" && !isSubscribed) return false;
+        return true;
+      });
+      setStudentExams(filtered);
+    }
   };
 
   const checkAdminRole = async (userId: string) => {
@@ -187,6 +243,68 @@ const Dashboard = () => {
     if (data) setNotifications(data);
   };
 
+  const fetchExams = async () => {
+    const { data } = await supabase.from("exams").select("*").order("created_at", { ascending: false });
+    if (data) setExams(data);
+  };
+
+  const addExam = async () => {
+    if (!newExam.title || !newExam.grade || !newExam.subject) {
+      toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
+      return;
+    }
+    const validQuestions = examQuestions.filter(q => q.question_text.trim());
+    if (validQuestions.length === 0) {
+      toast({ title: "خطأ", description: "أضف سؤال واحد على الأقل", variant: "destructive" });
+      return;
+    }
+
+    const { data: exam, error } = await supabase.from("exams").insert({
+      title: newExam.title,
+      grade: newExam.grade,
+      subject: newExam.subject,
+      video_id: newExam.video_id || null,
+      access_type: newExam.access_type,
+    }).select().single();
+
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+
+    const questionsToInsert = validQuestions.map((q, i) => ({
+      exam_id: exam.id,
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.question_type === "mcq" ? q.options.filter(o => o.trim()) : null,
+      correct_answer: q.question_type === "mcq" ? q.correct_answer : null,
+      sort_order: i,
+    }));
+
+    await supabase.from("exam_questions").insert(questionsToInsert);
+    toast({ title: "تم إنشاء الامتحان بنجاح" });
+    setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
+    setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+    setShowAddExam(false);
+    fetchExams();
+  };
+
+  const deleteExam = async (id: string) => {
+    await supabase.from("exams").delete().eq("id", id);
+    fetchExams();
+    toast({ title: "تم حذف الامتحان" });
+  };
+
+  const addQuestion = () => {
+    setExamQuestions(prev => [...prev, { question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+  };
+
+  const updateQuestion = (index: number, field: string, value: any) => {
+    setExamQuestions(prev => prev.map((q, i) => i === index ? { ...q, [field]: value } : q));
+  };
+
+  const removeQuestion = (index: number) => {
+    if (examQuestions.length <= 1) return;
+    setExamQuestions(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Fetch videos when grade changes (for admin)
   useEffect(() => {
     if (isAdmin && selectedGrade) {
@@ -198,6 +316,7 @@ const Dashboard = () => {
     if (adminUnlocked) {
       if (adminTab === "videos") fetchVideos();
       if (adminTab === "notifications") fetchNotifications();
+      if (adminTab === "exams") fetchExams();
     }
   }, [adminTab, videoGrade, videoSubject, adminUnlocked]);
 
@@ -438,6 +557,7 @@ const Dashboard = () => {
               {[
                 { key: "subscribers" as const, label: "المشتركين", icon: Users },
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
+                { key: "exams" as const, label: "الامتحانات", icon: FileText },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className="gap-1">
@@ -649,7 +769,148 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Exams */}
+              {adminTab === "exams" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-sm">إدارة الامتحانات</h3>
+                    <Button size="sm" onClick={() => setShowAddExam(!showAddExam)} className="gap-1">
+                      <Plus className="w-3 h-3" /> إضافة امتحان
+                    </Button>
+                  </div>
+
+                  {showAddExam && (
+                    <div className="bg-muted rounded-xl p-4 space-y-3">
+                      <Input value={newExam.title} onChange={e => setNewExam({ ...newExam, title: e.target.value })} placeholder="عنوان الامتحان" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select value={newExam.grade} onChange={e => setNewExam({ ...newExam, grade: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                          <option value="">المرحلة</option>
+                          {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <select value={newExam.subject} onChange={e => setNewExam({ ...newExam, subject: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                          <option value="">المادة</option>
+                          {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">متاح لـ</Label>
+                        <div className="flex gap-2">
+                          <button onClick={() => setNewExam({ ...newExam, access_type: "all" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newExam.access_type === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>كل الطلاب</button>
+                          <button onClick={() => setNewExam({ ...newExam, access_type: "subscribers_only" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newExam.access_type === "subscribers_only" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>المشتركين فقط</button>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-border pt-3">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-bold text-sm">الأسئلة</h4>
+                          <Button size="sm" variant="outline" onClick={addQuestion} className="gap-1 h-7">
+                            <Plus className="w-3 h-3" /> سؤال
+                          </Button>
+                        </div>
+                        <div className="space-y-4">
+                          {examQuestions.map((q, i) => (
+                            <div key={i} className="bg-background rounded-lg border border-border p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold">سؤال {i + 1}</span>
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    value={q.question_type}
+                                    onChange={e => updateQuestion(i, "question_type", e.target.value)}
+                                    className="rounded border border-input bg-background px-2 py-1 text-xs"
+                                  >
+                                    <option value="mcq">اختيار من متعدد</option>
+                                    <option value="essay">مقالي</option>
+                                  </select>
+                                  {examQuestions.length > 1 && (
+                                    <button onClick={() => removeQuestion(i)} className="text-destructive">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <textarea
+                                value={q.question_text}
+                                onChange={e => updateQuestion(i, "question_text", e.target.value)}
+                                placeholder="نص السؤال..."
+                                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring"
+                              />
+                              {q.question_type === "mcq" && (
+                                <div className="space-y-1">
+                                  {q.options.map((opt, j) => (
+                                    <div key={j} className="flex items-center gap-2">
+                                      <input
+                                        type="radio"
+                                        name={`correct-${i}`}
+                                        checked={q.correct_answer === opt && opt !== ""}
+                                        onChange={() => updateQuestion(i, "correct_answer", opt)}
+                                        className="accent-primary"
+                                      />
+                                      <Input
+                                        value={opt}
+                                        onChange={e => {
+                                          const newOpts = [...q.options];
+                                          newOpts[j] = e.target.value;
+                                          updateQuestion(i, "options", newOpts);
+                                          if (q.correct_answer === opt) updateQuestion(i, "correct_answer", e.target.value);
+                                        }}
+                                        placeholder={`الخيار ${j + 1}`}
+                                        className="h-8 text-xs"
+                                      />
+                                    </div>
+                                  ))}
+                                  <p className="text-xs text-muted-foreground">اختر الإجابة الصحيحة بالضغط على الدائرة</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={addExam} size="sm" className="flex-1">حفظ الامتحان</Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowAddExam(false)}>إلغاء</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {exams.length === 0 ? (
+                      <p className="text-center text-muted-foreground text-sm py-6">لا توجد امتحانات</p>
+                    ) : exams.map(e => (
+                      <div key={e.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold text-sm">{e.title}</h4>
+                          <p className="text-xs text-muted-foreground">{e.grade} · {e.subject}</p>
+                          <p className="text-xs text-muted-foreground">{e.access_type === "subscribers_only" ? "للمشتركين فقط" : "لكل الطلاب"}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => deleteExam(e.id)} className="text-destructive h-7 w-7">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+        )}
+
+        {/* Student Notifications Banner */}
+        {studentNotifs.filter(n => !dismissedNotifs.includes(n.id)).length > 0 && (
+          <div className="mb-6 space-y-2">
+            {studentNotifs.filter(n => !dismissedNotifs.includes(n.id)).map(n => (
+              <div key={n.id} className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-start gap-3">
+                <Bell className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-bold text-sm">{n.title}</h4>
+                  <p className="text-xs text-muted-foreground">{n.body}</p>
+                </div>
+                <button onClick={() => setDismissedNotifs(prev => [...prev, n.id])} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -690,6 +951,32 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* Student Exams */}
+        {studentExams.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold font-amiri text-center mb-4 flex items-center justify-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              الامتحانات المتاحة
+            </h2>
+            <div className="space-y-3">
+              {studentExams.map(e => (
+                <div key={e.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm">{e.title}</h3>
+                    <p className="text-xs text-muted-foreground">{e.subject}</p>
+                  </div>
+                  <Link to={`/exam/${e.id}`}>
+                    <Button size="sm" className="gap-1">
+                      ابدأ الامتحان
+                      <ChevronLeft className="w-3 h-3" />
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Subjects */}
         <div className="mb-6">
