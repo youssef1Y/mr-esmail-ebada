@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +109,10 @@ const Dashboard = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "" });
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all" as "all" | "subscribed" | "unsubscribed", target_grades: [] as string[] });
@@ -212,13 +215,24 @@ const Dashboard = () => {
   };
 
   const addVideo = async () => {
-    if (!newVideo.title || !newVideo.video_url || !newVideo.grade || !newVideo.subject) {
-      toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
+    if (!newVideo.title || !videoFile || !newVideo.grade || !newVideo.subject) {
+      toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة وارفع الفيديو", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("videos").insert(newVideo);
+    setUploading(true);
+    const fileExt = videoFile.name.split('.').pop();
+    const filePath = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from("videos").upload(filePath, videoFile);
+    if (uploadError) {
+      toast({ title: "خطأ في رفع الفيديو", description: uploadError.message, variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
+    const { error } = await supabase.from("videos").insert({ ...newVideo, video_url: urlData.publicUrl });
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" }); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
+    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", grade: "", subject: "" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
+    setUploading(false);
   };
 
   const deleteVideo = async (id: string) => {
@@ -516,7 +530,11 @@ const Dashboard = () => {
                     <div className="bg-muted rounded-xl p-4 space-y-3">
                       <Input value={newVideo.title} onChange={e => setNewVideo({ ...newVideo, title: e.target.value })} placeholder="عنوان الفيديو" />
                       <Input value={newVideo.description} onChange={e => setNewVideo({ ...newVideo, description: e.target.value })} placeholder="وصف (اختياري)" />
-                      <Input value={newVideo.video_url} onChange={e => setNewVideo({ ...newVideo, video_url: e.target.value })} placeholder="رابط الفيديو" dir="ltr" />
+                      <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+                      <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2 w-full justify-start">
+                        <Upload className="w-4 h-4" />
+                        {videoFile ? videoFile.name : "اختر ملف الفيديو"}
+                      </Button>
                       <div className="grid grid-cols-2 gap-2">
                         <select value={newVideo.grade} onChange={e => setNewVideo({ ...newVideo, grade: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
                           <option value="">المرحلة</option>
@@ -528,7 +546,7 @@ const Dashboard = () => {
                         </select>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={addVideo} size="sm" className="flex-1">حفظ</Button>
+                        <Button onClick={addVideo} size="sm" className="flex-1" disabled={uploading}>{uploading ? "جاري الرفع..." : "حفظ"}</Button>
                         <Button variant="outline" size="sm" onClick={() => setShowAddVideo(false)}>إلغاء</Button>
                       </div>
                     </div>
