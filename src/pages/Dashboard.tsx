@@ -328,6 +328,72 @@ const AdminSubmissionsTab = ({ toast }: { toast: any }) => {
   );
 };
 
+// Admin Leaderboard Tab Component
+const AdminLeaderboardTab = () => {
+  const [entries, setEntries] = useState<{ user_id: string; full_name: string; grade: string; total_points: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterGrade, setFilterGrade] = useState("");
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      const { data: points } = await supabase.from("student_points").select("user_id, points");
+      if (!points || points.length === 0) { setLoading(false); return; }
+
+      const pointMap: Record<string, number> = {};
+      points.forEach((p: any) => { pointMap[p.user_id] = (pointMap[p.user_id] || 0) + p.points; });
+
+      const userIds = Object.keys(pointMap);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, grade").in("user_id", userIds);
+
+      const leaderboard = (profiles || []).map((p: any) => ({
+        user_id: p.user_id,
+        full_name: p.full_name,
+        grade: p.grade,
+        total_points: pointMap[p.user_id] || 0,
+      })).sort((a: any, b: any) => b.total_points - a.total_points);
+
+      setEntries(leaderboard);
+      setLoading(false);
+    };
+    fetchLeaderboard();
+  }, []);
+
+  const filtered = filterGrade ? entries.filter(e => e.grade === filterGrade) : entries;
+
+  if (loading) return <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2"><Trophy className="w-4 h-4" /> ترتيب الطلاب</h3>
+      <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+        <option value="">جميع الصفوف</option>
+        {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+      </select>
+      {filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground text-sm py-6">لا توجد نقاط بعد</p>
+      ) : (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {filtered.map((entry, i) => (
+            <div key={entry.user_id} className={`bg-background rounded-xl border p-3 flex items-center gap-3 ${i < 3 ? "border-2 border-primary/30" : "border-border"}`}>
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-sm truncate">{entry.full_name}</h4>
+                <p className="text-xs text-muted-foreground">{entry.grade}</p>
+              </div>
+              <div className="text-center">
+                <span className="text-lg font-bold text-primary">{entry.total_points}</span>
+                <p className="text-xs text-muted-foreground">نقطة</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -341,7 +407,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard">("subscribers");
 
   // Grade videos for admin preview
   const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
@@ -855,6 +921,7 @@ const Dashboard = () => {
                 { key: "homework" as const, label: "الواجبات", icon: ClipboardList },
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
+                { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className="gap-1">
@@ -1253,6 +1320,11 @@ const Dashboard = () => {
                 <AdminSubmissionsTab toast={toast} />
               )}
 
+              {/* Leaderboard */}
+              {adminTab === "leaderboard" && (
+                <AdminLeaderboardTab />
+              )}
+
               {/* Stats */}
               {adminTab === "stats" && (
                 <div className="space-y-4">
@@ -1376,11 +1448,6 @@ const Dashboard = () => {
             <Link to="/homework">
               <Button variant="outline" size="sm" className="gap-1">
                 <ClipboardList className="w-4 h-4" /> الواجبات
-              </Button>
-            </Link>
-            <Link to="/leaderboard">
-              <Button variant="outline" size="sm" className="gap-1">
-                <Trophy className="w-4 h-4" /> لوحة الشرف
               </Button>
             </Link>
             <Link to="/question-bank">
