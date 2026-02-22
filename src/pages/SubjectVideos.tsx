@@ -11,6 +11,7 @@ interface VideoItem {
   video_url: string;
   grade: string;
   subject: string;
+  access_type: string;
   created_at: string;
 }
 
@@ -43,6 +44,8 @@ const SubjectVideos = () => {
       
       if (profile) setIsSubscribed(profile.is_subscribed);
 
+      const isAdminUser = roles && roles.length > 0;
+
       // Fetch videos
       if (subject && grade) {
         const { data } = await supabase
@@ -51,7 +54,13 @@ const SubjectVideos = () => {
           .eq("grade", grade)
           .eq("subject", decodeURIComponent(subject))
           .order("sort_order", { ascending: true });
-        if (data) setVideos(data);
+        if (data) {
+          // Admin sees all, subscribed sees all, unsubscribed sees only 'all' access_type
+          const filtered = isAdminUser || profile?.is_subscribed
+            ? data
+            : data.filter(v => v.access_type === "all");
+          setVideos(filtered);
+        }
       }
       setLoading(false);
     };

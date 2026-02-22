@@ -292,6 +292,7 @@ export type Database = {
       }
       videos: {
         Row: {
+          access_type: string
           created_at: string
           description: string | null
           grade: string
@@ -302,6 +303,7 @@ export type Database = {
           video_url: string
         }
         Insert: {
+          access_type?: string
           created_at?: string
           description?: string | null
           grade: string
@@ -312,6 +314,7 @@ export type Database = {
           video_url: string
         }
         Update: {
+          access_type?: string
           created_at?: string
           description?: string | null
           grade?: string
