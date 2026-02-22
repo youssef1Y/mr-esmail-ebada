@@ -27,18 +27,16 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
-    const { exam_id, answers } = await req.json();
+    const userId = user.id;
+    const { exam_id, answers, image_urls } = await req.json();
 
     if (!exam_id || !answers || typeof answers !== "object") {
       return new Response(JSON.stringify({ error: "بيانات غير صالحة" }), {
@@ -110,12 +108,14 @@ serve(async (req) => {
       });
     }
 
-    // Insert answers
+    // Insert answers with image_urls
+    const imageUrlsMap = image_urls || {};
     const answersToInsert = questions.map(q => ({
       attempt_id: attempt.id,
       question_id: q.id,
       answer: answers[q.id] || "",
       is_correct: q.question_type === "mcq" ? answers[q.id] === q.correct_answer : false,
+      image_urls: imageUrlsMap[q.id] || [],
     }));
 
     await supabaseAdmin.from("exam_answers").insert(answersToInsert);
