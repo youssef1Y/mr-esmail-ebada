@@ -27,6 +27,9 @@ const Leaderboard = () => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
+      // Only admins can access this page
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
+      if (!roles || roles.length === 0) { navigate("/dashboard"); return; }
       setMyUserId(session.user.id);
 
       // Get all points grouped by user

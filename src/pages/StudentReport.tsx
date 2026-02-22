@@ -149,7 +149,6 @@ const StudentReport = () => {
         </div>
 
         <div className="mt-6 flex justify-center gap-3">
-          <Link to="/leaderboard"><Button variant="outline" className="gap-2"><Trophy className="w-4 h-4" /> لوحة الشرف</Button></Link>
           <Link to="/my-results"><Button variant="outline" className="gap-2"><BarChart3 className="w-4 h-4" /> نتائج الامتحانات</Button></Link>
         </div>
       </main>
