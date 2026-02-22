@@ -47,14 +47,13 @@ const Subscribe = () => {
     }
     setSubmitting(true);
 
-    let receiptUrl = "";
+    let receiptPath = "";
     if (receiptFile) {
       const ext = receiptFile.name.split(".").pop();
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("receipts").upload(path, receiptFile);
       if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(path);
-        receiptUrl = urlData.publicUrl;
+        receiptPath = path;
       }
     }
 
@@ -62,7 +61,7 @@ const Subscribe = () => {
       user_id: user.id,
       transfer_number: transferNumber,
       sender_phone: senderPhone,
-      receipt_url: receiptUrl || null,
+      receipt_url: receiptPath || null,
       amount: subscriptionPrice,
     });
 
@@ -79,7 +78,7 @@ const Subscribe = () => {
             senderPhone,
             transferNumber,
             amount: subscriptionPrice,
-            receiptUrl,
+            receiptPath,
           },
         });
       } catch (e) {
