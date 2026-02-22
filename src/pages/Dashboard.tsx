@@ -40,6 +40,7 @@ interface VideoItem {
   video_url: string;
   grade: string;
   subject: string;
+  access_type: string;
   created_at: string;
 }
 
@@ -136,7 +137,7 @@ const Dashboard = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "", access_type: "all" });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -391,7 +392,7 @@ const Dashboard = () => {
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
     const { error } = await supabase.from("videos").insert({ ...newVideo, video_url: urlData.publicUrl });
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", grade: "", subject: "" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
+    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", grade: "", subject: "", access_type: "all" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
     setUploading(false);
   };
 
@@ -706,6 +707,13 @@ const Dashboard = () => {
                           {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 block">متاح لـ</Label>
+                        <div className="flex gap-2">
+                          <button onClick={() => setNewVideo({ ...newVideo, access_type: "all" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>كل الطلاب</button>
+                          <button onClick={() => setNewVideo({ ...newVideo, access_type: "subscribers_only" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "subscribers_only" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>المشتركين فقط</button>
+                        </div>
+                      </div>
                       <div className="flex gap-2">
                         <Button onClick={addVideo} size="sm" className="flex-1" disabled={uploading}>{uploading ? "جاري الرفع..." : "حفظ"}</Button>
                         <Button variant="outline" size="sm" onClick={() => setShowAddVideo(false)}>إلغاء</Button>
@@ -731,7 +739,7 @@ const Dashboard = () => {
                       <div key={v.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between">
                         <div>
                           <h4 className="font-bold text-sm">{v.title}</h4>
-                          <p className="text-xs text-muted-foreground">{v.grade} · {v.subject}</p>
+                          <p className="text-xs text-muted-foreground">{v.grade} · {v.subject} · {v.access_type === "subscribers_only" ? "للمشتركين فقط" : "للكل"}</p>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteVideo(v.id)} className="text-destructive h-7 w-7">
                           <Trash2 className="w-3 h-3" />
