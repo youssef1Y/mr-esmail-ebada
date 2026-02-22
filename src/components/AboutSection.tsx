@@ -1,0 +1,56 @@
+import { BookOpen, Heart, Target, RefreshCw } from "lucide-react";
+
+const features = [
+  {
+    icon: BookOpen,
+    title: "تعليم شامل",
+    description: "نقدم شرحًا وافيًا في التفسير والحديث والتوحيد والسيرة والفقه بمذاهبه الثلاثة (الشافعي والمالكي والحنفي)",
+  },
+  {
+    icon: Target,
+    title: "خبرة تعليمية",
+    description: "معد ومراجع كتاب المرشد الأزهري وصاحب سلسلة الأزهري في العلوم الشرعية",
+  },
+  {
+    icon: Heart,
+    title: "رعاية الطلاب",
+    description: "نحرص على متابعة كل طالب ومساعدته في تحقيق أفضل النتائج الدراسية",
+  },
+  {
+    icon: RefreshCw,
+    title: "أهداف واضحة",
+    description: "نضع خطة تعليمية واضحة لكل مرحلة دراسية لضمان تحقيق الأهداف المرجوة",
+  },
+];
+
+const AboutSection = () => {
+  return (
+    <section id="about" className="py-20 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold font-amiri text-foreground mb-4">من نحن</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            المِنَصَّةُ مُتَخَصِّصَةٌ فِي: تَعْلِيمِ الفِقْهِ الشّافِعِيِّ، وَ المَالِكِيِّ، وَ الْحَنَفِيِّ، وَ أُصُولِ الدِّينِ (التَّوْحِيدِ– التَّفْسِيرِ– الْحَدِيثِ– السِّيرَةِ). نَسْعَى لِتَقْدِيمِ مُحْتَوَى تَعْلِيمِيٍّ مُكْتَمِلِ الْجَوَانِبِ؛ لِتَرْسِيخِ فَهْمِ الدِّينِ فِي نُفُوسِ الطُّلَّابِ.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="bg-card rounded-xl p-6 text-center border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
+            >
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <feature.icon className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-foreground">{feature.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default AboutSection;
