@@ -65,6 +65,21 @@ const Subscribe = () => {
     if (error) {
       toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الطلب", variant: "destructive" });
     } else {
+      // Notify admin about new subscription request
+      try {
+        await supabase.functions.invoke("notify-subscription", {
+          body: {
+            fullName: profile?.full_name,
+            grade: profile?.grade,
+            senderPhone,
+            transferNumber,
+            amount: subscriptionPrice,
+            receiptUrl,
+          },
+        });
+      } catch (e) {
+        console.error("Subscription notification error:", e);
+      }
       toast({ title: "تم الإرسال", description: "تم إرسال طلب الاشتراك بنجاح وسيتم مراجعته" });
       navigate("/dashboard");
     }
