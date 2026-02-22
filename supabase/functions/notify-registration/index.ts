@@ -72,7 +72,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`New registration: ${fullName} - ${grade} - ${studentPhone}`);
+    console.log(`New registration processed: grade=${grade}`);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

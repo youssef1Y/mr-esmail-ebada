@@ -72,7 +72,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`New subscription request: ${fullName} - ${senderPhone} - ${transferNumber}`);
+    console.log(`New subscription request processed: amount=${amount}`);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
