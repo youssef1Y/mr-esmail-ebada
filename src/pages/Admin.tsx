@@ -140,7 +140,8 @@ const Admin = () => {
     }
     const { error } = await supabase.from("videos").insert(newVideo);
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      console.error("Insert video error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" });
     } else {
       toast({ title: "تم إضافة الفيديو" });
       setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" });
@@ -167,7 +168,8 @@ const Admin = () => {
       target_grades: newNotif.target_grades,
     });
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      console.error("Insert notification error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الإشعار", variant: "destructive" });
     } else {
       toast({ title: "تم إرسال الإشعار" });
       setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] });

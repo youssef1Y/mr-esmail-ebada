@@ -113,14 +113,7 @@ const TakeExam = () => {
         return;
       }
 
-      // Award points
-      await supabase.from("student_points").insert({
-        user_id: userId,
-        points: Math.max(5, Math.round((data.score / (data.total || 1)) * 20)),
-        reason: `امتحان: ${exam?.title}`,
-        source_type: "exam",
-        source_id: examId,
-      });
+      // Points are now awarded server-side in the grade-exam edge function
 
       setResult({ score: data.score, total: data.total, details: data.details });
       toast({ title: "تم تسليم الامتحان بنجاح" });
