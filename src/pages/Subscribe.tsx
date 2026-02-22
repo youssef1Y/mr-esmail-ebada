@@ -39,7 +39,12 @@ const Subscribe = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !transferNumber || !senderPhone) return;
+    if (!user || !transferNumber || !senderPhone || !receiptFile) {
+      if (!receiptFile) {
+        toast({ title: "خطأ", description: "يجب رفع صورة إيصال التحويل", variant: "destructive" });
+      }
+      return;
+    }
     setSubmitting(true);
 
     let receiptUrl = "";
