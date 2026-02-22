@@ -555,6 +555,18 @@ export type Database = {
           sort_order: number
         }[]
       }
+      get_practice_questions: {
+        Args: { p_grade: string; p_subject: string }
+        Returns: {
+          grade: string
+          id: string
+          lesson: string
+          options: Json
+          question_text: string
+          question_type: string
+          subject: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

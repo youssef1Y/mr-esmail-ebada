@@ -521,7 +521,7 @@ const Dashboard = () => {
     if (!user) return;
     try {
       const { data, error } = await supabase.functions.invoke("verify-admin", {
-        body: { password: adminPassword, user_id: user.id },
+        body: { password: adminPassword },
       });
       if (error || !data?.success) {
         toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
