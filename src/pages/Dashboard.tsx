@@ -136,7 +136,7 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       subject: newHw.subject,
       due_date: newHw.due_date || null,
     });
-    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
       setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
@@ -675,7 +675,7 @@ const Dashboard = () => {
       access_type: newExam.access_type,
     }).select().single();
 
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+    if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); return; }
 
     const questionsToInsert = validQuestions.map((q, i) => ({
       exam_id: exam.id,
@@ -775,13 +775,14 @@ const Dashboard = () => {
     const filePath = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const { error: uploadError } = await supabase.storage.from("videos").upload(filePath, videoFile);
     if (uploadError) {
-      toast({ title: "خطأ في رفع الفيديو", description: uploadError.message, variant: "destructive" });
+      console.error("Upload error:", uploadError);
+      toast({ title: "خطأ في رفع الفيديو", description: "حدث خطأ أثناء رفع الفيديو", variant: "destructive" });
       setUploading(false);
       return;
     }
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
     const { error } = await supabase.from("videos").insert({ ...newVideo, video_url: urlData.publicUrl });
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
+    if (error) { console.error("Insert video error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" }); }
     else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", grade: "", subject: "", access_type: "all" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
     setUploading(false);
   };
@@ -803,7 +804,7 @@ const Dashboard = () => {
       target_audience: newNotif.target_audience,
       target_grades: newNotif.target_grades,
     });
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); }
+    if (error) { console.error("Insert notification error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الإشعار", variant: "destructive" }); }
     else { toast({ title: "تم إرسال الإشعار" }); setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] }); fetchNotifications(); }
   };
 

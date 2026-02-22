@@ -181,6 +181,16 @@ serve(async (req) => {
 
     await supabaseAdmin.from("exam_answers").insert(answersToInsert);
 
+    // Award points server-side
+    const pointsAwarded = Math.max(5, Math.round((score / (mcqCount || 1)) * 20));
+    await supabaseAdmin.from("student_points").insert({
+      user_id: userId,
+      points: pointsAwarded,
+      reason: `امتحان`,
+      source_type: "exam",
+      source_id: exam_id,
+    });
+
     return new Response(JSON.stringify({ success: true, score, total: mcqCount, details }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
