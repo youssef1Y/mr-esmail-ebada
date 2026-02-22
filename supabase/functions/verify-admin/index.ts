@@ -12,19 +12,39 @@ serve(async (req) => {
   }
 
   try {
-    const { password, user_id } = await req.json();
-    const adminPassword = Deno.env.get("ADMIN_PASSWORD");
-
-    if (!adminPassword || password !== adminPassword) {
-      return new Response(JSON.stringify({ error: "كلمة المرور غير صحيحة" }), {
+    // Require JWT authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    if (!user_id) {
-      return new Response(JSON.stringify({ error: "معرف المستخدم مطلوب" }), {
-        status: 400,
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Extract user_id from JWT instead of accepting it as parameter
+    const userId = claimsData.claims.sub;
+
+    const { password } = await req.json();
+    const adminPassword = Deno.env.get("ADMIN_PASSWORD");
+
+    if (!adminPassword || password !== adminPassword) {
+      return new Response(JSON.stringify({ error: "كلمة المرور غير صحيحة" }), {
+        status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
@@ -38,7 +58,7 @@ serve(async (req) => {
     const { data: existingRole } = await supabaseAdmin
       .from("user_roles")
       .select("id")
-      .eq("user_id", user_id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -55,7 +75,7 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

@@ -49,13 +49,13 @@ const QuestionBank = () => {
       toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" });
       return;
     }
-    const { data } = await supabase.from("question_bank").select("*").eq("grade", grade).eq("subject", subject);
+    const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
     if (!data || data.length === 0) {
       toast({ title: "لا توجد أسئلة", description: "لم يتم إضافة أسئلة لهذه المادة بعد" });
       return;
     }
-    // Shuffle questions
-    const shuffled = (data as BankQuestion[]).sort(() => Math.random() - 0.5).slice(0, 10);
+    // Shuffle and pick 10 questions (already randomized by RPC)
+    const shuffled = (data as BankQuestion[]).slice(0, 10);
     setQuestions(shuffled);
     setStarted(true);
     setCurrentIndex(0);
