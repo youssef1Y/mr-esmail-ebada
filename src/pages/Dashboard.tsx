@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
-const ADMIN_PASSWORD = "Esmail01097602493";
+// Admin password is securely stored server-side
 
 interface Profile {
   full_name: string;
@@ -227,15 +227,23 @@ const Dashboard = () => {
     if (data && data.length > 0) setIsAdmin(true);
   };
 
-  const handleAdminLogin = () => {
-    if (adminPassword === ADMIN_PASSWORD) {
+  const handleAdminLogin = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-admin", {
+        body: { password: adminPassword, user_id: user.id },
+      });
+      if (error || !data?.success) {
+        toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
+        return;
+      }
       setAdminUnlocked(true);
       setShowAdminLogin(false);
       setAdminPassword("");
       toast({ title: "تم الدخول كأدمن" });
       fetchProfiles();
-    } else {
-      toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
+    } catch {
+      toast({ title: "خطأ", description: "حدث خطأ في التحقق", variant: "destructive" });
     }
   };
 
