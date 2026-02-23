@@ -1433,13 +1433,27 @@ const Dashboard = () => {
                     {notifications.length === 0 ? (
                       <p className="text-center text-muted-foreground text-sm py-4">لا توجد إشعارات</p>
                     ) : notifications.map(n => (
-                      <div key={n.id} className="bg-background rounded-xl border border-border p-3">
-                        <h4 className="font-bold text-xs">{n.title}</h4>
-                        <p className="text-xs text-muted-foreground">{n.body}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {n.target_audience === "subscribed" ? "المشتركين" : n.target_audience === "unsubscribed" ? "غير المشتركين" : "الكل"}
-                          {n.target_grades.length > 0 ? ` · ${n.target_grades.join("، ")}` : ""} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
-                        </p>
+                      <div key={n.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-xs">{n.title}</h4>
+                          <p className="text-xs text-muted-foreground">{n.body}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {n.target_audience === "subscribed" ? "المشتركين" : n.target_audience === "unsubscribed" ? "غير المشتركين" : "الكل"}
+                            {n.target_grades.length > 0 ? ` · ${n.target_grades.join("، ")}` : ""} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={async () => {
+                            const { error } = await supabase.from("notifications").delete().eq("id", n.id);
+                            if (error) { toast({ title: "خطأ", description: "فشل حذف الإشعار", variant: "destructive" }); }
+                            else { toast({ title: "تم حذف الإشعار" }); fetchNotifications(); }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
