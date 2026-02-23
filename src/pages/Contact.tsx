@@ -45,6 +45,34 @@ const Contact = () => {
     if (userId) fetchMessages();
   }, [userId]);
 
+  // Realtime: listen for admin replies
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('contact-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          if (newMsg.is_admin_reply) {
+            toast({ title: "رد جديد من الإدارة 📩", description: newMsg.content.slice(0, 60) });
+          }
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
