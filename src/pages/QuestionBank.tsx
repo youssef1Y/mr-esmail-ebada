@@ -17,6 +17,10 @@ interface BankQuestion {
 }
 
 const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
+const gradesList = [
+  "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
+  "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
+];
 
 const QuestionBank = () => {
   const navigate = useNavigate();
@@ -32,19 +36,30 @@ const QuestionBank = () => {
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
+      
+      // Check if admin
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
+      const adminUser = !!(roles && roles.length > 0);
+      setIsAdmin(adminUser);
+      
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
-      if (profile) setGrade(profile.grade);
+      if (profile && !adminUser) setGrade(profile.grade);
       setLoading(false);
     };
     init();
   }, [navigate]);
 
   const startPractice = async () => {
+    if (!grade) {
+      toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" });
+      return;
+    }
     if (!subject) {
       toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" });
       return;
@@ -125,7 +140,17 @@ const QuestionBank = () => {
             <p className="text-sm text-muted-foreground mb-6">تدرّب على أسئلة عشوائية من المنهج</p>
             <div className="bg-card rounded-2xl border border-border p-6 max-w-md mx-auto space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">الصف: {grade}</label>
+                {isAdmin ? (
+                  <>
+                    <label className="text-sm font-medium mb-1 block">اختر الصف</label>
+                    <select value={grade} onChange={e => setGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر الصف</option>
+                      {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </>
+                ) : (
+                  <label className="text-sm font-medium mb-1 block">الصف: {grade}</label>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">اختر المادة</label>
