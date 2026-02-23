@@ -520,9 +520,9 @@ const Admin = () => {
             { key: "subscribers" as const, label: "المشتركين", icon: Users },
             { key: "notifications" as const, label: "الإشعارات", icon: Bell },
             { key: "videos" as const, label: "الفيديوهات", icon: Video },
+            { key: "messages" as const, label: "الرسائل", icon: MessageCircle },
             { key: "homework" as const, label: "الواجبات", icon: FileText },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
-            { key: "messages" as const, label: "الرسائل", icon: MessageCircle },
           ].map(t => (
             <Button
               key={t.key}
