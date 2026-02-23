@@ -618,11 +618,31 @@ const Admin = () => {
               <div className="space-y-3">
                 {notifications.map(n => (
                   <div key={n.id} className="bg-card rounded-xl border border-border p-4">
-                    <h3 className="font-bold text-sm">{n.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{n.body}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {n.target_grades.length > 0 ? n.target_grades.join("، ") : "جميع الطلاب"} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-sm">{n.title}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">{n.body}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {n.target_grades.length > 0 ? n.target_grades.join("، ") : "جميع الطلاب"} · {new Date(n.created_at).toLocaleDateString("ar-EG")}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={async () => {
+                          const { error } = await supabase.from("notifications").delete().eq("id", n.id);
+                          if (error) {
+                            toast({ title: "خطأ", description: "فشل حذف الإشعار", variant: "destructive" });
+                          } else {
+                            toast({ title: "تم الحذف", description: "تم حذف الإشعار بنجاح" });
+                            fetchNotifications();
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
