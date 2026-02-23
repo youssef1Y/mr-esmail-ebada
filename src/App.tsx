@@ -18,6 +18,7 @@ import Homework from "./pages/Homework";
 import Leaderboard from "./pages/Leaderboard";
 import QuestionBank from "./pages/QuestionBank";
 import StudentReport from "./pages/StudentReport";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/report" element={<StudentReport />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

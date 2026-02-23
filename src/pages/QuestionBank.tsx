@@ -139,19 +139,15 @@ const QuestionBank = () => {
             <h1 className="text-2xl font-bold font-amiri mb-2">بنك الأسئلة</h1>
             <p className="text-sm text-muted-foreground mb-6">تدرّب على أسئلة عشوائية من المنهج</p>
             <div className="bg-card rounded-2xl border border-border p-6 max-w-md mx-auto space-y-4">
-              <div>
-                {isAdmin ? (
-                  <>
-                    <label className="text-sm font-medium mb-1 block">اختر الصف</label>
-                    <select value={grade} onChange={e => setGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                      <option value="">اختر الصف</option>
-                      {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </>
-                ) : (
-                  <label className="text-sm font-medium mb-1 block">الصف: {grade}</label>
-                )}
-              </div>
+              {isAdmin && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">اختر الصف</label>
+                  <select value={grade} onChange={e => setGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                    <option value="">اختر الصف</option>
+                    {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium mb-1 block">اختر المادة</label>
                 <select value={subject} onChange={e => setSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
