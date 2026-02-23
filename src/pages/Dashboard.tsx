@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -388,6 +388,115 @@ const AdminLeaderboardTab = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Contact Section Component for students
+const ContactSection = ({ userId, toast }: { userId: string; toast: any }) => {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchMessages = async () => {
+    if (!userId) return;
+    setLoadingMessages(true);
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data);
+    setLoadingMessages(false);
+    if (data) {
+      const unread = data.filter(m => m.is_admin_reply && !m.is_read);
+      if (unread.length > 0) {
+        await supabase.from("messages").update({ is_read: true }).in("id", unread.map(m => m.id));
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (showChat) fetchMessages();
+  }, [showChat, userId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !userId) return;
+    setSending(true);
+    const { error } = await supabase.from("messages").insert({
+      user_id: userId,
+      content: newMessage.trim(),
+      is_admin_reply: false,
+    });
+    if (error) {
+      toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الرسالة", variant: "destructive" });
+    } else {
+      setNewMessage("");
+      fetchMessages();
+    }
+    setSending(false);
+  };
+
+  return (
+    <div className="mt-12 mb-8 max-w-2xl mx-auto">
+      <div className="bg-card rounded-2xl border border-border p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+          <MessageCircle className="w-6 h-6 text-primary" />
+        </div>
+        <h2 className="text-xl font-bold font-amiri mb-2">تواصل معنا</h2>
+        <p className="text-sm text-muted-foreground mb-4">هل لديك استفسار أو تريد الإبلاغ عن مشكلة؟ تواصل معنا مباشرة</p>
+        <Button onClick={() => setShowChat(!showChat)} className="gap-2">
+          <MessageCircle className="w-4 h-4" />
+          {showChat ? "إخفاء المحادثة" : "فتح المحادثة"}
+        </Button>
+      </div>
+
+      {showChat && (
+        <div className="mt-4 bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="p-3 border-b border-border bg-muted/50">
+            <h3 className="font-bold text-sm">المحادثة مع الإدارة</h3>
+          </div>
+          <div className="h-72 overflow-y-auto p-4 space-y-3">
+            {loadingMessages ? (
+              <p className="text-center text-muted-foreground text-sm">جاري التحميل...</p>
+            ) : messages.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-8">لا توجد رسائل بعد. أرسل رسالتك الأولى!</p>
+            ) : (
+              messages.map(m => (
+                <div key={m.id} className={`flex ${m.is_admin_reply ? "justify-start" : "justify-end"}`}>
+                  <div className={`max-w-[80%] rounded-xl px-4 py-2 text-sm ${
+                    m.is_admin_reply ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
+                  }`}>
+                    {m.is_admin_reply && <p className="text-xs font-bold mb-1 opacity-70">الإدارة</p>}
+                    <p>{m.content}</p>
+                    <p className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleString("ar-EG", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}</p>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          <div className="p-3 border-t border-border flex gap-2">
+            <textarea
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              placeholder="اكتب رسالتك هنا..."
+              className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[40px] max-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+            />
+            <Button onClick={sendMessage} disabled={sending || !newMessage.trim()} size="icon" className="h-10 w-10 flex-shrink-0">
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -1748,6 +1857,9 @@ const Dashboard = () => {
             </Link>
           </div>
         )}
+
+        {/* Contact Us Section */}
+        {!isAdmin && <ContactSection userId={user?.id || ""} toast={toast} />}
       </main>
     </div>
   );

@@ -27,31 +27,24 @@ const StudentReport = () => {
       const { data: profileData } = await supabase.from("profiles").select("full_name, grade").eq("user_id", userId).single();
       if (profileData) setProfile(profileData);
 
-      // Points
-      const { data: points } = await supabase.from("student_points").select("points").eq("user_id", userId);
-      const totalPoints = points?.reduce((sum, p) => sum + p.points, 0) || 0;
+      // Fetch all stats in parallel
+      const [pointsResult, attemptsResult, viewsResult, hwResult, rankResult] = await Promise.all([
+        supabase.from("student_points").select("points").eq("user_id", userId),
+        supabase.from("exam_attempts").select("score, total").eq("user_id", userId),
+        supabase.from("video_views").select("id").eq("user_id", userId),
+        supabase.from("homework_submissions").select("id").eq("user_id", userId),
+        supabase.rpc("get_student_rank", { p_user_id: userId }),
+      ]);
 
-      // Exams
-      const { data: attempts } = await supabase.from("exam_attempts").select("score, total").eq("user_id", userId);
-      const examsTaken = attempts?.length || 0;
+      const totalPoints = pointsResult.data?.reduce((sum, p) => sum + p.points, 0) || 0;
+      const examsTaken = attemptsResult.data?.length || 0;
       const avgScore = examsTaken > 0
-        ? Math.round(attempts!.reduce((sum, a) => sum + ((a.score || 0) / (a.total || 1)) * 100, 0) / examsTaken)
+        ? Math.round(attemptsResult.data!.reduce((sum, a) => sum + ((a.score || 0) / (a.total || 1)) * 100, 0) / examsTaken)
         : 0;
+      const videosWatched = viewsResult.data?.length || 0;
+      const homeworkSubmitted = hwResult.data?.length || 0;
 
-      // Videos
-      const { data: views } = await supabase.from("video_views").select("id").eq("user_id", userId);
-      const videosWatched = views?.length || 0;
-
-      // Homework
-      const { data: hwSubs } = await supabase.from("homework_submissions").select("id").eq("user_id", userId);
-      const homeworkSubmitted = hwSubs?.length || 0;
-
-      // Rank (compare points with all users)
-      const { data: allPoints } = await supabase.from("student_points").select("user_id, points");
-      const userTotals: Record<string, number> = {};
-      allPoints?.forEach(p => { userTotals[p.user_id] = (userTotals[p.user_id] || 0) + p.points; });
-      const sorted = Object.entries(userTotals).sort(([, a], [, b]) => b - a);
-      const rank = sorted.findIndex(([id]) => id === userId) + 1;
+      const rankData = rankResult.data?.[0];
 
       setStats({
         totalPoints,
@@ -59,8 +52,8 @@ const StudentReport = () => {
         avgScore,
         videosWatched,
         homeworkSubmitted,
-        rank: rank || sorted.length + 1,
-        totalStudents: sorted.length,
+        rank: rankData ? Number(rankData.rank) : 0,
+        totalStudents: rankData ? Number(rankData.total_students) : 0,
       });
       setLoading(false);
     };
