@@ -491,6 +491,19 @@ const Admin = () => {
                   <ChevronRight className="w-3 h-3" />
                 </Button>
               </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTab("messages")}
+                className="gap-1 relative"
+              >
+                <MessageCircle className="w-4 h-4" />
+                {unreadMsgCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadMsgCount}
+                  </span>
+                )}
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1">
                 خروج
                 <LogOut className="w-3 h-3" />
