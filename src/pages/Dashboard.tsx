@@ -529,9 +529,10 @@ const Dashboard = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "", access_type: "all" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "", access_type: "all", publish_at: "" });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -880,20 +881,50 @@ const Dashboard = () => {
       return;
     }
     setUploading(true);
+    setUploadProgress(0);
     const fileExt = videoFile.name.split('.').pop();
     const filePath = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from("videos").upload(filePath, videoFile);
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
+
+    // Upload with progress tracking using XMLHttpRequest
+    const { data: { session } } = await supabase.auth.getSession();
+    const uploadResult = await new Promise<{ error: any }>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      xhr.open("POST", `${supabaseUrl}/storage/v1/object/videos/${filePath}`);
+      xhr.setRequestHeader("Authorization", `Bearer ${session?.access_token || ""}`);
+      xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("x-upsert", "false");
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({ error: null });
+        } else {
+          resolve({ error: new Error(`Upload failed: ${xhr.status}`) });
+        }
+      };
+      xhr.onerror = () => resolve({ error: new Error("Upload failed") });
+      xhr.send(videoFile);
+    });
+
+    if (uploadResult.error) {
       toast({ title: "خطأ في رفع الفيديو", description: "حدث خطأ أثناء رفع الفيديو", variant: "destructive" });
       setUploading(false);
+      setUploadProgress(0);
       return;
     }
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
-    const { error } = await supabase.from("videos").insert({ ...newVideo, video_url: urlData.publicUrl });
+    const insertData: any = { title: newVideo.title, description: newVideo.description, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type, video_url: urlData.publicUrl };
+    if (newVideo.publish_at) insertData.publish_at = new Date(newVideo.publish_at).toISOString();
+    const { error } = await supabase.from("videos").insert(insertData);
     if (error) { console.error("Insert video error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" }); }
-    else { toast({ title: "تم إضافة الفيديو" }); setNewVideo({ title: "", description: "", grade: "", subject: "", access_type: "all" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
+    else { toast({ title: "تم إضافة الفيديو بنجاح" }); setNewVideo({ title: "", description: "", grade: "", subject: "", access_type: "all", publish_at: "" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
     setUploading(false);
+    setUploadProgress(0);
   };
 
   const deleteVideo = async (id: string) => {
@@ -1218,9 +1249,38 @@ const Dashboard = () => {
                           <button onClick={() => setNewVideo({ ...newVideo, access_type: "subscribers_only" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "subscribers_only" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>المشتركين فقط</button>
                         </div>
                       </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 block">موعد النشر (اختياري - اتركه فارغ للنشر فوراً)</Label>
+                        <Input 
+                          type="datetime-local" 
+                          value={newVideo.publish_at} 
+                          onChange={e => setNewVideo({ ...newVideo, publish_at: e.target.value })} 
+                        />
+                        {newVideo.publish_at && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            سيظهر للطلاب في: {new Date(newVideo.publish_at).toLocaleString("ar-EG", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        )}
+                      </div>
+                      {uploading && (
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>جاري رفع الفيديو...</span>
+                            <span className="font-bold text-primary">{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-3">
+                            <div
+                              className="h-3 rounded-full bg-primary transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div className="flex gap-2">
-                        <Button onClick={addVideo} size="sm" className="flex-1" disabled={uploading}>{uploading ? "جاري الرفع..." : "حفظ"}</Button>
-                        <Button variant="outline" size="sm" onClick={() => setShowAddVideo(false)}>إلغاء</Button>
+                        <Button onClick={addVideo} size="sm" className="flex-1" disabled={uploading}>
+                          {uploading ? `جاري الرفع... ${uploadProgress}%` : "حفظ"}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowAddVideo(false)} disabled={uploading}>إلغاء</Button>
                       </div>
                     </div>
                   )}
