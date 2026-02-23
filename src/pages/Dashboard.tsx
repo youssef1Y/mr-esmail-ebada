@@ -1804,6 +1804,11 @@ const Dashboard = () => {
                 <BarChart3 className="w-4 h-4" /> تقرير أدائي
               </Button>
             </Link>
+            <Link to="/contact">
+              <Button variant="outline" size="sm" className="gap-1">
+                <MessageCircle className="w-4 h-4" /> شكاوي واقتراحات
+              </Button>
+            </Link>
           </div>
 
         {/* Why Choose Us */}
@@ -1918,8 +1923,20 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Contact Us Section */}
-        {!isAdmin && <ContactSection userId={user?.id || ""} toast={toast} />}
+        {/* Contact Us Link */}
+        {!isAdmin && (
+          <div className="mt-12 mb-8 max-w-2xl mx-auto">
+            <Link to="/contact">
+              <div className="bg-card rounded-2xl border border-border p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <MessageCircle className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold font-amiri mb-2">شكاوي واقتراحات</h2>
+                <p className="text-sm text-muted-foreground">هل لديك استفسار أو تريد الإبلاغ عن مشكلة؟ تواصل معنا مباشرة</p>
+              </div>
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );
