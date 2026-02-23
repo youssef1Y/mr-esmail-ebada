@@ -238,6 +238,33 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_admin_reply: boolean
+          is_read: boolean
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          is_read?: boolean
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          is_read?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
@@ -565,6 +592,14 @@ export type Database = {
           question_text: string
           question_type: string
           subject: string
+        }[]
+      }
+      get_student_rank: {
+        Args: { p_user_id: string }
+        Returns: {
+          rank: number
+          total_points: number
+          total_students: number
         }[]
       }
       has_role: {

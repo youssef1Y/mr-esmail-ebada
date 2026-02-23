@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +89,7 @@ interface ExamAttemptWithDetails {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -125,6 +125,15 @@ const Admin = () => {
   const [examFilterGrade, setExamFilterGrade] = useState("");
   const [examSearchQuery, setExamSearchQuery] = useState("");
   const [examLoadingData, setExamLoadingData] = useState(false);
+
+  // Messages state
+  const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [selectedConvo, setSelectedConvo] = useState<string | null>(null);
+  const [convoMessages, setConvoMessages] = useState<any[]>([]);
+  const [adminReply, setAdminReply] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+  const [selectedConvoName, setSelectedConvoName] = useState("");
 
   useEffect(() => {
     checkAdmin();
@@ -247,11 +256,73 @@ const Admin = () => {
     setExamLoadingData(false);
   };
 
+  const fetchMessages = async () => {
+    setMsgLoading(true);
+    const { data: allMessages } = await supabase.from("messages").select("*").order("created_at", { ascending: false });
+    if (!allMessages) { setMsgLoading(false); return; }
+
+    const userIds = [...new Set(allMessages.map(m => m.user_id))];
+    const { data: profilesData } = userIds.length > 0 
+      ? await supabase.from("profiles").select("user_id, full_name, grade").in("user_id", userIds) 
+      : { data: [] };
+    const profileMap = new Map((profilesData || []).map(p => [p.user_id, p]));
+
+    const convos: typeof msgConversations = [];
+    const grouped: Record<string, any[]> = {};
+    allMessages.forEach(m => {
+      if (!grouped[m.user_id]) grouped[m.user_id] = [];
+      grouped[m.user_id].push(m);
+    });
+
+    Object.entries(grouped).forEach(([uid, msgs]) => {
+      const profile = profileMap.get(uid);
+      const sortedMsgs = msgs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const unread = msgs.filter(m => !m.is_admin_reply && !m.is_read).length;
+      convos.push({
+        user_id: uid,
+        student_name: profile?.full_name || "غير معروف",
+        student_grade: profile?.grade || "",
+        last_message: sortedMsgs[0]?.content || "",
+        last_time: sortedMsgs[0]?.created_at || "",
+        unread_count: unread,
+      });
+    });
+
+    convos.sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
+    setMsgConversations(convos);
+    setMsgLoading(false);
+  };
+
+  const openConversation = async (userId: string, name: string) => {
+    setSelectedConvo(userId);
+    setSelectedConvoName(name);
+    const { data } = await supabase.from("messages").select("*").eq("user_id", userId).order("created_at", { ascending: true });
+    if (data) setConvoMessages(data);
+    // Mark student messages as read
+    await supabase.from("messages").update({ is_read: true }).eq("user_id", userId).eq("is_admin_reply", false);
+  };
+
+  const sendAdminReply = async () => {
+    if (!adminReply.trim() || !selectedConvo) return;
+    setSendingReply(true);
+    await supabase.from("messages").insert({
+      user_id: selectedConvo,
+      content: adminReply.trim(),
+      is_admin_reply: true,
+    });
+    setAdminReply("");
+    const { data } = await supabase.from("messages").select("*").eq("user_id", selectedConvo).order("created_at", { ascending: true });
+    if (data) setConvoMessages(data);
+    setSendingReply(false);
+    fetchMessages();
+  };
+
   useEffect(() => {
     if (tab === "videos") fetchVideos();
     if (tab === "notifications") fetchNotifications();
     if (tab === "homework") fetchHomeworkSubmissions();
     if (tab === "exams") fetchExamAttempts();
+    if (tab === "messages") fetchMessages();
   }, [tab, videoGrade, videoSubject]);
 
   const toggleSubscription = async (profile: Profile) => {
@@ -431,6 +502,7 @@ const Admin = () => {
             { key: "subscribers" as const, label: "المشتركين", icon: Users },
             { key: "homework" as const, label: "الواجبات", icon: FileText },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
+            { key: "messages" as const, label: "الرسائل", icon: MessageCircle },
           ].map(t => (
             <Button
               key={t.key}
@@ -993,6 +1065,96 @@ const Admin = () => {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Messages Tab */}
+        {tab === "messages" && (
+          <div className="space-y-4">
+            {selectedConvo ? (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedConvo(null); fetchMessages(); }} className="gap-1">
+                    <ChevronRight className="w-3 h-3" /> الرجوع
+                  </Button>
+                  <h3 className="font-bold text-sm">{selectedConvoName}</h3>
+                </div>
+                <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                  <div className="h-80 overflow-y-auto p-4 space-y-3">
+                    {convoMessages.length === 0 ? (
+                      <p className="text-center text-muted-foreground text-sm py-8">لا توجد رسائل</p>
+                    ) : convoMessages.map(m => (
+                      <div key={m.id} className={`flex ${m.is_admin_reply ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[80%] rounded-xl px-4 py-2 text-sm ${
+                          m.is_admin_reply ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                        }`}>
+                          {m.is_admin_reply && <p className="text-xs font-bold mb-1 opacity-70">أنت (الإدارة)</p>}
+                          <p>{m.content}</p>
+                          <p className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleString("ar-EG", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-3 border-t border-border flex gap-2">
+                    <textarea
+                      value={adminReply}
+                      onChange={e => setAdminReply(e.target.value)}
+                      placeholder="اكتب ردك هنا..."
+                      className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[40px] max-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAdminReply(); } }}
+                    />
+                    <Button onClick={sendAdminReply} disabled={sendingReply || !adminReply.trim()} size="icon" className="h-10 w-10 flex-shrink-0">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold font-amiri flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5" /> رسائل الطلاب
+                  </h2>
+                  <Button variant="outline" size="sm" onClick={fetchMessages} className="gap-1">
+                    <RefreshCw className="w-3 h-3" /> تحديث
+                  </Button>
+                </div>
+                {msgLoading ? (
+                  <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>
+                ) : msgConversations.length === 0 ? (
+                  <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                    <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">لا توجد رسائل بعد</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {msgConversations.map(c => (
+                      <div
+                        key={c.user_id}
+                        onClick={() => openConversation(c.user_id, c.student_name)}
+                        className="bg-card rounded-xl border border-border p-4 cursor-pointer hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-sm">{c.student_name}</h3>
+                              {c.unread_count > 0 && (
+                                <span className="bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{c.unread_count}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{c.student_grade}</p>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">{c.last_message}</p>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                            {new Date(c.last_time).toLocaleDateString("ar-EG")}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
