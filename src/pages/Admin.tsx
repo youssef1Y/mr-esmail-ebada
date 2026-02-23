@@ -134,6 +134,7 @@ const Admin = () => {
   const [adminReply, setAdminReply] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [selectedConvoName, setSelectedConvoName] = useState("");
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   useEffect(() => {
     checkAdmin();
@@ -157,6 +158,9 @@ const Admin = () => {
     setIsAdmin(true);
     setLoading(false);
     fetchProfiles();
+    // Fetch unread message count
+    const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("is_admin_reply", false).eq("is_read", false);
+    setUnreadMsgCount(count || 0);
   };
 
   const fetchProfiles = async () => {
@@ -291,6 +295,9 @@ const Admin = () => {
     convos.sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
     setMsgConversations(convos);
     setMsgLoading(false);
+    // Update unread count
+    const totalUnread = convos.reduce((sum, c) => sum + c.unread_count, 0);
+    setUnreadMsgCount(totalUnread);
   };
 
   const openConversation = async (userId: string, name: string) => {
@@ -497,9 +504,9 @@ const Admin = () => {
         {/* Tabs */}
         <div className="flex gap-2 mb-6 justify-center flex-wrap">
           {[
+            { key: "subscribers" as const, label: "المشتركين", icon: Users },
             { key: "notifications" as const, label: "الإشعارات", icon: Bell },
             { key: "videos" as const, label: "الفيديوهات", icon: Video },
-            { key: "subscribers" as const, label: "المشتركين", icon: Users },
             { key: "homework" as const, label: "الواجبات", icon: FileText },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
             { key: "messages" as const, label: "الرسائل", icon: MessageCircle },
@@ -509,10 +516,15 @@ const Admin = () => {
               variant={tab === t.key ? "default" : "outline"}
               size="sm"
               onClick={() => setTab(t.key)}
-              className="gap-1"
+              className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && tab !== "messages" ? "border-destructive text-destructive" : ""}`}
             >
               <t.icon className="w-4 h-4" />
               {t.label}
+              {t.key === "messages" && unreadMsgCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadMsgCount}
+                </span>
+              )}
             </Button>
           ))}
         </div>
