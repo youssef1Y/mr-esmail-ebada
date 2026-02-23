@@ -304,6 +304,7 @@ export type Database = {
           parent_phone: string | null
           school: string | null
           student_phone: string
+          subscription_expires_at: string | null
           subscription_price: number | null
           updated_at: string
           user_id: string
@@ -319,6 +320,7 @@ export type Database = {
           parent_phone?: string | null
           school?: string | null
           student_phone: string
+          subscription_expires_at?: string | null
           subscription_price?: number | null
           updated_at?: string
           user_id: string
@@ -334,6 +336,7 @@ export type Database = {
           parent_phone?: string | null
           school?: string | null
           student_phone?: string
+          subscription_expires_at?: string | null
           subscription_price?: number | null
           updated_at?: string
           user_id?: string
@@ -575,6 +578,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_subscriptions: { Args: never; Returns: undefined }
       get_exam_questions: {
         Args: { p_exam_id: string }
         Returns: {
