@@ -538,6 +538,7 @@ export type Database = {
           description: string | null
           grade: string
           id: string
+          publish_at: string | null
           sort_order: number | null
           subject: string
           title: string
@@ -549,6 +550,7 @@ export type Database = {
           description?: string | null
           grade: string
           id?: string
+          publish_at?: string | null
           sort_order?: number | null
           subject: string
           title: string
@@ -560,6 +562,7 @@ export type Database = {
           description?: string | null
           grade?: string
           id?: string
+          publish_at?: string | null
           sort_order?: number | null
           subject?: string
           title?: string
