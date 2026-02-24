@@ -1950,26 +1950,58 @@ const Dashboard = () => {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
-            <Link to="/my-results">
-              <Button variant="outline" size="sm" className="gap-1">
-                <BarChart3 className="w-4 h-4" /> نتائجي
-              </Button>
-            </Link>
-            <Link to="/homework">
-              <Button variant="outline" size="sm" className="gap-1">
-                <ClipboardList className="w-4 h-4" /> الواجبات
-              </Button>
-            </Link>
-            <Link to="/question-bank">
-              <Button variant="outline" size="sm" className="gap-1">
-                <Library className="w-4 h-4" /> بنك الأسئلة
-              </Button>
-            </Link>
-            <Link to="/report">
-              <Button variant="outline" size="sm" className="gap-1">
-                <BarChart3 className="w-4 h-4" /> تقرير أدائي
-              </Button>
-            </Link>
+            {profile?.is_subscribed ? (
+              <Link to="/my-results">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <BarChart3 className="w-4 h-4" /> نتائجي
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/subscribe">
+                <Button variant="outline" size="sm" className="gap-1 opacity-60">
+                  <Lock className="w-4 h-4" /> نتائجي
+                </Button>
+              </Link>
+            )}
+            {profile?.is_subscribed ? (
+              <Link to="/homework">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <ClipboardList className="w-4 h-4" /> الواجبات
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/subscribe">
+                <Button variant="outline" size="sm" className="gap-1 opacity-60">
+                  <Lock className="w-4 h-4" /> الواجبات
+                </Button>
+              </Link>
+            )}
+            {profile?.is_subscribed ? (
+              <Link to="/question-bank">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Library className="w-4 h-4" /> بنك الأسئلة
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/subscribe">
+                <Button variant="outline" size="sm" className="gap-1 opacity-60">
+                  <Lock className="w-4 h-4" /> بنك الأسئلة
+                </Button>
+              </Link>
+            )}
+            {profile?.is_subscribed ? (
+              <Link to="/report">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <BarChart3 className="w-4 h-4" /> تقرير أدائي
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/subscribe">
+                <Button variant="outline" size="sm" className="gap-1 opacity-60">
+                  <Lock className="w-4 h-4" /> تقرير أدائي
+                </Button>
+              </Link>
+            )}
             <Link to="/contact">
               <Button variant="outline" size="sm" className="gap-1">
                 <MessageCircle className="w-4 h-4" /> شكاوي واقتراحات
