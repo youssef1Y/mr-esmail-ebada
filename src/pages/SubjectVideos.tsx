@@ -178,7 +178,23 @@ const SubjectVideos = () => {
           />
         </div>
 
-        {filteredVideos.length === 0 ? (
+        {filteredVideos.length === 0 && !isSubscribed && !isAdmin ? (
+          <div className="bg-card rounded-2xl border border-border p-10 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="font-bold font-amiri text-xl">اشترك للوصول إلى المحتوى</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              اشترك الآن للوصول لجميع الفيديوهات والشروحات والمحتوى الحصري لمادة {decodedSubject}
+            </p>
+            <Link to="/subscribe">
+              <Button size="lg" className="gap-2 mt-2">
+                اشترك الآن
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        ) : filteredVideos.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <p className="text-muted-foreground">
               {searchQuery ? "لا توجد نتائج للبحث" : "لا توجد فيديوهات لهذه المادة حتى الآن"}
