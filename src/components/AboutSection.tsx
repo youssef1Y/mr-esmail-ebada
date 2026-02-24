@@ -1,4 +1,5 @@
 import { BookOpen, Heart, Target, RefreshCw } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "./StaggerAnimation";
 
 const features = [
   {
@@ -34,20 +35,19 @@ const AboutSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" staggerDelay={0.12}>
           {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-card rounded-xl p-6 text-center border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
-            >
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <feature.icon className="w-7 h-7 text-primary" />
+            <StaggerItem key={index}>
+              <div className="bg-card rounded-xl p-6 text-center border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg h-full">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <feature.icon className="w-7 h-7 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
               </div>
-              <h3 className="font-bold text-lg mb-2 text-foreground">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );
