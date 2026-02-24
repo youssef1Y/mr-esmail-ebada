@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -2013,19 +2014,21 @@ const Dashboard = () => {
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold font-amiri mb-2">لماذا تختار منصتنا؟</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10" staggerDelay={0.1}>
           {[
             { title: "شرح على أعلى مستوى", desc: "شروحات مفصلة ومبسطة لجميع المواد الشرعية" },
             { title: "متابعة مستمرة", desc: "متابعة دورية ومستمرة لمستوى كل طالب" },
             { title: "نتائج مضمونة", desc: "نتائج مميزة ومضمونة بإذن الله" },
             { title: "محتوى متجدد", desc: "محتوى تعليمي متجدد ومحدث باستمرار" },
           ].map((item, i) => (
-            <div key={i} className="bg-card rounded-xl border border-border p-4">
-              <h3 className="font-bold text-sm mb-1">{item.title}</h3>
-              <p className="text-muted-foreground text-xs">{item.desc}</p>
-            </div>
+            <StaggerItem key={i}>
+              <div className="bg-card rounded-xl border border-border p-4">
+                <h3 className="font-bold text-sm mb-1">{item.title}</h3>
+                <p className="text-muted-foreground text-xs">{item.desc}</p>
+              </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
         {/* Student Exams */}
         {studentExams.length > 0 && (
@@ -2061,29 +2064,31 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="space-y-4 max-w-2xl mx-auto">
+        <StaggerContainer className="space-y-4 max-w-2xl mx-auto" staggerDelay={0.12}>
           {subjects.map((subject, i) => (
-            <div key={i} className="bg-card rounded-xl border border-border p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <subject.icon className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold mb-1">
-                    {profile?.madhab && subject.title === "الفقه" ? `${subject.title} ${profile.madhab.replace("الفقه ", "")}` : subject.title}
-                  </h3>
-                  <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
-                  <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
-                    <Button size="sm" variant="outline" className="gap-1">
-                      ابدأ المشاهدة
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                  </Link>
+            <StaggerItem key={i}>
+              <div className="bg-card rounded-xl border border-border p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <subject.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold mb-1">
+                      {profile?.madhab && subject.title === "الفقه" ? `${subject.title} ${profile.madhab.replace("الفقه ", "")}` : subject.title}
+                    </h3>
+                    <p className="text-muted-foreground text-xs mb-3">{subject.description}</p>
+                    <Link to={`/subject/${encodeURIComponent(subject.title)}?grade=${encodeURIComponent(displayGrade)}`}>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        ابدأ المشاهدة
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
         {/* Subscription CTA for non-subscribed students */}
         {!isAdmin && !profile?.is_subscribed && (

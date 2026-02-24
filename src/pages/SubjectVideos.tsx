@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ChevronRight, Play, BookOpen, Search, Send, Trash2, MessageCircle, Lock } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -201,9 +202,10 @@ const SubjectVideos = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <StaggerContainer className="space-y-4" staggerDelay={0.1}>
             {filteredVideos.map((v, i) => (
-              <div key={v.id} className="bg-card rounded-xl border border-border overflow-hidden">
+              <StaggerItem key={v.id}>
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
                 {playingId === v.id ? (
                   <video
                     src={v.video_url}
@@ -281,9 +283,10 @@ const SubjectVideos = () => {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         )}
 
         {/* Subscription CTA for non-subscribers */}
