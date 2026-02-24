@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Play, BookOpen, Search, Send, Trash2, MessageCircle } from "lucide-react";
+import { ChevronRight, Play, BookOpen, Search, Send, Trash2, MessageCircle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,6 +267,23 @@ const SubjectVideos = () => {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Subscription CTA for non-subscribers */}
+        {!isSubscribed && !isAdmin && (
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mt-6 text-center">
+            <Lock className="w-8 h-8 text-primary mx-auto mb-3" />
+            <h3 className="font-bold font-amiri text-lg mb-2">اشترك للوصول إلى المحتوى</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              اشترك الآن للوصول لجميع الفيديوهات والمحتوى الحصري
+            </p>
+            <Link to="/subscribe">
+              <Button size="lg" className="gap-2">
+                اشترك الآن
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         )}
       </main>
