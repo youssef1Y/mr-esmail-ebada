@@ -334,12 +334,17 @@ const Admin = () => {
 
   const toggleSubscription = async (profile: Profile) => {
     const newPrice = profile.grade.includes("إعدادي") ? 150 : 200;
+    const isActivating = !profile.is_subscribed;
+    const expiresAt = isActivating
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
     await supabase.from("profiles").update({
-      is_subscribed: !profile.is_subscribed,
-      subscription_price: profile.is_subscribed ? 0 : newPrice,
+      is_subscribed: isActivating,
+      subscription_price: isActivating ? newPrice : 0,
+      subscription_expires_at: expiresAt,
     }).eq("id", profile.id);
     fetchProfiles();
-    toast({ title: profile.is_subscribed ? "تم إلغاء الاشتراك" : "تم تفعيل الاشتراك" });
+    toast({ title: isActivating ? "تم تفعيل الاشتراك (ينتهي بعد 30 يوم)" : "تم إلغاء الاشتراك" });
   };
 
   const deleteProfile = async (id: string, userId: string) => {

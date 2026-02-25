@@ -15,7 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -41,12 +40,26 @@ serve(async (req) => {
 
     const { fullName, grade, senderPhone, transferNumber, amount, receiptPath } = await req.json();
 
-    // Validate required fields
     if (!fullName || !senderPhone || !transferNumber) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Generate signed URL for receipt image if available
+    let receiptUrl = "";
+    if (receiptPath) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: signedData } = await adminClient.storage
+        .from("receipts")
+        .createSignedUrl(receiptPath, 60 * 60 * 24 * 7); // 7 days
+      if (signedData?.signedUrl) {
+        receiptUrl = signedData.signedUrl;
+      }
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
@@ -66,7 +79,14 @@ serve(async (req) => {
               <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">رقم التحويل (المرجع)</td><td style="padding: 8px; border: 1px solid #ddd;">${transferNumber}</td></tr>
               <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المبلغ</td><td style="padding: 8px; border: 1px solid #ddd;">${amount} جنيه</td></tr>
             </table>
-            ${receiptPath ? '<p style="margin-top: 16px; color: #2d6a4f;">تم رفع إيصال التحويل - يمكن مشاهدته من لوحة التحكم</p>' : '<p style="margin-top: 16px; color: #999;">لم يتم رفع إيصال</p>'}
+            ${receiptUrl 
+              ? `<div style="margin-top: 20px;">
+                  <h3 style="color: #2d6a4f;">صورة إيصال التحويل:</h3>
+                  <a href="${receiptUrl}" target="_blank" style="color: #2754C5; text-decoration: underline;">اضغط هنا لعرض الإيصال</a>
+                  <br/><br/>
+                  <img src="${receiptUrl}" alt="إيصال التحويل" style="max-width: 100%; max-height: 500px; border: 1px solid #ddd; border-radius: 8px;" />
+                </div>` 
+              : '<p style="margin-top: 16px; color: #999;">لم يتم رفع إيصال</p>'}
           </div>
         `,
       });
