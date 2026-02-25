@@ -103,7 +103,7 @@ const Admin = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
   const [showAddVideo, setShowAddVideo] = useState(false);
 
   // Notifications state
@@ -358,13 +358,17 @@ const Admin = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("videos").insert(newVideo);
+    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject };
+    if (newVideo.subject === "الفقه" && newVideo.madhab) {
+      videoData.madhab = newVideo.madhab;
+    }
+    const { error } = await supabase.from("videos").insert(videoData);
     if (error) {
       console.error("Insert video error:", error);
       toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" });
     } else {
       toast({ title: "تم إضافة الفيديو" });
-      setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "" });
+      setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
       setShowAddVideo(false);
       fetchVideos();
     }
@@ -727,6 +731,18 @@ const Admin = () => {
                     </select>
                   </div>
                 </div>
+                {newVideo.subject === "الفقه" && (
+                  <div>
+                    <Label>المذهب الفقهي</Label>
+                    <select value={newVideo.madhab} onChange={e => setNewVideo({ ...newVideo, madhab: e.target.value })}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر المذهب</option>
+                      <option value="الفقه الشافعي">الفقه الشافعي</option>
+                      <option value="الفقه المالكي">الفقه المالكي</option>
+                      <option value="الفقه الحنفي">الفقه الحنفي</option>
+                    </select>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button onClick={addVideo} className="flex-1">حفظ الفيديو</Button>
                   <Button variant="outline" onClick={() => setShowAddVideo(false)}>إلغاء</Button>

@@ -541,6 +541,7 @@ export type Database = {
           description: string | null
           grade: string
           id: string
+          madhab: string | null
           publish_at: string | null
           sort_order: number | null
           subject: string
@@ -553,6 +554,7 @@ export type Database = {
           description?: string | null
           grade: string
           id?: string
+          madhab?: string | null
           publish_at?: string | null
           sort_order?: number | null
           subject: string
@@ -565,6 +567,7 @@ export type Database = {
           description?: string | null
           grade?: string
           id?: string
+          madhab?: string | null
           publish_at?: string | null
           sort_order?: number | null
           subject?: string

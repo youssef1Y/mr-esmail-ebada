@@ -55,10 +55,11 @@ const SubjectVideos = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_subscribed")
+        .select("is_subscribed, madhab")
         .eq("user_id", session.user.id)
         .single();
       if (profile) setIsSubscribed(profile.is_subscribed);
+      const studentMadhab = profile?.madhab || "";
 
       const isAdminUser = roles && roles.length > 0;
 
@@ -70,9 +71,13 @@ const SubjectVideos = () => {
           .eq("subject", decodeURIComponent(subject))
           .order("sort_order", { ascending: true });
         if (data) {
-          const filtered = isAdminUser || profile?.is_subscribed
+          let filtered = isAdminUser || profile?.is_subscribed
             ? data
             : data.filter(v => v.access_type === "all");
+          // Filter فقه videos by student's madhab (unless admin)
+          if (decodeURIComponent(subject || "") === "الفقه" && !isAdminUser && studentMadhab) {
+            filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
+          }
           setVideos(filtered);
 
           // Track views
