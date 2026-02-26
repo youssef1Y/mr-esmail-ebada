@@ -43,6 +43,7 @@ interface VideoItem {
   subject: string;
   access_type: string;
   created_at: string;
+  madhab: string | null;
 }
 
 interface Notification {
@@ -87,6 +88,7 @@ const allGrades = [
 ];
 
 const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
+const madhabOptions = ["شافعي", "حنفي", "مالكي", "حنبلي"] as const;
 
 const prepSubjects = [
   { title: "الفقه", icon: BookMarked, description: "دراسة شاملة لأحكام الفقه على المذهب المحدد" },
@@ -540,7 +542,7 @@ const Dashboard = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "", access_type: "all", publish_at: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", grade: "", subject: "", madhab: "", access_type: "all", publish_at: "" });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -938,6 +940,12 @@ const Dashboard = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة وارفع الفيديو", variant: "destructive" });
       return;
     }
+
+    if (newVideo.subject === "الفقه" && !newVideo.madhab) {
+      toast({ title: "خطأ", description: "اختر المذهب الفقهي لفيديوهات الفقه", variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(0);
     const fileExt = videoFile.name.split('.').pop();
@@ -975,12 +983,36 @@ const Dashboard = () => {
       setUploadProgress(0);
       return;
     }
+
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
-    const insertData: any = { title: newVideo.title, description: newVideo.description, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type, video_url: urlData.publicUrl };
+    const insertData: any = {
+      title: newVideo.title,
+      description: newVideo.description,
+      grade: newVideo.grade,
+      subject: newVideo.subject,
+      access_type: newVideo.access_type,
+      video_url: urlData.publicUrl,
+    };
+
+    if (newVideo.subject === "الفقه") {
+      insertData.madhab = newVideo.madhab;
+    }
+
     if (newVideo.publish_at) insertData.publish_at = new Date(newVideo.publish_at).toISOString();
+
     const { error } = await supabase.from("videos").insert(insertData);
-    if (error) { console.error("Insert video error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" }); }
-    else { toast({ title: "تم إضافة الفيديو بنجاح" }); setNewVideo({ title: "", description: "", grade: "", subject: "", access_type: "all", publish_at: "" }); setVideoFile(null); setShowAddVideo(false); fetchVideos(); fetchGradeVideos(selectedGrade); }
+    if (error) {
+      console.error("Insert video error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" });
+    } else {
+      toast({ title: "تم إضافة الفيديو بنجاح" });
+      setNewVideo({ title: "", description: "", grade: "", subject: "", madhab: "", access_type: "all", publish_at: "" });
+      setVideoFile(null);
+      setShowAddVideo(false);
+      fetchVideos();
+      fetchGradeVideos(selectedGrade);
+    }
+
     setUploading(false);
     setUploadProgress(0);
   };
@@ -1301,11 +1333,30 @@ const Dashboard = () => {
                           <option value="">المرحلة</option>
                           {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
-                        <select value={newVideo.subject} onChange={e => setNewVideo({ ...newVideo, subject: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                        <select
+                          value={newVideo.subject}
+                          onChange={e => setNewVideo({ ...newVideo, subject: e.target.value, madhab: e.target.value === "الفقه" ? newVideo.madhab : "" })}
+                          className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                        >
                           <option value="">المادة</option>
                           {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
+                      {newVideo.subject === "الفقه" && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">المذهب الفقهي</Label>
+                          <select
+                            value={newVideo.madhab}
+                            onChange={e => setNewVideo({ ...newVideo, madhab: e.target.value })}
+                            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">اختر المذهب</option>
+                            {madhabOptions.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <Label className="text-xs text-muted-foreground mb-1 block">متاح لـ</Label>
                         <div className="flex gap-2">
@@ -1366,7 +1417,14 @@ const Dashboard = () => {
                     ) : videos.map(v => (
                       <div key={v.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between">
                         <div>
-                          <h4 className="font-bold text-sm">{v.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-sm">{v.title}</h4>
+                            {v.madhab && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
+                                {v.madhab}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{v.grade} · {v.subject} · {v.access_type === "subscribers_only" ? "للمشتركين فقط" : "للكل"}</p>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteVideo(v.id)} className="text-destructive h-7 w-7">
