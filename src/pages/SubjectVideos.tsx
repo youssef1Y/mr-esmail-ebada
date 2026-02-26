@@ -15,6 +15,7 @@ interface VideoItem {
   subject: string;
   access_type: string;
   created_at: string;
+  madhab: string | null;
 }
 
 interface Comment {
@@ -229,10 +230,23 @@ const SubjectVideos = () => {
                   </button>
                 )}
                 <div className="p-4">
-                  <h3 className="font-bold text-sm mb-1">
-                    <span className="text-muted-foreground ml-2">{i + 1}.</span>
-                    {v.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-sm">
+                      <span className="text-muted-foreground ml-2">{i + 1}.</span>
+                      {v.title}
+                    </h3>
+                    {v.madhab && (
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                        v.madhab === "شافعي" ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" :
+                        v.madhab === "حنفي" ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" :
+                        v.madhab === "مالكي" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" :
+                        v.madhab === "حنبلي" ? "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" :
+                        "bg-muted text-muted-foreground border-border"
+                      }`}>
+                        {v.madhab}
+                      </span>
+                    )}
+                  </div>
                   {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
 
                   {/* Comments Toggle */}
