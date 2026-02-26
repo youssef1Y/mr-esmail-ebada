@@ -39,54 +39,77 @@ const Subscribe = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !transferNumber || !senderPhone || !receiptFile) {
-      if (!receiptFile) {
-        toast({ title: "خطأ", description: "يجب رفع صورة إيصال التحويل", variant: "destructive" });
-      }
+
+    const normalizedTransferNumber = transferNumber.trim();
+    const normalizedSenderPhone = senderPhone.trim();
+
+    if (!user || !normalizedTransferNumber || !normalizedSenderPhone || !receiptFile) {
+      toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة وارفع صورة الإيصال", variant: "destructive" });
       return;
     }
+
+    if (!/^01\d{9}$/.test(normalizedSenderPhone)) {
+      toast({ title: "خطأ", description: "رقم فودافون كاش يجب أن يكون 11 رقمًا ويبدأ بـ 01", variant: "destructive" });
+      return;
+    }
+
+    if (!profile?.full_name) {
+      toast({ title: "خطأ", description: "تعذر قراءة بيانات الطالب، أعد تسجيل الدخول ثم حاول مرة أخرى", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
 
-    let receiptPath = "";
-    if (receiptFile) {
-      const ext = receiptFile.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("receipts").upload(path, receiptFile);
-      if (!uploadError) {
-        receiptPath = path;
-      }
+    const ext = receiptFile.name.split(".").pop();
+    const receiptPath = `${user.id}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from("receipts").upload(receiptPath, receiptFile);
+    if (uploadError) {
+      setSubmitting(false);
+      toast({ title: "خطأ", description: "فشل رفع صورة الإيصال", variant: "destructive" });
+      return;
     }
 
     const { error } = await supabase.from("subscription_requests").insert({
       user_id: user.id,
-      transfer_number: transferNumber,
-      sender_phone: senderPhone,
-      receipt_url: receiptPath || null,
+      transfer_number: normalizedTransferNumber,
+      sender_phone: normalizedSenderPhone,
+      receipt_url: receiptPath,
       amount: subscriptionPrice,
     });
 
-    setSubmitting(false);
     if (error) {
+      setSubmitting(false);
       toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الطلب", variant: "destructive" });
-    } else {
-      // Notify admin about new subscription request
-      try {
-        await supabase.functions.invoke("notify-subscription", {
-          body: {
-            fullName: profile?.full_name,
-            grade: profile?.grade,
-            senderPhone,
-            transferNumber,
-            amount: subscriptionPrice,
-            receiptPath,
-          },
-        });
-      } catch (e) {
-        console.error("Subscription notification error:", e);
-      }
-      toast({ title: "تم الإرسال", description: "تم إرسال طلب الاشتراك بنجاح وسيتم مراجعته" });
-      navigate("/dashboard");
+      return;
     }
+
+    const { error: notifyError } = await supabase.functions.invoke("notify-subscription", {
+      body: {
+        fullName: profile.full_name,
+        grade: profile.grade,
+        senderPhone: normalizedSenderPhone,
+        transferNumber: normalizedTransferNumber,
+        amount: subscriptionPrice,
+        receiptPath,
+      },
+    });
+
+    setSubmitting(false);
+
+    if (notifyError) {
+      console.error("Subscription notification error:", notifyError);
+      toast({
+        title: "تم حفظ الطلب",
+        description: "تم تسجيل طلب الاشتراك لكن حدثت مشكلة في إرسال إشعار البريد للإدارة.",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+      return;
+    }
+
+    toast({ title: "تم الإرسال", description: "تم إرسال طلب الاشتراك وإشعار الإدارة بنجاح" });
+    navigate("/dashboard");
   };
 
   if (loading) return (
@@ -149,11 +172,11 @@ const Subscribe = () => {
           <div className="space-y-4">
             <div>
               <Label className="text-sm font-medium">رقم التحويل (المرجع)</Label>
-              <Input value={transferNumber} onChange={e => setTransferNumber(e.target.value)} placeholder="أدخل رقم التحويل" required />
+              <Input value={transferNumber} onChange={e => setTransferNumber(e.target.value.replace(/\D/g, "").slice(0, 20))} inputMode="numeric" placeholder="أدخل رقم التحويل" required />
             </div>
             <div>
               <Label className="text-sm font-medium">الرقم المحوّل منه</Label>
-              <Input value={senderPhone} onChange={e => setSenderPhone(e.target.value)} placeholder="01XXXXXXXXX" dir="ltr" required />
+              <Input value={senderPhone} onChange={e => setSenderPhone(e.target.value.replace(/\D/g, "").slice(0, 11))} inputMode="numeric" pattern="01[0-9]{9}" maxLength={11} placeholder="01XXXXXXXXX" dir="ltr" required />
             </div>
             <div>
               <Label className="text-sm font-medium">صورة إيصال التحويل</Label>
