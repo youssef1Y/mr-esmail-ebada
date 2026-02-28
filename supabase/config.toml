@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.notify-subscription]
 verify_jwt = false
+
+[functions.send-reset-code]
+verify_jwt = false
+
+[functions.verify-reset-code]
+verify_jwt = false

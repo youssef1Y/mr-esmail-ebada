@@ -7,10 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Store OTPs in memory (edge function instance scope)
-// In production, consider using a database table
-const otpStore = new Map<string, { code: string; expires: number }>();
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,14 +22,14 @@ serve(async (req) => {
       );
     }
 
-    // Check if user exists
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // Check if user exists
     const email = `${phone}@ismail-ebada.platform`;
     const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-    
+
     if (listError) {
       console.error("Error listing users:", listError.message);
       return new Response(
@@ -51,12 +47,39 @@ serve(async (req) => {
       );
     }
 
+    // Rate limit: max 1 OTP per phone per 2 minutes
+    const { data: recentOtp } = await supabase
+      .from("password_reset_otps")
+      .select("created_at")
+      .eq("phone", phone)
+      .eq("used", false)
+      .gt("created_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
+      .limit(1)
+      .single();
+
+    if (recentOtp) {
+      return new Response(
+        JSON.stringify({ error: "تم إرسال كود بالفعل، انتظر دقيقتين قبل المحاولة مرة أخرى" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate 6-digit OTP
     const code = String(Math.floor(100000 + Math.random() * 900000));
-    const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    // Store OTP
-    otpStore.set(phone, { code, expires });
+    // Store OTP in database
+    const { error: insertError } = await supabase
+      .from("password_reset_otps")
+      .insert({ phone, code, expires_at: expiresAt });
+
+    if (insertError) {
+      console.error("Error storing OTP:", insertError.message);
+      return new Response(
+        JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Send SMS via Twilio
     const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
@@ -98,6 +121,8 @@ serve(async (req) => {
     if (!smsResponse.ok) {
       const smsError = await smsResponse.text();
       console.error("Twilio SMS error:", smsError);
+      // Clean up the OTP since SMS failed
+      await supabase.from("password_reset_otps").delete().eq("phone", phone).eq("code", code);
       return new Response(
         JSON.stringify({ error: "فشل في إرسال الرسالة، حاول مرة أخرى" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

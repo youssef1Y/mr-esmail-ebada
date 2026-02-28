@@ -61,7 +61,11 @@ const Login = () => {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
+        <p className="text-center text-sm text-muted-foreground mt-3">
+          <Link to="/auth/forgot-password" className="text-primary/80 text-xs hover:underline">نسيت كلمة المرور؟</Link>
+        </p>
+
+        <p className="text-center text-sm text-muted-foreground mt-2">
           ليس لديك حساب؟{" "}
           <Link to="/auth/register" className="text-primary font-medium hover:underline">إنشاء حساب جديد</Link>
         </p>
