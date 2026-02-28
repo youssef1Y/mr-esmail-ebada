@@ -21,6 +21,7 @@ import Leaderboard from "./pages/Leaderboard";
 import QuestionBank from "./pages/QuestionBank";
 import StudentReport from "./pages/StudentReport";
 import Contact from "./pages/Contact";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const AnimatedRoutes = () => {
         <Route path="/" element={<PageTransition><Index /></PageTransition>} />
         <Route path="/auth/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/auth/register" element={<PageTransition><Register /></PageTransition>} />
+        <Route path="/auth/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
         <Route path="/subscribe" element={<PageTransition><Subscribe /></PageTransition>} />
