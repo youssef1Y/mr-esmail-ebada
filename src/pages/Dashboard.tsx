@@ -577,7 +577,7 @@ const Dashboard = () => {
   const [studentNotifs, setStudentNotifs] = useState<Notification[]>([]);
   const [studentExams, setStudentExams] = useState<ExamItem[]>([]);
   const [dismissedNotifs, setDismissedNotifs] = useState<string[]>([]);
-
+  const [personalNotifCount, setPersonalNotifCount] = useState(0);
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       if (!session) { navigate("/auth/login"); return; }
@@ -607,6 +607,13 @@ const Dashboard = () => {
       fetchStudentExams(data.grade, data.is_subscribed);
     }
     setLoading(false);
+    // Fetch unread personal notifications count
+    const { count } = await supabase
+      .from("student_notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+    setPersonalNotifCount(count || 0);
   };
 
   const fetchStudentNotifications = async (grade: string, isSubscribed: boolean) => {
@@ -924,9 +931,26 @@ const Dashboard = () => {
 
   const toggleSubscription = async (p: ProfileFull) => {
     const newPrice = p.grade.includes("إعدادي") ? 150 : 200;
-    await supabase.from("profiles").update({ is_subscribed: !p.is_subscribed, subscription_price: p.is_subscribed ? 0 : newPrice }).eq("id", p.id);
+    const isActivating = !p.is_subscribed;
+    const expiresAt = isActivating
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    await supabase.from("profiles").update({
+      is_subscribed: isActivating,
+      subscription_price: isActivating ? newPrice : 0,
+      subscription_expires_at: expiresAt,
+    }).eq("id", p.id);
+    // Send notification to student
+    await supabase.from("student_notifications").insert({
+      user_id: p.user_id,
+      title: isActivating ? "تم تفعيل اشتراكك! 🎉" : "تم إلغاء اشتراكك",
+      body: isActivating
+        ? "تم تفعيل اشتراكك بنجاح. يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم."
+        : "تم إلغاء اشتراكك في المنصة.",
+      type: isActivating ? "subscription_activated" : "subscription_expired",
+    });
     fetchProfiles();
-    toast({ title: p.is_subscribed ? "تم إلغاء الاشتراك" : "تم تفعيل الاشتراك" });
+    toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
 
   const deleteProfile = async (id: string) => {
@@ -1097,6 +1121,16 @@ const Dashboard = () => {
                 <span className="hidden sm:inline">إغلاق لوحة التحكم</span>
               </Button>
             )}
+            <Link to="/student-notifications" className="relative">
+              <Button variant="ghost" size="sm">
+                <Bell className="w-4 h-4" />
+                {personalNotifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {personalNotifCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
             <Link to="/profile">
               <Button variant="ghost" size="sm">
                 <User className="w-4 h-4 ml-1" />
