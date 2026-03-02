@@ -40,10 +40,9 @@ serve(async (req) => {
 
     const userExists = users.users.some((u: any) => u.email === email);
     if (!userExists) {
-      // Don't reveal if user exists - return success anyway
       return new Response(
-        JSON.stringify({ success: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "هذا الرقم غير مسجل في المنصة" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

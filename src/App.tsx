@@ -22,6 +22,7 @@ import QuestionBank from "./pages/QuestionBank";
 import StudentReport from "./pages/StudentReport";
 import Contact from "./pages/Contact";
 import ForgotPassword from "./pages/ForgotPassword";
+import StudentNotifications from "./pages/StudentNotifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const AnimatedRoutes = () => {
         <Route path="/question-bank" element={<PageTransition><QuestionBank /></PageTransition>} />
         <Route path="/report" element={<PageTransition><StudentReport /></PageTransition>} />
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
+        <Route path="/student-notifications" element={<PageTransition><StudentNotifications /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

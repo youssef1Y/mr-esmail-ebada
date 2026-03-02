@@ -89,7 +89,7 @@ interface ExamAttemptWithDetails {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages" | "requests">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -135,6 +135,10 @@ const Admin = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [selectedConvoName, setSelectedConvoName] = useState("");
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+
+  // Subscription requests state
+  const [subRequests, setSubRequests] = useState<any[]>([]);
+  const [subRequestsLoading, setSubRequestsLoading] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -330,7 +334,77 @@ const Admin = () => {
     if (tab === "homework") fetchHomeworkSubmissions();
     if (tab === "exams") fetchExamAttempts();
     if (tab === "messages") fetchMessages();
+    if (tab === "requests") fetchSubRequests();
   }, [tab, videoGrade, videoSubject]);
+
+  const fetchSubRequests = async () => {
+    setSubRequestsLoading(true);
+    const { data: requests } = await supabase
+      .from("subscription_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (requests && requests.length > 0) {
+      const userIds = [...new Set(requests.map((r: any) => r.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name, grade, student_phone").in("user_id", userIds);
+      const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      
+      // Generate signed URLs for receipts
+      const enriched = await Promise.all(requests.map(async (r: any) => {
+        let signedReceiptUrl = "";
+        if (r.receipt_url) {
+          const { data: signedData } = await supabase.storage.from("receipts").createSignedUrl(r.receipt_url, 3600);
+          if (signedData?.signedUrl) signedReceiptUrl = signedData.signedUrl;
+        }
+        return {
+          ...r,
+          signed_receipt_url: signedReceiptUrl,
+          student_name: profMap.get(r.user_id)?.full_name || "غير معروف",
+          student_grade: profMap.get(r.user_id)?.grade || "",
+          student_phone: profMap.get(r.user_id)?.student_phone || "",
+        };
+      }));
+      setSubRequests(enriched);
+    } else {
+      setSubRequests([]);
+    }
+    setSubRequestsLoading(false);
+  };
+
+  const handleApproveRequest = async (request: any) => {
+    // Update request status
+    await supabase.from("subscription_requests").update({ status: "approved" }).eq("id", request.id);
+    // Activate subscription
+    const newPrice = request.student_grade.includes("إعدادي") ? 150 : 200;
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await supabase.from("profiles").update({
+      is_subscribed: true,
+      subscription_price: newPrice,
+      subscription_expires_at: expiresAt,
+    }).eq("user_id", request.user_id);
+    // Send notification to student
+    await supabase.from("student_notifications").insert({
+      user_id: request.user_id,
+      title: "تم تفعيل اشتراكك! 🎉",
+      body: "تم تفعيل اشتراكك بنجاح. يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم.",
+      type: "subscription_approved",
+    });
+    toast({ title: "تم تفعيل الاشتراك وإشعار الطالب" });
+    fetchSubRequests();
+    fetchProfiles();
+  };
+
+  const handleRejectRequest = async (request: any) => {
+    await supabase.from("subscription_requests").update({ status: "rejected" }).eq("id", request.id);
+    // Send notification to student
+    await supabase.from("student_notifications").insert({
+      user_id: request.user_id,
+      title: "تم رفض طلب الاشتراك",
+      body: "تم رفض طلب اشتراكك. يرجى التأكد من بيانات التحويل وإعادة المحاولة أو التواصل مع الإدارة.",
+      type: "subscription_rejected",
+    });
+    toast({ title: "تم رفض الطلب وإشعار الطالب" });
+    fetchSubRequests();
+  };
 
   const toggleSubscription = async (profile: Profile) => {
     const newPrice = profile.grade.includes("إعدادي") ? 150 : 200;
@@ -343,8 +417,17 @@ const Admin = () => {
       subscription_price: isActivating ? newPrice : 0,
       subscription_expires_at: expiresAt,
     }).eq("id", profile.id);
+    // Send notification to student
+    await supabase.from("student_notifications").insert({
+      user_id: profile.user_id,
+      title: isActivating ? "تم تفعيل اشتراكك! 🎉" : "تم إلغاء اشتراكك",
+      body: isActivating
+        ? "تم تفعيل اشتراكك بنجاح. يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم."
+        : "تم إلغاء اشتراكك في المنصة.",
+      type: isActivating ? "subscription_activated" : "subscription_expired",
+    });
     fetchProfiles();
-    toast({ title: isActivating ? "تم تفعيل الاشتراك (ينتهي بعد 30 يوم)" : "تم إلغاء الاشتراك" });
+    toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
 
   const deleteProfile = async (id: string, userId: string) => {
@@ -527,6 +610,7 @@ const Admin = () => {
         <div className="flex gap-2 mb-6 justify-center flex-wrap">
           {[
             { key: "subscribers" as const, label: "المشتركين", icon: Users },
+            { key: "requests" as const, label: "طلبات الاشتراك", icon: ClipboardList },
             { key: "notifications" as const, label: "الإشعارات", icon: Bell },
             { key: "videos" as const, label: "الفيديوهات", icon: Video },
             { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
@@ -886,7 +970,82 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Homework Tab */}
+        {/* Subscription Requests Tab */}
+        {tab === "requests" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold font-amiri">طلبات الاشتراك</h2>
+              <Button variant="outline" size="sm" onClick={fetchSubRequests} className="gap-1">
+                <RefreshCw className="w-3 h-3" /> تحديث
+              </Button>
+            </div>
+
+            {subRequestsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : subRequests.length === 0 ? (
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">لا توجد طلبات اشتراك</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {subRequests.map((req: any) => (
+                  <div key={req.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-sm">{req.student_name}</h3>
+                        <p className="text-xs text-muted-foreground">{req.student_grade} · {req.student_phone}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(req.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                        req.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        req.status === "approved" ? "bg-green-100 text-green-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {req.status === "pending" ? "قيد الانتظار" : req.status === "approved" ? "مقبول" : "مرفوض"}
+                      </span>
+                    </div>
+
+                    <div className="bg-muted rounded-lg p-3 text-xs space-y-1">
+                      <p><strong>رقم المحوّل منه:</strong> <span dir="ltr">{req.sender_phone}</span></p>
+                      <p><strong>رقم التحويل (المرجع):</strong> {req.transfer_number}</p>
+                      <p><strong>المبلغ:</strong> {req.amount} جنيه</p>
+                    </div>
+
+                    {req.signed_receipt_url && (
+                      <div>
+                        <p className="text-xs font-medium mb-1">صورة الإيصال:</p>
+                        <img
+                          src={req.signed_receipt_url}
+                          alt="إيصال التحويل"
+                          className="w-full max-h-64 object-contain rounded-lg border border-border cursor-pointer"
+                          onClick={() => window.open(req.signed_receipt_url, '_blank')}
+                        />
+                      </div>
+                    )}
+
+                    {req.status === "pending" && (
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleApproveRequest(req)} className="flex-1 gap-1">
+                          <UserCheck className="w-3 h-3" /> قبول وتفعيل
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req)} className="flex-1 gap-1">
+                          <UserX className="w-3 h-3" /> رفض
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+
         {tab === "homework" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
