@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +89,7 @@ interface ExamAttemptWithDetails {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages" | "requests">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages" | "requests" | "reports">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -139,6 +139,11 @@ const Admin = () => {
   // Subscription requests state
   const [subRequests, setSubRequests] = useState<any[]>([]);
   const [subRequestsLoading, setSubRequestsLoading] = useState(false);
+
+  // Weekly report state
+  const [reportSending, setReportSending] = useState(false);
+  const [reportAdminPhone, setReportAdminPhone] = useState("01097602493");
+  const [reportSendToParents, setReportSendToParents] = useState(true);
 
   useEffect(() => {
     checkAdmin();
@@ -616,6 +621,7 @@ const Admin = () => {
             { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
             { key: "homework" as const, label: "الواجبات", icon: FileText },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
+            { key: "reports" as const, label: "التقارير", icon: BarChart3 },
           ].map(t => (
             <Button
               key={t.key}
@@ -1382,6 +1388,81 @@ const Admin = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Reports Tab */}
+        {tab === "reports" && (
+          <div className="space-y-6">
+            <div className="bg-card rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold font-amiri mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                التقرير الأسبوعي عبر واتساب
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                أرسل تقرير أداء أسبوعي شامل لجميع الطلاب مصنف حسب الصف الدراسي. يتضمن التقرير: نتائج الامتحانات، الواجبات المسلمة، الفيديوهات المشاهدة، والنقاط المكتسبة خلال الأسبوع.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <Label>رقم واتساب الأدمن (لاستلام التقرير الشامل)</Label>
+                  <Input
+                    value={reportAdminPhone}
+                    onChange={e => setReportAdminPhone(e.target.value)}
+                    placeholder="01097602493"
+                    dir="ltr"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reportSendToParents}
+                    onChange={e => setReportSendToParents(e.target.checked)}
+                    className="rounded"
+                  />
+                  إرسال تقرير فردي لكل ولي أمر أيضاً
+                </label>
+                <div className="bg-muted rounded-xl p-3 text-sm space-y-1">
+                  <p className="font-medium">📋 محتوى التقرير:</p>
+                  <p className="text-muted-foreground">• التقرير الشامل للأدمن: جميع الطلاب مصنفين حسب الصف مع بيانات الأداء</p>
+                  <p className="text-muted-foreground">• تقرير ولي الأمر: تقرير فردي عن أداء الطالب فقط</p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    setReportSending(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke("weekly-report", {
+                        body: {
+                          admin_phone: reportAdminPhone,
+                          send_to_parents: reportSendToParents,
+                        },
+                      });
+                      if (error) throw error;
+                      toast({ title: "تم إرسال التقرير", description: data?.message || "تم الإرسال بنجاح" });
+                    } catch (err: any) {
+                      console.error("Report error:", err);
+                      toast({ title: "خطأ", description: err.message || "حدث خطأ أثناء إرسال التقرير", variant: "destructive" });
+                    }
+                    setReportSending(false);
+                  }}
+                  className="w-full gap-2"
+                  disabled={reportSending || !reportAdminPhone}
+                >
+                  {reportSending ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  {reportSending ? "جاري الإرسال..." : "إرسال التقرير الآن"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-2xl border border-border p-6">
+              <h3 className="font-bold text-sm mb-2">⏰ الإرسال التلقائي الأسبوعي</h3>
+              <p className="text-sm text-muted-foreground">
+                يتم إرسال التقرير تلقائياً كل يوم جمعة الساعة 6 مساءً بتوقيت مصر إلى رقمك وأولياء الأمور.
+              </p>
+            </div>
           </div>
         )}
       </main>
