@@ -6,6 +6,7 @@ interface BadgeCounts {
   pendingHomework: number;
   newExams: number;
   unreadNotifications: number;
+  newVideosPerSubject: Record<string, number>;
 }
 
 export const useBadgeCounts = (userId: string, grade: string, isSubscribed: boolean) => {
@@ -14,6 +15,7 @@ export const useBadgeCounts = (userId: string, grade: string, isSubscribed: bool
     pendingHomework: 0,
     newExams: 0,
     unreadNotifications: 0,
+    newVideosPerSubject: {},
   });
 
   useEffect(() => {
@@ -43,6 +45,17 @@ export const useBadgeCounts = (userId: string, grade: string, isSubscribed: bool
         return !attemptedIds.has(e.id);
       }).length;
 
+      // New videos per subject (unwatched)
+      const { data: allVideos } = await supabase.from("videos").select("id, subject").eq("grade", grade);
+      const { data: viewedVideos } = await supabase.from("video_views").select("video_id").eq("user_id", userId);
+      const viewedIds = new Set((viewedVideos || []).map(v => v.video_id));
+      const perSubject: Record<string, number> = {};
+      (allVideos || []).forEach(v => {
+        if (!viewedIds.has(v.id)) {
+          perSubject[v.subject] = (perSubject[v.subject] || 0) + 1;
+        }
+      });
+
       // Unread personal notifications
       const { count: notifCount } = await supabase
         .from("student_notifications")
@@ -55,6 +68,7 @@ export const useBadgeCounts = (userId: string, grade: string, isSubscribed: bool
         pendingHomework: pendingHw,
         newExams: availableExams,
         unreadNotifications: notifCount || 0,
+        newVideosPerSubject: perSubject,
       });
     };
 
