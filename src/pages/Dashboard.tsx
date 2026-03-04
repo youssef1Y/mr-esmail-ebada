@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download } from "lucide-react";
 import { StudentLevelBadge } from "@/components/StudentLevel";
+import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -389,6 +390,273 @@ const AdminLeaderboardTab = () => {
               <div className="text-center">
                 <span className="text-lg font-bold text-primary">{entry.total_points}</span>
                 <p className="text-xs text-muted-foreground">نقطة</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Admin Student Report Tab Component
+const AdminStudentReportTab = () => {
+  const [reportGrade, setReportGrade] = useState("");
+  const [reportStudents, setReportStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchStudentReport = async (grade: string) => {
+    if (!grade) { setReportStudents([]); return; }
+    setLoading(true);
+    
+    // Get profiles for this grade
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, student_phone, parent_phone, school, governorate, madhab, is_subscribed, grade")
+      .eq("grade", grade);
+    
+    if (!profs || profs.length === 0) { setReportStudents([]); setLoading(false); return; }
+    
+    const userIds = profs.map(p => p.user_id);
+    
+    // Fetch all data in parallel
+    const [attemptsRes, hwSubsRes, viewsRes, pointsRes] = await Promise.all([
+      supabase.from("exam_attempts").select("user_id, score, total, submitted_at, exam_id").in("user_id", userIds),
+      supabase.from("homework_submissions").select("user_id, score, submitted_at, homework_id").in("user_id", userIds),
+      supabase.from("video_views").select("user_id, video_id, viewed_at").in("user_id", userIds),
+      supabase.from("student_points").select("user_id, points, reason, source_type").in("user_id", userIds),
+    ]);
+    
+    const attempts = attemptsRes.data || [];
+    const hwSubs = hwSubsRes.data || [];
+    const views = viewsRes.data || [];
+    const points = pointsRes.data || [];
+    
+    // Build student reports
+    const studentReports = profs.map(p => {
+      const studentAttempts = attempts.filter(a => a.user_id === p.user_id);
+      const studentHw = hwSubs.filter(h => h.user_id === p.user_id);
+      const studentViews = views.filter(v => v.user_id === p.user_id);
+      const studentPoints = points.filter(pt => pt.user_id === p.user_id);
+      const totalPoints = studentPoints.reduce((sum, pt) => sum + pt.points, 0);
+      
+      const totalExamScore = studentAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
+      const totalExamMax = studentAttempts.reduce((sum, a) => sum + (a.total || 0), 0);
+      const avgExamPercent = totalExamMax > 0 ? Math.round((totalExamScore / totalExamMax) * 100) : 0;
+      
+      const totalHwScore = studentHw.filter(h => h.score !== null).reduce((sum, h) => sum + (h.score || 0), 0);
+      const hwGraded = studentHw.filter(h => h.score !== null).length;
+      const avgHwScore = hwGraded > 0 ? Math.round(totalHwScore / hwGraded * 10) / 10 : 0;
+      
+      return {
+        ...p,
+        exams_count: studentAttempts.length,
+        avg_exam_percent: avgExamPercent,
+        total_exam_score: totalExamScore,
+        total_exam_max: totalExamMax,
+        homework_count: studentHw.length,
+        hw_graded: hwGraded,
+        avg_hw_score: avgHwScore,
+        videos_watched: studentViews.length,
+        total_points: totalPoints,
+        attempts: studentAttempts,
+        hw_submissions: studentHw,
+        views_list: studentViews,
+        points_list: studentPoints,
+      };
+    });
+    
+    // Sort by total points desc
+    studentReports.sort((a, b) => b.total_points - a.total_points);
+    setReportStudents(studentReports);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (reportGrade) fetchStudentReport(reportGrade);
+  }, [reportGrade]);
+
+  const filtered = searchQuery
+    ? reportStudents.filter(s => s.full_name.includes(searchQuery) || s.student_phone.includes(searchQuery))
+    : reportStudents;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2">
+        <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
+      </h3>
+      
+      <select
+        value={reportGrade}
+        onChange={e => setReportGrade(e.target.value)}
+        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+      >
+        <option value="">اختر الصف الدراسي</option>
+        {allGrades.map(g => <option key={g} value={g}>{g}</option>)}
+      </select>
+
+      {reportGrade && (
+        <div className="relative">
+          <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="ابحث بالاسم أو رقم الهاتف..."
+            className="pr-9"
+          />
+        </div>
+      )}
+
+      {loading && <p className="text-center text-muted-foreground text-sm py-6">جاري التحميل...</p>}
+
+      {!loading && reportGrade && filtered.length === 0 && (
+        <p className="text-center text-muted-foreground text-sm py-6">لا يوجد طلاب في هذا الصف</p>
+      )}
+
+      {/* Student Detail Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedStudent(null)}>
+          <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-lg">{selectedStudent.full_name}</h3>
+                <p className="text-xs text-muted-foreground">{selectedStudent.grade}</p>
+              </div>
+              <button onClick={() => setSelectedStudent(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Student Info */}
+            <div className="bg-muted rounded-xl p-3 mb-4 space-y-1 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">الهاتف:</span><span dir="ltr">{selectedStudent.student_phone}</span></div>
+              {selectedStudent.parent_phone && <div className="flex justify-between"><span className="text-muted-foreground">ولي الأمر:</span><span dir="ltr">{selectedStudent.parent_phone}</span></div>}
+              {selectedStudent.school && <div className="flex justify-between"><span className="text-muted-foreground">المدرسة:</span><span>{selectedStudent.school}</span></div>}
+              {selectedStudent.governorate && <div className="flex justify-between"><span className="text-muted-foreground">المحافظة:</span><span>{selectedStudent.governorate}</span></div>}
+              {selectedStudent.madhab && <div className="flex justify-between"><span className="text-muted-foreground">المذهب:</span><span>{selectedStudent.madhab}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">الاشتراك:</span><span className={selectedStudent.is_subscribed ? "text-primary font-bold" : "text-destructive"}>{selectedStudent.is_subscribed ? "✅ مشترك" : "❌ غير مشترك"}</span></div>
+            </div>
+
+            {/* Performance Summary */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="bg-muted rounded-xl p-3 text-center">
+                <span className="text-2xl font-bold text-primary">{selectedStudent.total_points}</span>
+                <p className="text-xs text-muted-foreground">نقطة</p>
+              </div>
+              <div className="bg-muted rounded-xl p-3 text-center">
+                <span className="text-2xl font-bold">{filtered.indexOf(selectedStudent) + 1}</span>
+                <p className="text-xs text-muted-foreground">الترتيب</p>
+              </div>
+            </div>
+
+            {/* Exams */}
+            <div className="mb-4">
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">📝 الامتحانات ({selectedStudent.exams_count})</h4>
+              {selectedStudent.exams_count === 0 ? (
+                <p className="text-xs text-muted-foreground">لم يدخل أي امتحان بعد</p>
+              ) : (
+                <div className="bg-muted rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>عدد الامتحانات:</span><span className="font-bold">{selectedStudent.exams_count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>إجمالي الدرجات:</span><span className="font-bold">{selectedStudent.total_exam_score}/{selectedStudent.total_exam_max}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>متوسط النسبة:</span><span className="font-bold text-primary">{selectedStudent.avg_exam_percent}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Homework */}
+            <div className="mb-4">
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">📋 الواجبات ({selectedStudent.homework_count})</h4>
+              {selectedStudent.homework_count === 0 ? (
+                <p className="text-xs text-muted-foreground">لم يسلم أي واجب بعد</p>
+              ) : (
+                <div className="bg-muted rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>واجبات مسلمة:</span><span className="font-bold">{selectedStudent.homework_count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>واجبات مُقيّمة:</span><span className="font-bold">{selectedStudent.hw_graded}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>متوسط الدرجة:</span><span className="font-bold text-primary">{selectedStudent.avg_hw_score}/10</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Videos */}
+            <div className="mb-4">
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">🎬 الفيديوهات</h4>
+              <div className="bg-muted rounded-xl p-3">
+                <div className="flex justify-between text-sm">
+                  <span>فيديوهات مشاهدة:</span><span className="font-bold">{selectedStudent.videos_watched}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Level */}
+            <div>
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">🏆 المستوى</h4>
+              <StudentLevelBadge points={selectedStudent.total_points} showProgress />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student List */}
+      {!loading && filtered.length > 0 && (
+        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          {filtered.map((s, i) => (
+            <div
+              key={s.user_id}
+              className="bg-background rounded-xl border border-border p-3 cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setSelectedStudent(s)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-sm truncate">{s.full_name}</h4>
+                  <p className="text-xs text-muted-foreground">{s.student_phone} {s.parent_phone ? `• ولي الأمر: ${s.parent_phone}` : ""}</p>
+                </div>
+                <div className="text-left flex-shrink-0 space-y-0.5">
+                  <div className="flex items-center gap-1 text-xs">
+                    <span className="text-primary font-bold">{s.total_points}</span>
+                    <span className="text-muted-foreground">نقطة</span>
+                  </div>
+                  <div className="flex gap-2 text-[10px] text-muted-foreground">
+                    <span>📝{s.exams_count}</span>
+                    <span>📋{s.homework_count}</span>
+                    <span>🎬{s.videos_watched}</span>
+                  </div>
+                </div>
+              </div>
+              {/* Quick stats bar */}
+              <div className="mt-2 grid grid-cols-4 gap-1">
+                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">امتحانات</span>
+                  <span className="text-xs font-bold">{s.avg_exam_percent}%</span>
+                </div>
+                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">واجبات</span>
+                  <span className="text-xs font-bold">{s.avg_hw_score}/10</span>
+                </div>
+                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">فيديوهات</span>
+                  <span className="text-xs font-bold">{s.videos_watched}</span>
+                </div>
+                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">اشتراك</span>
+                  <span className="text-xs font-bold">{s.is_subscribed ? "✅" : "❌"}</span>
+                </div>
               </div>
             </div>
           ))}
@@ -1847,6 +2115,11 @@ const Dashboard = () => {
                 <AdminLeaderboardTab />
               )}
 
+              {/* Student Report */}
+              {adminTab === "student-report" && (
+                <AdminStudentReportTab />
+              )}
+
               {/* Messages Tab */}
               {adminTab === "messages" && (
                 <div className="space-y-4">
@@ -2234,9 +2507,16 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Install App Button */}
+        {!isAdmin && (
+          <div className="mt-8 mb-4 max-w-2xl mx-auto text-center">
+            <InstallPWAButton />
+          </div>
+        )}
+
         {/* Contact Us Link */}
         {!isAdmin && (
-          <div className="mt-12 mb-8 max-w-2xl mx-auto">
+          <div className="mt-4 mb-8 max-w-2xl mx-auto">
             <Link to="/contact">
               <div className="bg-card rounded-2xl border border-border p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -2248,6 +2528,8 @@ const Dashboard = () => {
             </Link>
           </div>
         )}
+
+        <InstallPWABanner />
       </main>
     </div>
   );

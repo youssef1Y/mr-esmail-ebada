@@ -626,18 +626,6 @@ const Admin = () => {
       toast({ title: "خطأ", description: "حدث خطأ أثناء حفظ الدرجة", variant: "destructive" });
     } else {
       toast({ title: "تم حفظ الدرجة والملاحظات" });
-      // Send WhatsApp notification to parent
-      const sub = hwSubmissions.find(s => s.id === submissionId);
-      if (sub && scoreNum !== null) {
-        supabase.functions.invoke("notify-homework-graded", {
-          body: {
-            type: "homework_graded",
-            student_user_id: sub.user_id,
-            title: sub.homework_title,
-            score: scoreNum,
-          },
-        }).catch(err => console.error("Notify error:", err));
-      }
       setEditingSubmission(null);
       setEditScore("");
       setEditFeedback("");
@@ -1521,80 +1509,7 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Reports Tab */}
-        {tab === "reports" && (
-          <div className="space-y-6">
-            <div className="bg-card rounded-2xl border border-border p-6">
-              <h2 className="text-lg font-bold font-amiri mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                التقرير الأسبوعي عبر واتساب
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                أرسل تقرير أداء أسبوعي شامل لجميع الطلاب مصنف حسب الصف الدراسي. يتضمن التقرير: نتائج الامتحانات، الواجبات المسلمة، الفيديوهات المشاهدة، والنقاط المكتسبة خلال الأسبوع.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <Label>رقم واتساب الأدمن (لاستلام التقرير الشامل)</Label>
-                  <Input
-                    value={reportAdminPhone}
-                    onChange={e => setReportAdminPhone(e.target.value)}
-                    placeholder="01097602493"
-                    dir="ltr"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={reportSendToParents}
-                    onChange={e => setReportSendToParents(e.target.checked)}
-                    className="rounded"
-                  />
-                  إرسال تقرير فردي لكل ولي أمر أيضاً
-                </label>
-                <div className="bg-muted rounded-xl p-3 text-sm space-y-1">
-                  <p className="font-medium">📋 محتوى التقرير:</p>
-                  <p className="text-muted-foreground">• التقرير الشامل للأدمن: جميع الطلاب مصنفين حسب الصف مع بيانات الأداء</p>
-                  <p className="text-muted-foreground">• تقرير ولي الأمر: تقرير فردي عن أداء الطالب فقط</p>
-                </div>
-                <Button
-                  onClick={async () => {
-                    setReportSending(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke("weekly-report", {
-                        body: {
-                          admin_phone: reportAdminPhone,
-                          send_to_parents: reportSendToParents,
-                        },
-                      });
-                      if (error) throw error;
-                      toast({ title: "تم إرسال التقرير", description: data?.message || "تم الإرسال بنجاح" });
-                    } catch (err: any) {
-                      console.error("Report error:", err);
-                      toast({ title: "خطأ", description: err.message || "حدث خطأ أثناء إرسال التقرير", variant: "destructive" });
-                    }
-                    setReportSending(false);
-                  }}
-                  className="w-full gap-2"
-                  disabled={reportSending || !reportAdminPhone}
-                >
-                  {reportSending ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  {reportSending ? "جاري الإرسال..." : "إرسال التقرير الآن"}
-                </Button>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-2xl border border-border p-6">
-              <h3 className="font-bold text-sm mb-2">⏰ الإرسال التلقائي الأسبوعي</h3>
-              <p className="text-sm text-muted-foreground">
-                يتم إرسال التقرير تلقائياً كل يوم جمعة الساعة 6 مساءً بتوقيت مصر إلى رقمك وأولياء الأمور.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Reports Tab - removed WhatsApp */}
 
         {tab === "news" && (
           <AdminNewsTab toast={toast} />
