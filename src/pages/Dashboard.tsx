@@ -4,6 +4,9 @@ import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scr
 import { StudentLevelBadge } from "@/components/StudentLevel";
 import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
+import { StudentProgressTracker } from "@/components/StudentProgressTracker";
+import { AchievementBadges } from "@/components/AchievementBadges";
+import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -848,6 +851,8 @@ const Dashboard = () => {
   const [studentExams, setStudentExams] = useState<ExamItem[]>([]);
   const [dismissedNotifs, setDismissedNotifs] = useState<string[]>([]);
   const [personalNotifCount, setPersonalNotifCount] = useState(0);
+  const badgeCounts = useBadgeCounts(user?.id || "", profile?.grade || "", profile?.is_subscribed || false);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       if (!session) { navigate("/auth/login"); return; }
@@ -2341,10 +2346,11 @@ const Dashboard = () => {
               </Link>
             )}
             {profile?.is_subscribed ? (
-              <Link to="/homework">
+              <Link to="/homework" className="relative">
                 <Button variant="outline" size="sm" className="gap-1">
                   <ClipboardList className="w-4 h-4" /> الواجبات
                 </Button>
+                <RedBadge count={badgeCounts.pendingHomework} />
               </Link>
             ) : (
               <Link to="/subscribe">
@@ -2384,12 +2390,19 @@ const Dashboard = () => {
                 <Trophy className="w-4 h-4" /> شهاداتي
               </Button>
             </Link>
-            <Link to="/contact">
+            <Link to="/contact" className="relative">
               <Button variant="outline" size="sm" className="gap-1">
                 <MessageCircle className="w-4 h-4" /> شكاوي واقتراحات
               </Button>
+              <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
           </div>
+
+        {/* Student Progress Tracker */}
+        {user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
+
+        {/* Achievement Badges */}
+        {user && <AchievementBadges userId={user.id} />}
 
         {/* Why Choose Us */}
         <div className="text-center mb-6">
