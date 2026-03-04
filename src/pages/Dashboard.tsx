@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle } from "lucide-react";
+import { StudentLevelBadge } from "@/components/StudentLevel";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -512,6 +513,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [studentPoints, setStudentPoints] = useState(0);
 
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -614,6 +616,12 @@ const Dashboard = () => {
       .eq("user_id", userId)
       .eq("is_read", false);
     setPersonalNotifCount(count || 0);
+    // Fetch student points for level
+    const { data: pointsData } = await supabase.from("student_points").select("points").eq("user_id", userId);
+    if (pointsData) {
+      const total = pointsData.reduce((sum, p) => sum + p.points, 0);
+      setStudentPoints(total);
+    }
   };
 
   const fetchStudentNotifications = async (grade: string, isSubscribed: boolean) => {
@@ -2037,6 +2045,9 @@ const Dashboard = () => {
               <span className={profile?.is_subscribed ? "text-primary font-medium" : "text-muted-foreground"}>
                 {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
               </span>
+            </div>
+            <div className="mt-3">
+              <StudentLevelBadge points={studentPoints} showProgress />
             </div>
           </div>
           </div>

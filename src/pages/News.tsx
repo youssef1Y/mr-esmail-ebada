@@ -1,57 +1,35 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, ChevronRight, Newspaper, Calendar } from "lucide-react";
+import { Newspaper, Calendar, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewsItem {
-  id: number;
+  id: string;
   title: string;
   body: string;
-  date: string;
   icon: string;
+  created_at: string;
 }
 
-const newsItems: NewsItem[] = [
-  {
-    id: 1,
-    title: "بدء التسجيل في الفصل الدراسي الثاني",
-    body: "نعلن عن فتح باب التسجيل للفصل الدراسي الثاني لجميع المراحل الدراسية. سارعوا بالتسجيل للاستفادة من عروض الاشتراك المميزة.",
-    date: "2026-03-01",
-    icon: "📚",
-  },
-  {
-    id: 2,
-    title: "إضافة مادة السيرة النبوية لجميع الصفوف",
-    body: "تم إضافة شرح مادة السيرة النبوية بالكامل لجميع المراحل الدراسية مع فيديوهات وامتحانات شاملة.",
-    date: "2026-02-20",
-    icon: "🕌",
-  },
-  {
-    id: 3,
-    title: "نظام الشهادات الإلكترونية",
-    body: "أطلقنا نظام الشهادات الإلكترونية! احصل على الدرجة الكاملة (10/10) في الواجب لتحصل على شهادة تفوق قابلة للطباعة.",
-    date: "2026-02-15",
-    icon: "🏆",
-  },
-  {
-    id: 4,
-    title: "تقارير أداء أسبوعية لأولياء الأمور",
-    body: "تم إطلاق خدمة إرسال تقارير أداء أسبوعية لأولياء الأمور عبر الواتساب تتضمن نتائج الامتحانات والواجبات.",
-    date: "2026-02-10",
-    icon: "📊",
-  },
-  {
-    id: 5,
-    title: "بنك الأسئلة الشامل",
-    body: "تم تحديث بنك الأسئلة بآلاف الأسئلة الجديدة في جميع المواد لمساعدة الطلاب في التحضير للامتحانات.",
-    date: "2026-02-01",
-    icon: "❓",
-  },
-];
-
 const News = () => {
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      const { data } = await supabase
+        .from("news")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setNews(data);
+      setLoading(false);
+    };
+    fetchNews();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -81,28 +59,40 @@ const News = () => {
           <p className="text-sm text-muted-foreground">آخر الأخبار والتحديثات والأحداث في منصة الأستاذ إسماعيل أحمد عبادة</p>
         </motion.div>
 
-        <StaggerContainer className="space-y-4" staggerDelay={0.1}>
-          {newsItems.map(item => (
-            <StaggerItem key={item.id}>
-              <motion.div
-                whileHover={{ y: -2 }}
-                className="bg-card rounded-2xl border border-border p-5 transition-all duration-300 hover:border-primary/20"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl flex-shrink-0">{item.icon}</div>
-                  <div className="flex-1">
-                    <h2 className="font-bold text-base mb-1">{item.title}</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-2">{item.body}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(item.date).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : news.length === 0 ? (
+          <div className="bg-card rounded-2xl border border-border p-8 text-center">
+            <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="font-bold mb-1">لا توجد أخبار حالياً</h3>
+            <p className="text-sm text-muted-foreground">ترقبوا آخر الأخبار والتحديثات</p>
+          </div>
+        ) : (
+          <StaggerContainer className="space-y-4" staggerDelay={0.1}>
+            {news.map(item => (
+              <StaggerItem key={item.id}>
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  className="bg-card rounded-2xl border border-border p-5 transition-all duration-300 hover:border-primary/20"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl flex-shrink-0">{item.icon}</div>
+                    <div className="flex-1">
+                      <h2 className="font-bold text-base mb-1">{item.title}</h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed mb-2">{item.body}</p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(item.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            </StaggerItem>
-          ))}
-        </StaggerContainer>
+                </motion.div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        )}
       </main>
     </div>
   );
