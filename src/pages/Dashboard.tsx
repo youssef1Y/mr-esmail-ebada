@@ -2575,7 +2575,7 @@ const Dashboard = () => {
           {subjects.map((subject, i) => (
             <StaggerItem key={i}>
               <div className="bg-card rounded-xl border border-border p-5 relative">
-                {badgeCounts.newVideosPerSubject[subject.title] > 0 && (
+                {!adminUnlocked && badgeCounts.newVideosPerSubject[subject.title] > 0 && (
                   <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center gap-0.5">
                     <Video className="w-3 h-3" />
                     {badgeCounts.newVideosPerSubject[subject.title]}
