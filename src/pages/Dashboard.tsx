@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, Download } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog } from "lucide-react";
 import { StudentLevelBadge } from "@/components/StudentLevel";
-import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -522,7 +521,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1268,7 +1267,7 @@ const Dashboard = () => {
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
-                { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
+                { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
@@ -2235,16 +2234,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Install App Button */}
-        {!isAdmin && (
-          <div className="mt-8 mb-4 max-w-2xl mx-auto text-center">
-            <InstallPWAButton />
-          </div>
-        )}
-
         {/* Contact Us Link */}
         {!isAdmin && (
-          <div className="mt-4 mb-8 max-w-2xl mx-auto">
+          <div className="mt-12 mb-8 max-w-2xl mx-auto">
             <Link to="/contact">
               <div className="bg-card rounded-2xl border border-border p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -2256,8 +2248,6 @@ const Dashboard = () => {
             </Link>
           </div>
         )}
-
-        <InstallPWABanner />
       </main>
     </div>
   );
