@@ -2219,11 +2219,22 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {selectedConvo ? (
                     <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <Button variant="ghost" size="sm" onClick={() => { setSelectedConvo(null); fetchAdminMessages(); }} className="gap-1">
-                          <ChevronLeft className="w-3 h-3" /> الرجوع
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedConvo(null); fetchAdminMessages(); }} className="gap-1">
+                            <ChevronLeft className="w-3 h-3" /> الرجوع
+                          </Button>
+                          <h3 className="font-bold text-sm">{selectedConvoName}</h3>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1" onClick={async () => {
+                          if (!confirm("هل أنت متأكد من حذف هذه المحادثة بالكامل؟")) return;
+                          await supabase.from("messages").delete().eq("user_id", selectedConvo);
+                          toast({ title: "تم حذف المحادثة" });
+                          setSelectedConvo(null);
+                          fetchAdminMessages();
+                        }}>
+                          <Trash2 className="w-3 h-3" /> حذف المحادثة
                         </Button>
-                        <h3 className="font-bold text-sm">{selectedConvoName}</h3>
                       </div>
                       <div className="bg-card rounded-2xl border border-border overflow-hidden">
                         <div className="h-80 overflow-y-auto p-4 space-y-3">
@@ -2291,9 +2302,23 @@ const Dashboard = () => {
                                   <p className="text-xs text-muted-foreground">{c.student_grade}</p>
                                   <p className="text-xs text-muted-foreground mt-1 truncate">{c.last_message}</p>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                                  {new Date(c.last_time).toLocaleDateString("ar-EG")}
-                                </span>
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {new Date(c.last_time).toLocaleDateString("ar-EG")}
+                                  </span>
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!confirm(`هل أنت متأكد من حذف محادثة ${c.student_name}؟`)) return;
+                                      await supabase.from("messages").delete().eq("user_id", c.user_id);
+                                      toast({ title: "تم حذف المحادثة" });
+                                      fetchAdminMessages();
+                                    }}
+                                    className="text-destructive hover:text-destructive/80 p-1"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
