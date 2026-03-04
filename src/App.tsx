@@ -23,6 +23,9 @@ import StudentReport from "./pages/StudentReport";
 import Contact from "./pages/Contact";
 import ForgotPassword from "./pages/ForgotPassword";
 import StudentNotifications from "./pages/StudentNotifications";
+import Terms from "./pages/Terms";
+import Certificates from "./pages/Certificates";
+import News from "./pages/News";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +53,9 @@ const AnimatedRoutes = () => {
         <Route path="/report" element={<PageTransition><StudentReport /></PageTransition>} />
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/student-notifications" element={<PageTransition><StudentNotifications /></PageTransition>} />
+        <Route path="/terms" element={<PageTransition><Terms /></PageTransition>} />
+        <Route path="/certificates" element={<PageTransition><Certificates /></PageTransition>} />
+        <Route path="/news" element={<PageTransition><News /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

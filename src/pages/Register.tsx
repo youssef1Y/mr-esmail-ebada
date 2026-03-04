@@ -29,6 +29,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
     grade: "",
@@ -191,7 +192,23 @@ const Register = () => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={e => setAcceptedTerms(e.target.checked)}
+              className="rounded mt-1"
+              id="terms"
+            />
+            <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
+              أوافق على{" "}
+              <Link to="/terms" className="text-primary hover:underline font-medium" target="_blank">
+                شروط وأحكام الاستخدام
+              </Link>
+            </label>
+          </div>
+
+          <Button type="submit" className="w-full" size="lg" disabled={loading || !acceptedTerms}>
             {loading ? "جاري التسجيل..." : "إنشاء حساب"}
           </Button>
         </form>

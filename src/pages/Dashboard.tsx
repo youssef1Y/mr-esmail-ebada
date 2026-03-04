@@ -2095,6 +2095,11 @@ const Dashboard = () => {
                 </Button>
               </Link>
             )}
+            <Link to="/certificates">
+              <Button variant="outline" size="sm" className="gap-1">
+                <Trophy className="w-4 h-4" /> شهاداتي
+              </Button>
+            </Link>
             <Link to="/contact">
               <Button variant="outline" size="sm" className="gap-1">
                 <MessageCircle className="w-4 h-4" /> شكاوي واقتراحات
