@@ -69,6 +69,9 @@ const Login = () => {
           ليس لديك حساب؟{" "}
           <Link to="/auth/register" className="text-primary font-medium hover:underline">إنشاء حساب جديد</Link>
         </p>
+        <p className="text-center text-xs text-muted-foreground mt-3">
+          <Link to="/terms" className="hover:text-primary transition-colors">شروط وأحكام الاستخدام</Link>
+        </p>
       </div>
     </div>
   );

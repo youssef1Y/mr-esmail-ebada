@@ -227,7 +227,7 @@ const Homework = () => {
                         <CheckCircle className="w-5 h-5 text-primary mx-auto" />
                         <span className="text-xs text-primary">تم التسليم</span>
                         {sub.score !== null && (
-                          <p className="text-xs font-bold text-primary mt-0.5">{sub.score} درجة</p>
+                          <p className="text-xs font-bold text-primary mt-0.5">{sub.score}/10</p>
                         )}
                       </div>
                     ) : (
