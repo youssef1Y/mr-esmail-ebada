@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Award, Download, ChevronRight, BookOpen, FileText } from "lucide-react";
+import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -86,15 +87,14 @@ const Certificates = () => {
     init();
   }, [navigate]);
 
-  const printCertificate = (cert: CertificateData) => {
-    const typeLabel = cert.type === "homework" ? "واجب" : "امتحان";
+  const [viewCert, setViewCert] = useState<CertificateData | null>(null);
+
+  const getCertHtml = (cert: CertificateData, forPrint = false) => {
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
       : `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`;
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
+    return `
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
       <head>
@@ -103,7 +103,7 @@ const Certificates = () => {
         <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f0e8; }
+          body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${forPrint ? '#f5f0e8' : 'transparent'}; }
           .certificate {
             width: 800px; height: 560px; background: white; position: relative; overflow: hidden;
             border: 3px solid #1a5c35; box-shadow: 0 0 0 8px #d4a843, 0 0 0 11px #1a5c35;
@@ -148,11 +148,16 @@ const Certificates = () => {
             <div class="footer">الأستاذ إسماعيل أحمد عبادة</div>
           </div>
         </div>
-        <script>window.onload = () => window.print();</script>
+        ${forPrint ? '<script>window.onload = () => window.print();</script>' : ''}
       </body>
-      </html>
-    `);
-    printWindow.document.close();
+      </html>`;
+  };
+
+  const openCertWindow = (cert: CertificateData, autoPrint: boolean) => {
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(getCertHtml(cert, autoPrint));
+    w.document.close();
   };
 
   if (loading) return (
@@ -217,14 +222,48 @@ const Certificates = () => {
                     {new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" className="gap-1" onClick={() => printCertificate(cert)}>
-                  <Download className="w-3 h-3" />
-                  طباعة
-                </Button>
+                <div className="flex gap-1 flex-shrink-0">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="عرض" onClick={() => setViewCert(cert)}>
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="طباعة" onClick={() => openCertWindow(cert, true)}>
+                    <Printer className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="تحميل PDF" onClick={() => openCertWindow(cert, false)}>
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* View Certificate Dialog */}
+        <Dialog open={!!viewCert} onOpenChange={(o) => !o && setViewCert(null)}>
+          <DialogContent className="max-w-[95vw] sm:max-w-[850px] p-2 sm:p-4">
+            <DialogHeader>
+              <DialogTitle className="text-center font-amiri">شهادة تفوق</DialogTitle>
+            </DialogHeader>
+            {viewCert && (
+              <div className="overflow-auto">
+                <iframe
+                  srcDoc={getCertHtml(viewCert, false)}
+                  className="w-full border-0 rounded-lg"
+                  style={{ height: '620px', minWidth: '320px' }}
+                  title="شهادة تفوق"
+                />
+                <div className="flex justify-center gap-2 mt-3">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => openCertWindow(viewCert, true)}>
+                    <Printer className="w-3 h-3" /> طباعة
+                  </Button>
+                  <Button size="sm" className="gap-1" onClick={() => openCertWindow(viewCert, false)}>
+                    <Download className="w-3 h-3" /> تحميل PDF
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
