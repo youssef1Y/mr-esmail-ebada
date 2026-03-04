@@ -2379,7 +2379,7 @@ const Dashboard = () => {
         )}
 
         {/* Student Notifications Banner */}
-        {studentNotifs.filter(n => !dismissedNotifs.includes(n.id)).length > 0 && (
+        {!adminUnlocked && studentNotifs.filter(n => !dismissedNotifs.includes(n.id)).length > 0 && (
           <div className="mb-6 space-y-2">
             {studentNotifs.filter(n => !dismissedNotifs.includes(n.id)).map(n => (
               <div key={n.id} className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-start gap-3">
@@ -2397,6 +2397,7 @@ const Dashboard = () => {
         )}
 
         {/* Student View */}
+        {!adminUnlocked && (
         <div className="bg-card rounded-2xl border border-border p-6 mb-8 text-center">
           <h1 className="text-2xl font-bold font-amiri mb-2">أهلاً بك يا {profile?.full_name}</h1>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
@@ -2418,8 +2419,10 @@ const Dashboard = () => {
             </div>
           </div>
           </div>
+          )}
 
-          {/* Quick Actions */}
+           {/* Quick Actions */}
+           {!adminUnlocked && (
           <div className="flex flex-wrap justify-center gap-3 mb-8">
             {profile?.is_subscribed ? (
               <Link to="/my-results">
@@ -2486,14 +2489,17 @@ const Dashboard = () => {
               <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
           </div>
+          )}
 
         {/* Student Progress Tracker */}
-        {user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
+        {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
 
         {/* Achievement Badges */}
-        {user && <AchievementBadges userId={user.id} />}
+        {!adminUnlocked && user && <AchievementBadges userId={user.id} />}
 
         {/* Why Choose Us */}
+        {!adminUnlocked && (
+        <>
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold font-amiri mb-2">لماذا تختار منصتنا؟</h2>
         </div>
@@ -2512,9 +2518,11 @@ const Dashboard = () => {
             </StaggerItem>
           ))}
         </StaggerContainer>
+        </>
+        )}
 
         {/* Student Exams */}
-        {studentExams.length > 0 && (
+        {!adminUnlocked && studentExams.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-bold font-amiri text-center mb-4 flex items-center justify-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
