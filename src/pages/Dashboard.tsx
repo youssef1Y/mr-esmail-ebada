@@ -1494,22 +1494,26 @@ const Dashboard = () => {
                 <span className="hidden sm:inline">إغلاق لوحة التحكم</span>
               </Button>
             )}
-            <Link to="/student-notifications" className="relative">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-                {personalNotifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {personalNotifCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
-            <Link to="/profile">
-              <Button variant="ghost" size="sm">
-                <User className="w-4 h-4 ml-1" />
-                <span className="hidden sm:inline">الملف الشخصي</span>
-              </Button>
-            </Link>
+            {!adminUnlocked && (
+              <>
+                <Link to="/student-notifications" className="relative">
+                  <Button variant="ghost" size="sm">
+                    <Bell className="w-4 h-4" />
+                    {personalNotifCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {personalNotifCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                <Link to="/profile">
+                  <Button variant="ghost" size="sm">
+                    <User className="w-4 h-4 ml-1" />
+                    <span className="hidden sm:inline">الملف الشخصي</span>
+                  </Button>
+                </Link>
+              </>
+            )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
