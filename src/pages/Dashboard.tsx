@@ -874,7 +874,7 @@ const Dashboard = () => {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
   const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote">("subscribers");
 
   // Messages state (admin)
@@ -962,7 +962,9 @@ const Dashboard = () => {
       .single();
     if (data) {
       setProfile(data);
-      setSelectedGrade(data.grade);
+      if (!sessionStorage.getItem("admin_selected_grade")) {
+        setSelectedGrade(data.grade);
+      }
       fetchStudentNotifications(data.grade, data.is_subscribed);
       fetchStudentExams(data.grade, data.is_subscribed);
     }
@@ -1558,7 +1560,7 @@ const Dashboard = () => {
               {allGrades.map(g => (
                 <button
                   key={g}
-                  onClick={() => setSelectedGrade(g)}
+                  onClick={() => { setSelectedGrade(g); sessionStorage.setItem("admin_selected_grade", g); }}
                   className={`whitespace-nowrap px-3 py-2 rounded-xl text-xs font-medium border transition-colors flex-shrink-0 ${
                     selectedGrade === g
                       ? "bg-primary text-primary-foreground border-primary"
