@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "npm:resend@4.0.0";
 
-const ADMIN_EMAIL = "esmail.ahmed590@gmail.com";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "esmail.ahmed590@gmail.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

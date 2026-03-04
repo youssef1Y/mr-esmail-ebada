@@ -57,9 +57,44 @@ serve(async (req) => {
       .single();
 
     if (otpError || !otpRecord) {
+      // Track failed attempts - find the latest OTP for this phone
+      const { data: latestOtp } = await supabase
+        .from("password_reset_otps")
+        .select("id, attempt_count")
+        .eq("phone", phone)
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestOtp) {
+        const newCount = (latestOtp.attempt_count || 0) + 1;
+        if (newCount >= 5) {
+          // Invalidate OTP after 5 failed attempts
+          await supabase
+            .from("password_reset_otps")
+            .update({ used: true, attempt_count: newCount })
+            .eq("id", latestOtp.id);
+        } else {
+          await supabase
+            .from("password_reset_otps")
+            .update({ attempt_count: newCount })
+            .eq("id", latestOtp.id);
+        }
+      }
+
       return new Response(
         JSON.stringify({ error: "كود التحقق غير صحيح أو منتهي الصلاحية" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if max attempts reached
+    if (otpRecord.attempt_count >= 5) {
+      return new Response(
+        JSON.stringify({ error: "تم تجاوز عدد المحاولات المسموح. اطلب كود جديد." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
