@@ -2392,7 +2392,7 @@ const Dashboard = () => {
             </Link>
             <Link to="/contact" className="relative">
               <Button variant="outline" size="sm" className="gap-1">
-                <MessageCircle className="w-4 h-4" /> شكاوي واقتراحات
+                <MessageCircle className="w-4 h-4" /> التواصل مع المعلم
               </Button>
               <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
@@ -2527,16 +2527,12 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Contact Us Link */}
+        {/* Contact Us Link - bottom of page */}
         {!isAdmin && (
           <div className="mt-4 mb-8 max-w-2xl mx-auto">
             <Link to="/contact">
-              <div className="bg-card rounded-2xl border border-border p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <MessageCircle className="w-6 h-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold font-amiri mb-2">شكاوي واقتراحات</h2>
-                <p className="text-sm text-muted-foreground">هل لديك استفسار أو تريد الإبلاغ عن مشكلة؟ تواصل معنا مباشرة</p>
+              <div className="bg-muted/50 rounded-xl border border-border p-4 text-center hover:border-primary/30 transition-colors cursor-pointer">
+                <p className="text-sm text-muted-foreground">هل لديك شكوى أو اقتراح؟ <span className="text-primary font-medium">تواصل معنا</span></p>
               </div>
             </Link>
           </div>
