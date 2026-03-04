@@ -402,7 +402,90 @@ const AdminLeaderboardTab = () => {
   );
 };
 
-// Admin Student Report Tab Component
+// Admin Grade Promotion Tab Component
+const gradeOrder = [
+  "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
+  "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
+];
+
+const AdminPromoteTab = ({ toast }: { toast: any }) => {
+  const [promoting, setPromoting] = useState(false);
+  const [preview, setPreview] = useState<{ grade: string; count: number; nextGrade: string }[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadPreview = async () => {
+      const { data: profiles } = await supabase.from("profiles").select("grade");
+      if (!profiles) return;
+      const counts: Record<string, number> = {};
+      profiles.forEach(p => { counts[p.grade] = (counts[p.grade] || 0) + 1; });
+      const result = gradeOrder.slice(0, -1).map((g, i) => ({
+        grade: g,
+        count: counts[g] || 0,
+        nextGrade: gradeOrder[i + 1],
+      }));
+      setPreview(result);
+      setLoaded(true);
+    };
+    loadPreview();
+  }, []);
+
+  const promoteAll = async () => {
+    if (!confirm("هل أنت متأكد من ترقية جميع الطلاب للصف التالي؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
+    setPromoting(true);
+    try {
+      // Promote in reverse order to avoid conflicts (highest grade first)
+      for (let i = gradeOrder.length - 2; i >= 0; i--) {
+        const currentGrade = gradeOrder[i];
+        const nextGrade = gradeOrder[i + 1];
+        await supabase.from("profiles").update({ grade: nextGrade }).eq("grade", currentGrade);
+      }
+      toast({ title: "تمت الترقية", description: "تم ترقية جميع الطلاب للصف التالي بنجاح" });
+      // Reload preview
+      const { data: profiles } = await supabase.from("profiles").select("grade");
+      const counts: Record<string, number> = {};
+      (profiles || []).forEach(p => { counts[p.grade] = (counts[p.grade] || 0) + 1; });
+      setPreview(gradeOrder.slice(0, -1).map((g, i) => ({
+        grade: g, count: counts[g] || 0, nextGrade: gradeOrder[i + 1],
+      })));
+    } catch (err) {
+      toast({ title: "خطأ", description: "حدث خطأ أثناء الترقية", variant: "destructive" });
+    }
+    setPromoting(false);
+  };
+
+  if (!loaded) return <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2"><ArrowRight className="w-4 h-4" /> ترقية الصفوف الدراسية</h3>
+      <p className="text-xs text-muted-foreground">ترقية جميع الطلاب للصف الدراسي التالي (مثلاً: أولى إعدادي ← ثانية إعدادي). طلاب الصف الثالث الثانوي لن يتأثروا.</p>
+      
+      <div className="space-y-2">
+        {preview.map(p => (
+          <div key={p.grade} className="bg-muted rounded-lg p-3 flex items-center justify-between text-sm">
+            <div>
+              <span className="font-bold">{p.grade}</span>
+              <span className="text-muted-foreground mx-2">←</span>
+              <span className="text-primary font-bold">{p.nextGrade}</span>
+            </div>
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{p.count} طالب</span>
+          </div>
+        ))}
+      </div>
+
+      <Button onClick={promoteAll} disabled={promoting} className="w-full gap-2">
+        {promoting ? (
+          <><div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full" /> جاري الترقية...</>
+        ) : (
+          <><ArrowRight className="w-4 h-4" /> ترقية جميع الطلاب للصف التالي</>
+        )}
+      </Button>
+    </div>
+  );
+};
+
+
 const AdminStudentReportTab = () => {
   const [reportGrade, setReportGrade] = useState("");
   const [reportStudents, setReportStudents] = useState<any[]>([]);
@@ -792,7 +875,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState("");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1541,6 +1624,7 @@ const Dashboard = () => {
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
+                { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
@@ -2123,6 +2207,11 @@ const Dashboard = () => {
               {/* Student Report */}
               {adminTab === "student-report" && (
                 <AdminStudentReportTab />
+              )}
+
+              {/* Grade Promotion */}
+              {adminTab === "promote" && (
+                <AdminPromoteTab toast={toast} />
               )}
 
               {/* Messages Tab */}
