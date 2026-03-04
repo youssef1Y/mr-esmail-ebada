@@ -26,17 +26,24 @@ const subjects = [
   },
   {
     icon: Star,
-    title: "التوحيد وأصول الدين",
+    title: "التوحيد",
     description: "تعلم العقيدة الإسلامية الصحيحة وأركان الإيمان مع الرد على الشبهات المعاصرة",
     color: "from-amber-500/20 to-amber-600/10",
     iconColor: "text-amber-600",
   },
   {
     icon: Heart,
-    title: "التفسير والحديث الشريف",
-    description: "فهم معاني القرآن الكريم وتدبر آياته مع دراسة الأحاديث النبوية الشريفة وشرحها",
+    title: "التفسير",
+    description: "فهم معاني القرآن الكريم وتدبر آياته واستخراج الأحكام والعبر من كتاب الله",
     color: "from-rose-500/20 to-rose-600/10",
     iconColor: "text-rose-600",
+  },
+  {
+    icon: BookOpen,
+    title: "الحديث الشريف",
+    description: "دراسة الأحاديث النبوية الشريفة وشرحها واستخراج الأحكام والفوائد منها",
+    color: "from-indigo-500/20 to-indigo-600/10",
+    iconColor: "text-indigo-600",
   },
   {
     icon: Landmark,
