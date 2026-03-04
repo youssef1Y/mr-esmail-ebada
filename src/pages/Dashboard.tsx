@@ -889,6 +889,8 @@ const Dashboard = () => {
 
   // Grade videos for admin preview
   const [gradeVideos, setGradeVideos] = useState<VideoItem[]>([]);
+  // Grade homework for admin browsing
+  const [gradeHomework, setGradeHomework] = useState<any[]>([]);
 
   // Admin data
   const [profiles, setProfiles] = useState<ProfileFull[]>([]);
@@ -1210,10 +1212,17 @@ const Dashboard = () => {
     setExamQuestions(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Fetch videos when grade changes (for admin)
+  // Fetch videos and homework when grade changes (for admin)
+  const fetchGradeHomework = async (grade: string) => {
+    const { data } = await supabase.from("homework").select("*").eq("grade", grade).order("created_at", { ascending: false });
+    if (data) setGradeHomework(data);
+    else setGradeHomework([]);
+  };
+
   useEffect(() => {
     if (isAdmin && selectedGrade) {
       fetchGradeVideos(selectedGrade);
+      fetchGradeHomework(selectedGrade);
     }
   }, [isAdmin, selectedGrade]);
 
@@ -1557,55 +1566,33 @@ const Dashboard = () => {
               ))}
             </div>
 
-            {/* Subscription status toggle */}
-            <div className="flex items-center gap-3 mt-3">
-              <span className="text-xs text-muted-foreground">عرض كـ:</span>
-              <button
-                onClick={() => setAdminViewSubscribed(true)}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${adminViewSubscribed ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"}`}
-              >
-                مشترك
-              </button>
-              <button
-                onClick={() => setAdminViewSubscribed(false)}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${!adminViewSubscribed ? "bg-destructive text-destructive-foreground border-destructive" : "bg-card border-border text-foreground"}`}
-              >
-                غير مشترك
-              </button>
-              <span className="text-xs text-muted-foreground mr-2">
-                ({subscriptionPrice} جنيه)
-              </span>
-            </div>
+          </div>
+        )}
 
-            {/* Videos for this grade */}
-            {gradeVideos.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <h3 className="font-bold text-sm flex items-center gap-2">
-                  <Video className="w-4 h-4 text-primary" />
-                  فيديوهات {selectedGrade.replace("الصف ", "")} ({gradeVideos.length})
-                </h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {gradeVideos.map(v => (
-                    <div key={v.id} className="bg-card rounded-xl border border-border p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Play className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm truncate">{v.title}</h4>
-                        <p className="text-xs text-muted-foreground">{v.subject}</p>
-                      </div>
-                      <a href={v.video_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm" className="gap-1 h-7 text-xs">
-                          مشاهدة
-                        </Button>
-                      </a>
+        {/* Admin Homework Overview per Grade */}
+        {isAdmin && adminUnlocked && selectedGrade && (
+          <div className="mb-6">
+            <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
+              <ClipboardList className="w-4 h-4 text-primary" />
+              واجبات {selectedGrade.replace("الصف ", "")} ({gradeHomework.length})
+            </h3>
+            {gradeHomework.length === 0 ? (
+              <p className="text-xs text-muted-foreground">لا توجد واجبات لهذا الصف</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {gradeHomework.map(hw => (
+                  <div key={hw.id} className="bg-card rounded-xl border border-border p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <ClipboardList className="w-4 h-4 text-primary" />
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm truncate">{hw.title}</h4>
+                      <p className="text-xs text-muted-foreground">{hw.subject}</p>
+                      {hw.due_date && <p className="text-[10px] text-muted-foreground">الموعد: {new Date(hw.due_date).toLocaleDateString("ar-EG")}</p>}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {gradeVideos.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-3">لا توجد فيديوهات لهذا الصف حتى الآن</p>
             )}
           </div>
         )}
