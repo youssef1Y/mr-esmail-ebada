@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3 } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,10 +86,122 @@ interface ExamAttemptWithDetails {
   student_madhab: string | null;
 }
 
+// Admin News Tab Component
+const AdminNewsTab = ({ toast }: { toast: any }) => {
+  const [newsList, setNewsList] = useState<{ id: string; title: string; body: string; icon: string; created_at: string }[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState({ title: "", body: "", icon: "📢" });
+  const [loading, setLoading] = useState(true);
+
+  const fetchNews = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("news").select("*").order("created_at", { ascending: false });
+    if (data) setNewsList(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchNews(); }, []);
+
+  const addNews = async () => {
+    if (!newItem.title || !newItem.body) {
+      toast({ title: "خطأ", description: "أكمل العنوان والمحتوى", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("news").insert({
+      title: newItem.title,
+      body: newItem.body,
+      icon: newItem.icon || "📢",
+    });
+    if (error) {
+      toast({ title: "خطأ", description: "حدث خطأ أثناء الإضافة", variant: "destructive" });
+    } else {
+      toast({ title: "تم إضافة الخبر" });
+      setNewItem({ title: "", body: "", icon: "📢" });
+      setShowAdd(false);
+      fetchNews();
+    }
+  };
+
+  const deleteNews = async (id: string) => {
+    const { error } = await supabase.from("news").delete().eq("id", id);
+    if (error) toast({ title: "خطأ", description: "فشل الحذف", variant: "destructive" });
+    else { toast({ title: "تم حذف الخبر" }); fetchNews(); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold font-amiri flex items-center gap-2">
+            <Newspaper className="w-5 h-5" />
+            إدارة أخبار المنصة
+          </h2>
+          <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1">
+            <Plus className="w-3 h-3" /> إضافة خبر
+          </Button>
+        </div>
+
+        {showAdd && (
+          <div className="bg-muted rounded-xl p-4 space-y-3 mb-4">
+            <div className="flex gap-2">
+              <Input
+                value={newItem.icon}
+                onChange={e => setNewItem({ ...newItem, icon: e.target.value })}
+                placeholder="أيقونة (emoji)"
+                className="w-20"
+              />
+              <Input
+                value={newItem.title}
+                onChange={e => setNewItem({ ...newItem, title: e.target.value })}
+                placeholder="عنوان الخبر"
+                className="flex-1"
+              />
+            </div>
+            <textarea
+              value={newItem.body}
+              onChange={e => setNewItem({ ...newItem, body: e.target.value })}
+              placeholder="تفاصيل الخبر..."
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex gap-2">
+              <Button onClick={addNews} size="sm" className="flex-1">نشر الخبر</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-center text-muted-foreground text-sm py-6">جاري التحميل...</p>
+        ) : newsList.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-6">لا توجد أخبار</p>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {newsList.map(item => (
+              <div key={item.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1">
+                  <span className="text-2xl">{item.icon}</span>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-sm">{item.title}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(item.created_at).toLocaleDateString("ar-EG")}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => deleteNews(item.id)} className="text-destructive h-7 w-7 shrink-0">
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages" | "requests" | "reports">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "exams" | "messages" | "requests" | "reports" | "news">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -514,6 +626,18 @@ const Admin = () => {
       toast({ title: "خطأ", description: "حدث خطأ أثناء حفظ الدرجة", variant: "destructive" });
     } else {
       toast({ title: "تم حفظ الدرجة والملاحظات" });
+      // Send WhatsApp notification to parent
+      const sub = hwSubmissions.find(s => s.id === submissionId);
+      if (sub && scoreNum !== null) {
+        supabase.functions.invoke("notify-homework-graded", {
+          body: {
+            type: "homework_graded",
+            student_user_id: sub.user_id,
+            title: sub.homework_title,
+            score: scoreNum,
+          },
+        }).catch(err => console.error("Notify error:", err));
+      }
       setEditingSubmission(null);
       setEditScore("");
       setEditFeedback("");
@@ -627,6 +751,7 @@ const Admin = () => {
             { key: "homework" as const, label: "الواجبات", icon: FileText },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
+            { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
               key={t.key}
@@ -1469,6 +1594,10 @@ const Admin = () => {
               </p>
             </div>
           </div>
+        )}
+
+        {tab === "news" && (
+          <AdminNewsTab toast={toast} />
         )}
       </main>
     </div>

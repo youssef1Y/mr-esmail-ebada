@@ -265,6 +265,30 @@ export type Database = {
         }
         Relationships: []
       }
+      news: {
+        Row: {
+          body: string
+          created_at: string
+          icon: string
+          id: string
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          icon?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string

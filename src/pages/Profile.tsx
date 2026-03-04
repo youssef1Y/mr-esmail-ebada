@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { StudentLevelBadge } from "@/components/StudentLevel";
 
 const governorates = [
   "القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "البحر الأحمر", "البحيرة", "الفيوم",
@@ -34,6 +35,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ full_name: "", school: "", governorate: "", madhab: "" });
+  const [studentPoints, setStudentPoints] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -55,6 +57,9 @@ const Profile = () => {
           madhab: data.madhab || "",
         });
       }
+      // Fetch points
+      const { data: pointsData } = await supabase.from("student_points").select("points").eq("user_id", session.user.id);
+      if (pointsData) setStudentPoints(pointsData.reduce((s, p) => s + p.points, 0));
       setLoading(false);
     };
     load();
@@ -125,7 +130,8 @@ const Profile = () => {
             <User className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold font-amiri">الملف الشخصي</h1>
-          <p className="text-muted-foreground text-sm">يمكنك تعديل بياناتك الشخصية من هنا</p>
+          <p className="text-muted-foreground text-sm mb-3">يمكنك تعديل بياناتك الشخصية من هنا</p>
+          <StudentLevelBadge points={studentPoints} showProgress />
         </div>
 
         {/* Account Info */}
