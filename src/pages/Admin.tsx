@@ -499,8 +499,13 @@ const Admin = () => {
   };
 
   const saveSubmissionGrade = async (submissionId: string) => {
+    const scoreNum = editScore ? parseInt(editScore) : null;
+    if (scoreNum !== null && (scoreNum < 0 || scoreNum > 10)) {
+      toast({ title: "خطأ", description: "الدرجة يجب أن تكون بين 0 و 10", variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.from("homework_submissions").update({
-      score: editScore ? parseInt(editScore) : null,
+      score: scoreNum,
       feedback: editFeedback || null,
     }).eq("id", submissionId);
 
@@ -1164,7 +1169,7 @@ const Admin = () => {
                       <div className="space-y-3 border-t border-border pt-3">
                         <div>
                           <Label className="text-xs">الدرجة</Label>
-                          <Input type="number" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="أدخل الدرجة" />
+                          <Input type="number" min="0" max="10" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="أدخل الدرجة (من 0 إلى 10)" />
                         </div>
                         <div>
                           <Label className="text-xs">ملاحظات</Label>
