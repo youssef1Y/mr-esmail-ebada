@@ -46,6 +46,42 @@ const SubjectVideos = () => {
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
+  const getStoragePathFromVideoUrl = (videoUrl: string) => {
+    try {
+      const url = new URL(videoUrl);
+      const publicMarker = "/storage/v1/object/public/videos/";
+      const privateMarker = "/storage/v1/object/videos/";
+
+      if (url.pathname.includes(publicMarker)) {
+        return decodeURIComponent(url.pathname.split(publicMarker)[1]);
+      }
+      if (url.pathname.includes(privateMarker)) {
+        return decodeURIComponent(url.pathname.split(privateMarker)[1]);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const resolvePlayableVideoUrls = async (items: VideoItem[]) => {
+    const resolved = await Promise.all(
+      items.map(async (item) => {
+        const filePath = getStoragePathFromVideoUrl(item.video_url);
+        if (!filePath) return item;
+
+        const { data, error } = await supabase.storage
+          .from("videos")
+          .createSignedUrl(filePath, 60 * 60);
+
+        if (error || !data?.signedUrl) return item;
+        return { ...item, video_url: data.signedUrl };
+      })
+    );
+
+    return resolved;
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -72,15 +108,19 @@ const SubjectVideos = () => {
           .eq("grade", grade)
           .eq("subject", decodeURIComponent(subject))
           .order("sort_order", { ascending: true });
+
         if (data) {
           let filtered = isAdminUser || profile?.is_subscribed
             ? data
             : data.filter(v => v.access_type === "all");
+
           // Filter فقه videos by student's madhab (unless admin)
           if (decodeURIComponent(subject || "") === "الفقه" && !isAdminUser && studentMadhab) {
             filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
           }
-          setVideos(filtered);
+
+          const playableVideos = await resolvePlayableVideoUrls(filtered as VideoItem[]);
+          setVideos(playableVideos);
 
           // Track views
           for (const v of filtered) {
