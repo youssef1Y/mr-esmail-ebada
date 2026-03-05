@@ -145,7 +145,7 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
         className="w-full h-full object-contain"
         playsInline
         preload="auto"
-        crossOrigin="anonymous"
+        controls={error}
       />
 
       {/* Error State */}
