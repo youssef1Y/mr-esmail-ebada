@@ -5,49 +5,61 @@ import { motion } from "framer-motion";
 import islamicPattern from "@/assets/islamic-pattern.jpg";
 import teacherImg from "@/assets/teacher.jpg";
 
+const subjects = ["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي", "التوحيد", "التفسير", "الحديث", "السيرة"];
+
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      {/* Background */}
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      {/* Background with Islamic pattern showing through */}
       <div className="absolute inset-0">
-        <img src={islamicPattern} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 hero-gradient opacity-85" />
+        <img src={islamicPattern} alt="" className="w-full h-full object-cover opacity-20" />
+        <div className="absolute inset-0 hero-gradient opacity-90" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10 pt-20">
-        <div className="flex flex-col items-center gap-5 md:gap-6">
-          {/* Badge */}
+      {/* Subtle Islamic geometric SVG overlay */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+      }} />
+
+      <div className="container mx-auto px-4 relative z-10 pt-20 pb-10">
+        <div className="flex flex-col items-center gap-5">
+          {/* Badge - above image */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" as const }}
+            className="w-full max-w-md"
           >
-            <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 rounded-full px-4 py-2 text-primary-foreground text-sm">
-              <BookOpen className="w-4 h-4" />
-              <span>منصة تعليمية متخصصة</span>
+            <div className="flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm border border-gold/30 rounded-2xl px-5 py-3 text-primary-foreground">
+              <BookOpen className="w-5 h-5 text-gold flex-shrink-0" />
+              <span className="text-sm md:text-base font-medium">منصة تعليمية متخصصة في العلوم الشرعية</span>
             </div>
           </motion.div>
 
-          {/* Title */}
+          {/* Teacher Image with gold ring */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" as const }}
+            className="relative"
+          >
+            <div className="w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-primary-foreground/10 ring-offset-4 ring-offset-transparent">
+              <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
+            </div>
+            {/* Decorative glow */}
+            <div className="absolute -inset-4 rounded-full bg-gold/10 blur-2xl -z-10" />
+          </motion.div>
+
+          {/* Title - under image */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" as const }}
+            transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" as const }}
             className="text-3xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight text-center"
             style={{ fontFamily: "'Aref Ruqaa', serif" }}
           >
             مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
-
-          {/* Teacher Image - directly under the name */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
-            className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-gold/50 overflow-hidden flex-shrink-0 shadow-2xl"
-          >
-            <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-          </motion.div>
 
           {/* Description */}
           <motion.p
@@ -59,50 +71,44 @@ const HeroSection = () => {
             مُعِدُّ ومُراجعُ كتاب المرشد الأزهري | صاحبُ سلسلةِ الأزهريّ في العلومِ الشرعيةِ
           </motion.p>
 
-          {/* Specialty text */}
-          <motion.p
+          {/* Subject tags */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35, ease: "easeOut" as const }}
-            className="text-primary-foreground/70 text-xs md:text-sm max-w-lg mx-auto leading-relaxed text-center"
+            className="flex flex-wrap justify-center gap-2 max-w-lg"
           >
-            المِنَصَّةُ مُتَخَصِّصَةٌ فِي: تَعْلِيمِ الفِقْهِ الشّافِعِيِّ، وَ المَالِكِيِّ، وَ الْحَنَفِيِّ، وَ أُصُولِ الدِّينِ (التَّوْحِيدِ– التَّفْسِيرِ– الْحَدِيثِ– السِّيرَةِ).
-          </motion.p>
+            {subjects.map((s) => (
+              <span key={s} className="text-xs md:text-sm border border-primary-foreground/20 text-primary-foreground/70 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                {s}
+              </span>
+            ))}
+          </motion.div>
 
-          {/* Buttons */}
+          {/* Register Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" as const }}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
           >
             <Link to="/auth/register">
-              <Button size="lg" className="bg-gold hover:bg-gold-light text-primary font-bold px-8">
+              <Button size="lg" className="bg-gold hover:bg-gold-light text-primary font-bold px-10 text-base">
                 سجل الآن مجانًا
               </Button>
             </Link>
-            <a href="#about">
-              <Button size="lg" variant="outline" className="border-gold text-gold hover:bg-gold hover:text-primary font-bold">
-                تعرف علينا
-              </Button>
-            </a>
           </motion.div>
 
-          {/* Stats badges */}
+          {/* تعرف علينا - centered, different style */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5, ease: "easeOut" as const }}
-            className="flex items-center gap-6 justify-center text-primary-foreground/70 text-sm pt-2"
+            transition={{ duration: 0.5, delay: 0.45, ease: "easeOut" as const }}
           >
-            <div className="flex items-center gap-2 bg-primary-foreground/5 backdrop-blur-sm rounded-full px-3 py-1.5 border border-primary-foreground/10">
-              <BookOpen className="w-4 h-4 text-gold" />
-              <span>مناهج معتمدة</span>
-            </div>
-            <div className="flex items-center gap-2 bg-primary-foreground/5 backdrop-blur-sm rounded-full px-3 py-1.5 border border-primary-foreground/10">
-              <Users className="w-4 h-4 text-gold" />
-              <span>+500 طالب</span>
-            </div>
+            <a href="#about">
+              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground font-bold px-8">
+                تعرف علينا
+              </Button>
+            </a>
           </motion.div>
         </div>
       </div>
