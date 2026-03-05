@@ -18,35 +18,11 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 relative z-10 pt-20 pb-10">
         <div className="flex flex-col items-center gap-6">
 
-          {/* Teacher Image with green arc + gold ring - like reference */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" as const }}
-            className="relative w-48 h-48 md:w-56 md:h-56"
-          >
-            {/* Green decorative arc (half circle on left) */}
-            <div
-              className="absolute inset-[-8px] rounded-full"
-              style={{
-                border: "4px solid hsl(152, 40%, 35%)",
-                borderRightColor: "transparent",
-                borderBottomColor: "transparent",
-              }}
-            />
-            {/* Gold circle border */}
-            <div className="absolute inset-0 rounded-full border-[3px] border-gold/70 shadow-[0_0_30px_-5px_hsl(40,70%,50%,0.25)]" />
-            {/* Image */}
-            <div className="absolute inset-[3px] rounded-full overflow-hidden">
-              <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-            </div>
-          </motion.div>
-
-          {/* Badge - olive green gradient pill like reference */}
+          {/* Badge - olive green pill with sparkle ✦ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" as const }}
+            transition={{ duration: 0.5, ease: "easeOut" as const }}
             className="w-full max-w-md md:max-w-lg"
           >
             <div
@@ -59,12 +35,7 @@ const HeroSection = () => {
               <p className="text-sm md:text-base font-bold leading-relaxed flex-1" style={{ color: "hsl(40, 30%, 90%)" }}>
                 منصة تعليمية متخصصة في العلوم الشرعية
               </p>
-              {/* Islamic star icon */}
-              <svg width="30" height="30" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
-                <path d="M16 4L18.5 12.5H27L20 17.5L22.5 26L16 21L9.5 26L12 17.5L5 12.5H13.5L16 4Z" fill="hsl(40, 60%, 55%)" fillOpacity="0.5" />
-                <circle cx="16" cy="16" r="3" fill="hsl(40, 60%, 55%)" fillOpacity="0.3" />
-                <path d="M16 6L13 14H6L11.5 18L9.5 25.5L16 20.5L22.5 25.5L20.5 18L26 14H19L16 6Z" stroke="hsl(40, 60%, 55%)" strokeWidth="0.5" fill="none" opacity="0.3" />
-              </svg>
+              <span className="text-2xl flex-shrink-0" style={{ color: "hsl(40, 60%, 55%)" }}>✦</span>
             </div>
           </motion.div>
 
@@ -72,7 +43,7 @@ const HeroSection = () => {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" as const }}
+            transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" as const }}
             className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-center"
             style={{ fontFamily: "'Aref Ruqaa', serif", color: "hsl(40, 70%, 50%)" }}
           >
@@ -80,6 +51,43 @@ const HeroSection = () => {
             <br />
             إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
+
+          {/* Teacher Image with effects */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
+            className="relative flex items-center justify-center my-2"
+          >
+            {/* Green decorative arc */}
+            <div
+              className="absolute w-52 h-52 md:w-60 md:h-60 rounded-full"
+              style={{
+                border: "4px solid hsl(152, 40%, 35%)",
+                borderRightColor: "transparent",
+                borderBottomColor: "transparent",
+              }}
+            />
+            {/* Gold outer ring */}
+            <div className="absolute w-48 h-48 md:w-56 md:h-56 rounded-full border-2 border-gold/30" />
+            {/* Slow spinning arc */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="absolute w-[13.5rem] h-[13.5rem] md:w-[15.5rem] md:h-[15.5rem] rounded-full"
+              style={{
+                border: "2px solid transparent",
+                borderTopColor: "hsl(var(--gold) / 0.35)",
+                borderLeftColor: "hsl(var(--gold) / 0.12)",
+              }}
+            />
+            {/* Glow */}
+            <div className="absolute w-40 h-40 md:w-48 md:h-48 rounded-full bg-gold/10 blur-2xl" />
+            {/* Image */}
+            <div className="w-44 h-44 md:w-52 md:h-52 rounded-full border-[3px] border-gold/60 overflow-hidden shadow-[0_0_40px_-8px_hsl(40,70%,50%,0.3)] relative">
+              <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
+            </div>
+          </motion.div>
 
           {/* Description */}
           <motion.p
@@ -112,7 +120,7 @@ const HeroSection = () => {
             ))}
           </motion.div>
 
-          {/* Register Button - gold/yellow */}
+          {/* Register Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -125,7 +133,7 @@ const HeroSection = () => {
             </Link>
           </motion.div>
 
-          {/* تعرف علينا - subtle muted button */}
+          {/* تعرف علينا */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
