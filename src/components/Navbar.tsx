@@ -20,11 +20,11 @@ const Navbar = () => {
           </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">الرئيسية</Link>
-          <a href="/#about" className="text-sm font-medium hover:text-primary transition-colors">من نحن</a>
-          <a href="/#join" className="text-sm font-medium hover:text-primary transition-colors">انضم إلينا</a>
+        {/* Desktop Nav - centered */}
+        <div className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+          <Link to="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">الرئيسية</Link>
+          <a href="/#about" className="text-sm font-medium text-foreground hover:text-primary transition-colors">من نحن</a>
+          <a href="/#join" className="text-sm font-medium text-foreground hover:text-primary transition-colors">انضم إلينا</a>
         </div>
 
         {/* Auth Buttons */}
