@@ -39,6 +39,9 @@ serve(async (req) => {
 
     const { fullName, grade, senderPhone, transferNumber, amount, receiptPath } = await req.json();
 
+    // HTML-escape helper to prevent injection
+    const esc = (s: string) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
     if (!fullName || !senderPhone || !transferNumber) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
@@ -80,11 +83,11 @@ serve(async (req) => {
           <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2d6a4f; border-bottom: 2px solid #2d6a4f; padding-bottom: 10px;">🔔 طلب اشتراك جديد</h2>
             <table style="border-collapse: collapse; width: 100%; margin-top: 16px;">
-              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9; width: 40%;">اسم الطالب</td><td style="padding: 10px; border: 1px solid #ddd;">${fullName}</td></tr>
-              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">الصف الدراسي</td><td style="padding: 10px; border: 1px solid #ddd;">${grade || "غير محدد"}</td></tr>
-              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">رقم فودافون كاش (المحوّل منه)</td><td style="padding: 10px; border: 1px solid #ddd; direction: ltr; text-align: right; font-size: 18px; font-weight: bold; color: #e53935;">${senderPhone}</td></tr>
-              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">رقم التحويل (المرجع)</td><td style="padding: 10px; border: 1px solid #ddd; direction: ltr; text-align: right;">${transferNumber}</td></tr>
-              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">المبلغ</td><td style="padding: 10px; border: 1px solid #ddd;">${amount} جنيه مصري</td></tr>
+              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9; width: 40%;">اسم الطالب</td><td style="padding: 10px; border: 1px solid #ddd;">${esc(fullName)}</td></tr>
+              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">الصف الدراسي</td><td style="padding: 10px; border: 1px solid #ddd;">${esc(grade || "غير محدد")}</td></tr>
+              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">رقم فودافون كاش (المحوّل منه)</td><td style="padding: 10px; border: 1px solid #ddd; direction: ltr; text-align: right; font-size: 18px; font-weight: bold; color: #e53935;">${esc(senderPhone)}</td></tr>
+              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">رقم التحويل (المرجع)</td><td style="padding: 10px; border: 1px solid #ddd; direction: ltr; text-align: right;">${esc(transferNumber)}</td></tr>
+              <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">المبلغ</td><td style="padding: 10px; border: 1px solid #ddd;">${esc(String(amount))} جنيه مصري</td></tr>
               <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">تاريخ الإرسال</td><td style="padding: 10px; border: 1px solid #ddd;">${submissionDate}</td></tr>
               <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background: #f9f9f9;">وقت الإرسال</td><td style="padding: 10px; border: 1px solid #ddd;">${submissionTime}</td></tr>
             </table>

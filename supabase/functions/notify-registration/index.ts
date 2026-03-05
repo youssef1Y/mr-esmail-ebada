@@ -41,6 +41,9 @@ serve(async (req) => {
 
     const { fullName, grade, studentPhone, school, governorate, madhab } = await req.json();
 
+    // HTML-escape helper to prevent injection
+    const esc = (s: string) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
     // Validate required fields
     if (!fullName || !grade || !studentPhone) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -60,12 +63,12 @@ serve(async (req) => {
           <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #2d6a4f;">تسجيل طالب جديد في المنصة</h2>
             <table style="border-collapse: collapse; width: 100%;">
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">الاسم</td><td style="padding: 8px; border: 1px solid #ddd;">${fullName}</td></tr>
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">الصف</td><td style="padding: 8px; border: 1px solid #ddd;">${grade}</td></tr>
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">رقم الهاتف</td><td style="padding: 8px; border: 1px solid #ddd;">${studentPhone}</td></tr>
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المدرسة</td><td style="padding: 8px; border: 1px solid #ddd;">${school || "غير محدد"}</td></tr>
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المحافظة</td><td style="padding: 8px; border: 1px solid #ddd;">${governorate || "غير محدد"}</td></tr>
-              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المذهب</td><td style="padding: 8px; border: 1px solid #ddd;">${madhab || "غير محدد"}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">الاسم</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(fullName)}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">الصف</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(grade)}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">رقم الهاتف</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(studentPhone)}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المدرسة</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(school || "غير محدد")}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المحافظة</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(governorate || "غير محدد")}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">المذهب</td><td style="padding: 8px; border: 1px solid #ddd;">${esc(madhab || "غير محدد")}</td></tr>
             </table>
           </div>
         `,
