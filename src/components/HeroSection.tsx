@@ -74,12 +74,12 @@ const HeroSection = () => {
                 className="absolute rounded-full border border-gold/40"
                 style={{ width: '160px', height: '160px' }}
                 animate={{
-                  scale: [1, 1.8, 2.5],
-                  opacity: [0.5, 0.2, 0],
+                  scale: [1, 2.2, 3],
+                  opacity: [0.6, 0, 0],
                 }}
                 transition={{
-                  duration: 3,
-                  delay: i * 1,
+                  duration: 2,
+                  delay: i * 0.7,
                   repeat: Infinity,
                   ease: "easeOut",
                 }}
@@ -87,9 +87,9 @@ const HeroSection = () => {
             ))}
             {/* Static decorative ring */}
             <div className="absolute w-[170px] h-[170px] md:w-[210px] md:h-[210px] rounded-full border border-gold/20" />
-            {/* Image with subtle breathing scale */}
+            {/* Image with breathing scale */}
             <motion.div
-              animate={{ scale: [1, 1.04, 1] }}
+              animate={{ scale: [1, 1.08, 1] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]"
             >
