@@ -71,27 +71,27 @@ const HeroSection = () => {
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="absolute rounded-full border border-gold/40"
-                style={{ width: '160px', height: '160px' }}
+                className="absolute rounded-full border border-gold/30"
+                style={{ width: '200px', height: '200px' }}
                 animate={{
-                  scale: [1, 2.2, 3],
-                  opacity: [0.6, 0, 0],
+                  scale: [1, 1.15, 1.3],
+                  opacity: [0.3, 0.1, 0],
                 }}
                 transition={{
-                  duration: 2,
-                  delay: i * 0.7,
+                  duration: 4,
+                  delay: i * 1.3,
                   repeat: Infinity,
                   ease: "easeOut",
                 }}
               />
             ))}
             {/* Static decorative ring */}
-            <div className="absolute w-[170px] h-[170px] md:w-[210px] md:h-[210px] rounded-full border border-gold/20" />
+            <div className="absolute w-[210px] h-[210px] md:w-[250px] md:h-[250px] rounded-full border border-gold/15" />
             {/* Image with breathing scale */}
             <motion.div
               animate={{ scale: [1, 1.08, 1] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]"
+              className="w-44 h-44 md:w-52 md:h-52 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]"
             >
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
             </motion.div>
