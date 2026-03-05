@@ -23,16 +23,16 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10 pt-20 pb-10">
         <div className="flex flex-col items-center gap-5">
-          {/* Badge - styled like reference with gradient bg */}
+          {/* Badge - matching reference design */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" as const }}
-            className="w-full max-w-md"
+            className="w-full max-w-lg"
           >
-            <div className="flex items-center gap-3 bg-gradient-to-l from-gold/20 via-primary-foreground/10 to-gold/20 backdrop-blur-md border border-gold/40 rounded-2xl px-6 py-4 text-primary-foreground shadow-lg">
-              <span className="text-gold text-lg">✦</span>
-              <span className="text-sm md:text-base font-bold">منصة تعليمية متخصصة في العلوم الشرعية</span>
+            <div className="flex items-center justify-between bg-gradient-to-l from-[hsl(150,30%,22%)] via-[hsl(150,25%,28%)] to-[hsl(140,20%,32%)] rounded-2xl px-6 py-4 text-primary-foreground shadow-xl border border-gold/20">
+              <span className="text-sm md:text-lg font-bold leading-relaxed">منصة تعليمية متخصصة في العلوم الشرعية</span>
+              <span className="text-gold text-2xl mr-2 flex-shrink-0">✦</span>
             </div>
           </motion.div>
 
