@@ -110,9 +110,6 @@
   .bg-gold {
     background-color: hsl(var(--gold));
   }
-  .bg-gold-light {
-    background-color: hsl(var(--gold-light));
-  }
   .hero-gradient {
     background: var(--hero-gradient);
   }
