@@ -14,16 +14,16 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-card/90 backdrop-blur-lg shadow-sm border-b border-border" : "bg-transparent"}`}>
-      <div className="container mx-auto px-4 flex items-center justify-between h-16">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-card/95 backdrop-blur-sm shadow-sm border-b border-border" : "bg-transparent"}`}>
+      <div className="container mx-auto px-4 flex items-center justify-between h-14">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${scrolled ? "bg-primary" : "bg-primary-foreground/15 backdrop-blur-sm border border-primary-foreground/20"}`}>
-            <BookOpen className={`w-5 h-5 ${scrolled ? "text-primary-foreground" : "text-gold"}`} />
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${scrolled ? "bg-primary" : "bg-primary-foreground/15"}`}>
+            <BookOpen className={`w-4 h-4 ${scrolled ? "text-primary-foreground" : "text-gold"}`} />
           </div>
           <div className={`text-sm font-bold leading-tight transition-colors ${scrolled ? "text-foreground" : "text-primary-foreground"}`}>
             <div>الأستاذ إسماعيل</div>
-            <div className={`text-xs ${scrolled ? "text-muted-foreground" : "text-primary-foreground/60"}`}>أحمد عباده</div>
+            <div className={`text-xs font-normal ${scrolled ? "text-muted-foreground" : "text-primary-foreground/60"}`}>أحمد عباده</div>
           </div>
         </Link>
 
@@ -45,7 +45,7 @@ const Navbar = () => {
         </div>
 
         {/* Auth Buttons */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2">
           <Link to="/auth/login">
             <Button variant={scrolled ? "outline" : "ghost"} size="sm" className={!scrolled ? "text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10" : ""}>
               تسجيل الدخول
@@ -60,8 +60,8 @@ const Navbar = () => {
 
         {/* Mobile Menu Toggle */}
         <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-          {menuOpen 
-            ? <X className={`w-6 h-6 ${scrolled ? "text-foreground" : "text-primary-foreground"}`} /> 
+          {menuOpen
+            ? <X className={`w-6 h-6 ${scrolled ? "text-foreground" : "text-primary-foreground"}`} />
             : <Menu className={`w-6 h-6 ${scrolled ? "text-foreground" : "text-primary-foreground"}`} />
           }
         </button>
@@ -69,7 +69,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-card/95 backdrop-blur-lg border-b border-border px-4 pb-4 space-y-3">
+        <div className="md:hidden bg-card border-b border-border px-4 pb-4 space-y-3">
           <Link to="/" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>الرئيسية</Link>
           <a href="/#about" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>من نحن</a>
           <a href="/#join" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>انضم إلينا</a>
