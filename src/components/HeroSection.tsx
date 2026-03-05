@@ -47,37 +47,31 @@ const HeroSection = () => {
             مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
 
-          {/* Teacher Image with radiating circles */}
+          {/* Teacher Image - clean elegant design */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
-            className="relative flex items-center justify-center"
+            className="relative flex items-center justify-center my-2"
           >
-            {/* Radiating circles */}
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ scale: [1, 1.8, 2.2], opacity: [0.25, 0.08, 0] }}
-                transition={{ duration: 3, repeat: Infinity, delay: i * 0.8, ease: "easeOut" }}
-                className="absolute w-40 h-40 md:w-48 md:h-48 rounded-full border border-gold/40"
-              />
-            ))}
-            {/* Static decorative rings */}
-            <div className="absolute w-48 h-48 md:w-56 md:h-56 rounded-full border border-gold/15" />
-            <div className="absolute w-56 h-56 md:w-64 md:h-64 rounded-full border border-gold/8" />
-            {/* Spinning dashed ring */}
+            {/* Outer static ring */}
+            <div className="absolute w-44 h-44 md:w-52 md:h-52 rounded-full border-2 border-gold/25" />
+            {/* Middle arc - slow spin */}
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-              className="absolute w-52 h-52 md:w-60 md:h-60 rounded-full border-2 border-dashed border-gold/20"
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="absolute w-48 h-48 md:w-56 md:h-56 rounded-full"
+              style={{
+                border: "2px solid transparent",
+                borderTopColor: "hsl(var(--gold) / 0.4)",
+                borderRightColor: "hsl(var(--gold) / 0.15)",
+              }}
             />
-            {/* Glow */}
-            <div className="absolute w-40 h-40 md:w-48 md:h-48 rounded-full bg-gold/15 blur-3xl" />
-            {/* Image */}
-            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold/60 overflow-hidden shadow-2xl">
+            {/* Soft glow behind */}
+            <div className="absolute w-36 h-36 md:w-44 md:h-44 rounded-full bg-gold/10 blur-2xl" />
+            {/* Image container */}
+            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold/50 overflow-hidden shadow-[0_0_40px_-10px_hsl(var(--gold)/0.3)]">
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-primary-foreground/5" />
             </div>
           </motion.div>
 
