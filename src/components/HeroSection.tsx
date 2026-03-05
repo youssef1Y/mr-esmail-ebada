@@ -23,16 +23,16 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10 pt-20 pb-10">
         <div className="flex flex-col items-center gap-5">
-          {/* Badge - above image */}
+          {/* Badge - styled like reference with gradient bg */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" as const }}
             className="w-full max-w-md"
           >
-            <div className="flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm border border-gold/30 rounded-2xl px-5 py-3 text-primary-foreground">
-              <BookOpen className="w-5 h-5 text-gold flex-shrink-0" />
-              <span className="text-sm md:text-base font-medium">منصة تعليمية متخصصة في العلوم الشرعية</span>
+            <div className="flex items-center gap-3 bg-gradient-to-l from-gold/20 via-primary-foreground/10 to-gold/20 backdrop-blur-md border border-gold/40 rounded-2xl px-6 py-4 text-primary-foreground shadow-lg">
+              <span className="text-gold text-lg">✦</span>
+              <span className="text-sm md:text-base font-bold">منصة تعليمية متخصصة في العلوم الشرعية</span>
             </div>
           </motion.div>
 
@@ -47,17 +47,31 @@ const HeroSection = () => {
             مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
 
-          {/* Teacher Image with gold ring */}
+          {/* Teacher Image with effects */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
             className="relative"
           >
-            <div className="w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-primary-foreground/10 ring-offset-4 ring-offset-transparent">
+            {/* Outer spinning ring */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="absolute -inset-3 rounded-full border-2 border-dashed border-gold/30"
+            />
+            {/* Glow pulse */}
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -inset-6 rounded-full bg-gold/20 blur-2xl"
+            />
+            {/* Image */}
+            <div className="relative w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-gold/20 ring-offset-2 ring-offset-transparent">
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
+              {/* Subtle overlay shine */}
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-primary-foreground/5" />
             </div>
-            <div className="absolute -inset-4 rounded-full bg-gold/10 blur-2xl -z-10" />
           </motion.div>
 
           {/* Description */}
@@ -97,14 +111,14 @@ const HeroSection = () => {
             </Link>
           </motion.div>
 
-          {/* تعرف علينا - centered, different style */}
+          {/* تعرف علينا - gold outline style */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.45, ease: "easeOut" as const }}
           >
             <a href="#about">
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground font-bold px-8">
+              <Button size="lg" variant="outline" className="border-gold/50 text-gold hover:bg-gold/10 hover:text-gold font-bold px-8">
                 تعرف علينا
               </Button>
             </a>
