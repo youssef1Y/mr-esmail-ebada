@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Play, BookOpen, Search, Send, Trash2, MessageCircle, Lock } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play } from "lucide-react";
+import VideoPlayer from "@/components/VideoPlayer";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -213,12 +214,7 @@ const SubjectVideos = () => {
               <StaggerItem key={v.id}>
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
                 {playingId === v.id ? (
-                  <video
-                    src={v.video_url}
-                    controls
-                    autoPlay
-                    className="w-full aspect-video bg-black"
-                  />
+                  <VideoPlayer src={v.video_url} title={v.title} />
                 ) : (
                   <button
                     onClick={() => setPlayingId(v.id)}
