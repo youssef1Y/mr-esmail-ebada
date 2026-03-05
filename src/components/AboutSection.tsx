@@ -26,14 +26,9 @@ const features = [
 
 const AboutSection = () => {
   return (
-    <section id="about" className="py-20 bg-background relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-gold/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-      <div className="container mx-auto px-4 relative z-10">
+    <section id="about" className="py-20 bg-background">
+      <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="inline-block bg-primary/10 text-primary text-sm font-bold px-4 py-1.5 rounded-full mb-4">
-            تعرف علينا
-          </span>
           <h2 className="text-3xl md:text-4xl font-bold font-amiri text-foreground mb-4">من نحن</h2>
           <p className="text-muted-foreground leading-relaxed">
             المِنَصَّةُ مُتَخَصِّصَةٌ فِي: تَعْلِيمِ الفِقْهِ الشّافِعِيِّ، وَ المَالِكِيِّ، وَ الْحَنَفِيِّ، وَ أُصُولِ الدِّينِ (التَّوْحِيدِ– التَّفْسِيرِ– الْحَدِيثِ– السِّيرَةِ). نَسْعَى لِتَقْدِيمِ مُحْتَوَى تَعْلِيمِيٍّ مُكْتَمِلِ الْجَوَانِبِ؛ لِتَرْسِيخِ فَهْمِ الدِّينِ فِي نُفُوسِ الطُّلَّابِ.

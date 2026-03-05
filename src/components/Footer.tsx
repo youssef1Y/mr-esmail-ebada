@@ -1,18 +1,11 @@
 import { Link } from "react-router-dom";
 import { BookOpen, Newspaper } from "lucide-react";
-import { motion } from "framer-motion";
 
 const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border py-10">
+    <footer className="bg-card border-t border-border py-8">
       <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center gap-4"
-        >
+        <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-primary-foreground" />
@@ -30,7 +23,7 @@ const Footer = () => {
           <p className="text-muted-foreground text-xs">
             © {new Date().getFullYear()} جميع الحقوق محفوظة
           </p>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );
