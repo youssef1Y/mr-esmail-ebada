@@ -1,4 +1,5 @@
 import { BookOpen, Heart, Target, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
 import { StaggerContainer, StaggerItem } from "./StaggerAnimation";
 
 const features = [
@@ -30,7 +31,13 @@ const AboutSection = () => {
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-gold/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center max-w-2xl mx-auto mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-2xl mx-auto mb-12"
+        >
           <span className="inline-block bg-primary/10 text-primary text-sm font-bold px-4 py-1.5 rounded-full mb-4">
             تعرف علينا
           </span>
@@ -38,7 +45,7 @@ const AboutSection = () => {
           <p className="text-muted-foreground leading-relaxed">
             المِنَصَّةُ مُتَخَصِّصَةٌ فِي: تَعْلِيمِ الفِقْهِ الشّافِعِيِّ، وَ المَالِكِيِّ، وَ الْحَنَفِيِّ، وَ أُصُولِ الدِّينِ (التَّوْحِيدِ– التَّفْسِيرِ– الْحَدِيثِ– السِّيرَةِ). نَسْعَى لِتَقْدِيمِ مُحْتَوَى تَعْلِيمِيٍّ مُكْتَمِلِ الْجَوَانِبِ؛ لِتَرْسِيخِ فَهْمِ الدِّينِ فِي نُفُوسِ الطُّلَّابِ.
           </p>
-        </div>
+        </motion.div>
 
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" staggerDelay={0.12}>
           {features.map((feature, index) => (
