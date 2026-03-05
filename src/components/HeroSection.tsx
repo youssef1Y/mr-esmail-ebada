@@ -3,6 +3,7 @@ import { BookOpen, Users, GraduationCap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import teacherImg from "@/assets/teacher.jpg";
+import islamicPattern from "@/assets/islamic-pattern.jpg";
 
 const HeroSection = () => {
   return (
@@ -10,68 +11,16 @@ const HeroSection = () => {
       {/* Layered Background */}
       <div className="absolute inset-0 hero-gradient" />
       
-      {/* Islamic geometric patterns */}
-      <div className="absolute inset-0 opacity-[0.06] text-primary-foreground">
-        {/* Top-right: 8-pointed star pattern */}
-        <svg className="absolute -top-20 -right-20 w-[700px] h-[700px]" viewBox="0 0 400 400" fill="none">
-          {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
-            <rect key={angle} x="150" y="150" width="100" height="100" stroke="currentColor" strokeWidth="0.6" transform={`rotate(${angle} 200 200)`}/>
-          ))}
-          <circle cx="200" cy="200" r="120" stroke="currentColor" strokeWidth="0.4"/>
-          <circle cx="200" cy="200" r="90" stroke="currentColor" strokeWidth="0.4"/>
-          <circle cx="200" cy="200" r="60" stroke="currentColor" strokeWidth="0.4"/>
-          {[0, 30, 60, 90, 120, 150].map(angle => (
-            <line key={angle} x1="200" y1="80" x2="200" y2="320" stroke="currentColor" strokeWidth="0.3" transform={`rotate(${angle} 200 200)`}/>
-          ))}
-        </svg>
-
-        {/* Bottom-left: interlocking hexagons */}
-        <svg className="absolute -bottom-32 -left-32 w-[600px] h-[600px]" viewBox="0 0 400 400" fill="none">
-          {[0, 60, 120].map(angle => (
-            <polygon key={angle} points="200,100 287,150 287,250 200,300 113,250 113,150" stroke="currentColor" strokeWidth="0.5" fill="none" transform={`rotate(${angle} 200 200)`}/>
-          ))}
-          <polygon points="200,140 252,170 252,230 200,260 148,230 148,170" stroke="currentColor" strokeWidth="0.4" fill="none"/>
-          {[0, 60, 120, 180, 240, 300].map(angle => (
-            <line key={angle} x1="200" y1="100" x2="200" y2="200" stroke="currentColor" strokeWidth="0.3" transform={`rotate(${angle} 200 200)`}/>
-          ))}
-        </svg>
-
-        {/* Center-left: arabesque arches */}
-        <svg className="absolute top-1/3 -left-10 w-[300px] h-[300px]" viewBox="0 0 200 200" fill="none">
-          <path d="M40,160 Q40,60 100,40 Q160,60 160,160" stroke="currentColor" strokeWidth="0.5" fill="none"/>
-          <path d="M55,160 Q55,75 100,55 Q145,75 145,160" stroke="currentColor" strokeWidth="0.4" fill="none"/>
-          <path d="M70,160 Q70,90 100,75 Q130,90 130,160" stroke="currentColor" strokeWidth="0.3" fill="none"/>
-          <circle cx="100" cy="90" r="15" stroke="currentColor" strokeWidth="0.4" fill="none"/>
-          {[0, 45, 90, 135].map(a => (
-            <line key={a} x1="100" y1="75" x2="100" y2="105" stroke="currentColor" strokeWidth="0.3" transform={`rotate(${a} 100 90)`}/>
-          ))}
-        </svg>
-
-        {/* Top-center: repeating star lattice */}
-        <svg className="absolute -top-10 left-1/3 w-[400px] h-[250px]" viewBox="0 0 400 250" fill="none">
-          {[0, 1, 2].map(col => [0, 1].map(row => {
-            const cx = 80 + col * 120;
-            const cy = 60 + row * 120;
-            return (
-              <g key={`${col}-${row}`}>
-                {[0, 45, 90, 135].map(a => (
-                  <rect key={a} x={cx - 20} y={cy - 20} width="40" height="40" stroke="currentColor" strokeWidth="0.4" fill="none" transform={`rotate(${a} ${cx} ${cy})`}/>
-                ))}
-                <circle cx={cx} cy={cy} r="28" stroke="currentColor" strokeWidth="0.3" fill="none"/>
-              </g>
-            );
-          }))}
-        </svg>
-
-        {/* Right-center: crescent and geometric */}
-        <svg className="absolute top-1/2 -right-10 w-[250px] h-[250px]" viewBox="0 0 200 200" fill="none">
-          <circle cx="100" cy="100" r="70" stroke="currentColor" strokeWidth="0.5" fill="none"/>
-          <circle cx="115" cy="100" r="55" stroke="currentColor" strokeWidth="0.4" fill="none"/>
-          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => (
-            <circle key={a} cx={100 + 70 * Math.cos(a * Math.PI / 180)} cy={100 + 70 * Math.sin(a * Math.PI / 180)} r="8" stroke="currentColor" strokeWidth="0.3" fill="none"/>
-          ))}
-        </svg>
-      </div>
+      {/* Islamic pattern background overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.08]"
+        style={{
+          backgroundImage: `url(${islamicPattern})`,
+          backgroundSize: '400px 400px',
+          backgroundRepeat: 'repeat',
+          mixBlendMode: 'soft-light',
+        }}
+      />
 
       {/* Glow effects */}
       <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gold/10 rounded-full blur-[100px]" />
