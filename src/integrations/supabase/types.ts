@@ -589,6 +589,73 @@ export type Database = {
           },
         ]
       }
+      video_homework: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          questions: Json | null
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          questions?: Json | null
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          questions?: Json | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_homework_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: true
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_homework_submissions: {
+        Row: {
+          answers: Json | null
+          homework_id: string
+          id: string
+          image_urls: string[] | null
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          homework_id: string
+          id?: string
+          image_urls?: string[] | null
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          homework_id?: string
+          id?: string
+          image_urls?: string[] | null
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_homework_submissions_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "video_homework"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_views: {
         Row: {
           id: string
