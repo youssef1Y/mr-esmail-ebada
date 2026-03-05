@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -46,25 +46,39 @@ const SubjectVideos = () => {
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
-  const getStoragePathFromVideoUrl = (videoUrl: string) => {
+  const videosRef = useRef<VideoItem[]>([]);
+  const SIGNED_URL_TTL_SECONDS = 60 * 60;
+  const REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
+  const getStoragePathFromVideoUrl = useCallback((videoUrl: string) => {
+    if (!videoUrl) return null;
+
+    if (!videoUrl.includes("://")) {
+      return decodeURIComponent(videoUrl.replace(/^\/+/, ""));
+    }
+
     try {
       const url = new URL(videoUrl);
-      const publicMarker = "/storage/v1/object/public/videos/";
-      const privateMarker = "/storage/v1/object/videos/";
+      const markers = [
+        "/storage/v1/object/sign/videos/",
+        "/storage/v1/object/public/videos/",
+        "/storage/v1/object/videos/",
+      ];
 
-      if (url.pathname.includes(publicMarker)) {
-        return decodeURIComponent(url.pathname.split(publicMarker)[1]);
+      for (const marker of markers) {
+        if (url.pathname.includes(marker)) {
+          const rawPath = url.pathname.split(marker)[1] || "";
+          return decodeURIComponent(rawPath.replace(/^\/+/, ""));
+        }
       }
-      if (url.pathname.includes(privateMarker)) {
-        return decodeURIComponent(url.pathname.split(privateMarker)[1]);
-      }
+
       return null;
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const resolvePlayableVideoUrls = async (items: VideoItem[]) => {
+  const resolvePlayableVideoUrls = useCallback(async (items: VideoItem[]) => {
     const resolved = await Promise.all(
       items.map(async (item) => {
         const filePath = getStoragePathFromVideoUrl(item.video_url);
@@ -72,7 +86,7 @@ const SubjectVideos = () => {
 
         const { data, error } = await supabase.storage
           .from("videos")
-          .createSignedUrl(filePath, 60 * 60);
+          .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
         if (error || !data?.signedUrl) return item;
         return { ...item, video_url: data.signedUrl };
@@ -80,7 +94,21 @@ const SubjectVideos = () => {
     );
 
     return resolved;
-  };
+  }, [getStoragePathFromVideoUrl]);
+
+  const refreshSingleVideoUrl = useCallback(async (videoId: string) => {
+    const targetVideo = videosRef.current.find((video) => video.id === videoId);
+    if (!targetVideo) return false;
+
+    const [refreshedVideo] = await resolvePlayableVideoUrls([targetVideo]);
+    if (!refreshedVideo || refreshedVideo.video_url === targetVideo.video_url) return false;
+
+    setVideos((prev) =>
+      prev.map((video) => (video.id === videoId ? { ...video, video_url: refreshedVideo.video_url } : video))
+    );
+
+    return true;
+  }, [resolvePlayableVideoUrls]);
 
   useEffect(() => {
     const init = async () => {
@@ -131,7 +159,34 @@ const SubjectVideos = () => {
       setLoading(false);
     };
     init();
-  }, [subject, grade, navigate]);
+  }, [subject, grade, navigate, resolvePlayableVideoUrls]);
+
+  useEffect(() => {
+    videosRef.current = videos;
+  }, [videos]);
+
+  useEffect(() => {
+    if (!videos.length) return;
+
+    const refreshIntervalMs = Math.max(60_000, (SIGNED_URL_TTL_SECONDS * 1000) - REFRESH_BUFFER_MS);
+
+    const interval = setInterval(() => {
+      void (async () => {
+        const refreshedVideos = await resolvePlayableVideoUrls(videosRef.current);
+        const refreshedMap = new Map(refreshedVideos.map((video) => [video.id, video.video_url]));
+
+        setVideos((prev) =>
+          prev.map((video) =>
+            refreshedMap.has(video.id)
+              ? { ...video, video_url: refreshedMap.get(video.id)! }
+              : video
+          )
+        );
+      })();
+    }, refreshIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [videos.length, resolvePlayableVideoUrls]);
 
   const fetchComments = async (videoId: string) => {
     const { data } = await supabase
@@ -254,7 +309,11 @@ const SubjectVideos = () => {
               <StaggerItem key={v.id}>
                 <div className="bg-card rounded-xl border border-border overflow-hidden">
                 {playingId === v.id ? (
-                  <VideoPlayer src={v.video_url} title={v.title} />
+                  <VideoPlayer
+                    src={v.video_url}
+                    title={v.title}
+                    onRefreshSource={() => refreshSingleVideoUrl(v.id)}
+                  />
                 ) : (
                   <button
                     onClick={() => setPlayingId(v.id)}

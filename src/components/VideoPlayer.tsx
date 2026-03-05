@@ -4,6 +4,7 @@ import { Play, Pause, Maximize, Minimize, RotateCcw, RotateCw, Volume2, VolumeX 
 interface VideoPlayerProps {
   src: string;
   title?: string;
+  onRefreshSource?: () => Promise<boolean>;
 }
 
 const formatTime = (seconds: number) => {
@@ -12,10 +13,11 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
-const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
+const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout>>();
+  const refreshingSourceRef = useRef(false);
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -26,6 +28,23 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
   const [seeking, setSeeking] = useState(false);
   const [skipIndicator, setSkipIndicator] = useState<"forward" | "backward" | null>(null);
   const [error, setError] = useState(false);
+  const [refreshingSource, setRefreshingSource] = useState(false);
+
+  const refreshSource = useCallback(async () => {
+    if (!onRefreshSource || refreshingSourceRef.current) return false;
+
+    refreshingSourceRef.current = true;
+    setRefreshingSource(true);
+
+    try {
+      const refreshed = await onRefreshSource();
+      if (refreshed) setError(false);
+      return refreshed;
+    } finally {
+      refreshingSourceRef.current = false;
+      setRefreshingSource(false);
+    }
+  }, [onRefreshSource]);
 
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
@@ -78,6 +97,7 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    setError(false);
 
     const onTimeUpdate = () => !seeking && setCurrentTime(v.currentTime);
     const onLoadedMetadata = () => {
@@ -87,7 +107,10 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
     const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
-    const onError = () => setError(true);
+    const onError = () => {
+      setError(true);
+      void refreshSource();
+    };
     const onCanPlay = () => setError(false);
 
     v.addEventListener("timeupdate", onTimeUpdate);
@@ -110,7 +133,7 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
       v.removeEventListener("error", onError);
       v.removeEventListener("canplay", onCanPlay);
     };
-  }, [src, seeking]);
+  }, [src, seeking, refreshSource]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -151,15 +174,21 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
       {/* Error State */}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white gap-3">
-          <p className="text-sm">حدث خطأ في تحميل الفيديو</p>
+          <p className="text-sm">
+            {refreshingSource ? "جارٍ تحديث رابط الفيديو..." : "حدث خطأ في تحميل الفيديو"}
+          </p>
           <button
-            onClick={() => {
-              setError(false);
-              videoRef.current?.load();
+            onClick={async () => {
+              const refreshed = await refreshSource();
+              if (!refreshed) {
+                setError(false);
+                videoRef.current?.load();
+              }
             }}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm"
+            disabled={refreshingSource}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            إعادة المحاولة
+            {refreshingSource ? "جاري المحاولة..." : "إعادة المحاولة"}
           </button>
         </div>
       )}
