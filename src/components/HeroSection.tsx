@@ -36,30 +36,29 @@ const HeroSection = () => {
             </div>
           </motion.div>
 
-          {/* Teacher Image with gold ring */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" as const }}
-            className="relative"
-          >
-            <div className="w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-primary-foreground/10 ring-offset-4 ring-offset-transparent">
-              <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-            </div>
-            {/* Decorative glow */}
-            <div className="absolute -inset-4 rounded-full bg-gold/10 blur-2xl -z-10" />
-          </motion.div>
-
-          {/* Title - under image */}
+          {/* Title - above image */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" as const }}
+            transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" as const }}
             className="text-3xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight text-center"
             style={{ fontFamily: "'Aref Ruqaa', serif" }}
           >
             مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
+
+          {/* Teacher Image with gold ring */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
+            className="relative"
+          >
+            <div className="w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-primary-foreground/10 ring-offset-4 ring-offset-transparent">
+              <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute -inset-4 rounded-full bg-gold/10 blur-2xl -z-10" />
+          </motion.div>
 
           {/* Description */}
           <motion.p
