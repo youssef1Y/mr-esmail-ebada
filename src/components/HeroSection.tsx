@@ -47,29 +47,36 @@ const HeroSection = () => {
             مِنَصَّةُ الْأُسْتَاذِ إِسْمَاعِيل أَحْمَد عِبَادَة
           </motion.h1>
 
-          {/* Teacher Image with effects */}
+          {/* Teacher Image with radiating circles */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" as const }}
-            className="relative"
+            className="relative flex items-center justify-center"
           >
-            {/* Outer spinning ring */}
+            {/* Radiating circles */}
+            {[1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ scale: [1, 1.8, 2.2], opacity: [0.25, 0.08, 0] }}
+                transition={{ duration: 3, repeat: Infinity, delay: i * 0.8, ease: "easeOut" }}
+                className="absolute w-40 h-40 md:w-48 md:h-48 rounded-full border border-gold/40"
+              />
+            ))}
+            {/* Static decorative rings */}
+            <div className="absolute w-48 h-48 md:w-56 md:h-56 rounded-full border border-gold/15" />
+            <div className="absolute w-56 h-56 md:w-64 md:h-64 rounded-full border border-gold/8" />
+            {/* Spinning dashed ring */}
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute -inset-3 rounded-full border-2 border-dashed border-gold/30"
+              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+              className="absolute w-52 h-52 md:w-60 md:h-60 rounded-full border-2 border-dashed border-gold/20"
             />
-            {/* Glow pulse */}
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -inset-6 rounded-full bg-gold/20 blur-2xl"
-            />
+            {/* Glow */}
+            <div className="absolute w-40 h-40 md:w-48 md:h-48 rounded-full bg-gold/15 blur-3xl" />
             {/* Image */}
-            <div className="relative w-52 h-52 md:w-64 md:h-64 rounded-full border-4 border-gold/60 overflow-hidden shadow-2xl ring-4 ring-gold/20 ring-offset-2 ring-offset-transparent">
+            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold/60 overflow-hidden shadow-2xl">
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-              {/* Subtle overlay shine */}
               <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-primary-foreground/5" />
             </div>
           </motion.div>
