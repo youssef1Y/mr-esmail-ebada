@@ -23,16 +23,27 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10 pt-20 pb-10">
         <div className="flex flex-col items-center gap-5">
-          {/* Badge - matching reference design */}
+          {/* Badge - exact match to reference */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" as const }}
-            className="w-full max-w-lg"
+            className="w-full max-w-lg px-2"
           >
-            <div className="flex items-center justify-between bg-gradient-to-l from-[hsl(150,30%,22%)] via-[hsl(150,25%,28%)] to-[hsl(140,20%,32%)] rounded-2xl px-6 py-4 text-primary-foreground shadow-xl border border-gold/20">
-              <span className="text-sm md:text-lg font-bold leading-relaxed">منصة تعليمية متخصصة في العلوم الشرعية</span>
-              <span className="text-gold text-2xl mr-2 flex-shrink-0">✦</span>
+            <div
+              className="flex items-center justify-between rounded-[18px] px-7 py-5 shadow-xl"
+              style={{
+                background: "linear-gradient(135deg, hsl(80, 25%, 38%) 0%, hsl(90, 20%, 32%) 40%, hsl(100, 22%, 28%) 100%)",
+                border: "1px solid hsla(80, 20%, 50%, 0.25)",
+              }}
+            >
+              <span className="text-base md:text-lg font-bold leading-relaxed" style={{ color: "hsl(36, 30%, 93%)" }}>
+                منصة تعليمية متخصصة في العلوم الشرعية
+              </span>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mr-3 opacity-80">
+                <path d="M12 2L14.5 8.5L21 9.5L16.5 14L17.5 21L12 17.5L6.5 21L7.5 14L3 9.5L9.5 8.5L12 2Z" fill="hsl(40, 70%, 50%)" fillOpacity="0.6" />
+                <path d="M12 5L9 11L3 12L7.5 16L6.5 22L12 18.5L17.5 22L16.5 16L21 12L15 11L12 5Z" stroke="hsl(40, 70%, 50%)" strokeWidth="0.5" fill="none" opacity="0.4" />
+              </svg>
             </div>
           </motion.div>
 
