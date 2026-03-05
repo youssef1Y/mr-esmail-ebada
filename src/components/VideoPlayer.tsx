@@ -25,26 +25,25 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
   const [showControls, setShowControls] = useState(true);
   const [seeking, setSeeking] = useState(false);
   const [skipIndicator, setSkipIndicator] = useState<"forward" | "backward" | null>(null);
-
-  const video = videoRef.current;
+  const [error, setError] = useState(false);
 
   const togglePlay = useCallback(() => {
-    if (!video) return;
-    if (video.paused) {
-      video.play();
-      setPlaying(true);
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
     } else {
-      video.pause();
-      setPlaying(false);
+      v.pause();
     }
-  }, [video]);
+  }, []);
 
   const skip = useCallback((seconds: number) => {
-    if (!video) return;
-    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + seconds));
     setSkipIndicator(seconds > 0 ? "forward" : "backward");
     setTimeout(() => setSkipIndicator(null), 600);
-  }, [video]);
+  }, []);
 
   const toggleFullscreen = useCallback(async () => {
     const el = containerRef.current;
@@ -52,25 +51,21 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
     try {
       if (!document.fullscreenElement) {
         await el.requestFullscreen();
-        // Try to lock to landscape
-        try {
-          await (screen.orientation as any)?.lock?.("landscape");
-        } catch {}
+        try { await (screen.orientation as any)?.lock?.("landscape"); } catch {}
       } else {
         await document.exitFullscreen();
-        try {
-          screen.orientation?.unlock?.();
-        } catch {}
+        try { screen.orientation?.unlock?.(); } catch {}
       }
     } catch {}
   }, []);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!video) return;
+    const v = videoRef.current;
+    if (!v) return;
     const time = parseFloat(e.target.value);
-    video.currentTime = time;
+    v.currentTime = time;
     setCurrentTime(time);
-  }, [video]);
+  }, []);
 
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
@@ -87,18 +82,24 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
     const onTimeUpdate = () => !seeking && setCurrentTime(v.currentTime);
     const onLoadedMetadata = () => {
       setDuration(v.duration);
-      // Auto-play when loaded
       v.play().catch(() => {});
     };
     const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
+    const onError = () => setError(true);
+    const onCanPlay = () => setError(false);
 
     v.addEventListener("timeupdate", onTimeUpdate);
     v.addEventListener("loadedmetadata", onLoadedMetadata);
     v.addEventListener("ended", onEnded);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
+    v.addEventListener("error", onError);
+    v.addEventListener("canplay", onCanPlay);
+
+    // Force load
+    v.load();
 
     return () => {
       v.removeEventListener("timeupdate", onTimeUpdate);
@@ -106,8 +107,10 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
+      v.removeEventListener("error", onError);
+      v.removeEventListener("canplay", onCanPlay);
     };
-  }, [seeking]);
+  }, [src, seeking]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -120,13 +123,19 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
     return () => clearTimeout(hideControlsTimer.current);
   }, [playing, resetControlsTimer]);
 
+  const toggleMute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  }, []);
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div
       ref={containerRef}
       className="relative bg-black w-full aspect-video group select-none"
-      onClick={resetControlsTimer}
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
     >
@@ -135,24 +144,40 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
         src={src}
         className="w-full h-full object-contain"
         playsInline
-        preload="metadata"
-        onClick={togglePlay}
+        preload="auto"
+        crossOrigin="anonymous"
       />
+
+      {/* Error State */}
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white gap-3">
+          <p className="text-sm">حدث خطأ في تحميل الفيديو</p>
+          <button
+            onClick={() => {
+              setError(false);
+              videoRef.current?.load();
+            }}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      )}
 
       {/* Skip Indicator */}
       {skipIndicator && (
-        <div className={`absolute top-1/2 -translate-y-1/2 ${skipIndicator === "forward" ? "right-8" : "left-8"} animate-fade-in`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 ${skipIndicator === "forward" ? "right-8" : "left-8"} animate-fade-in pointer-events-none`}>
           <div className="bg-black/60 text-white rounded-full p-3">
             {skipIndicator === "forward" ? <RotateCw className="w-8 h-8" /> : <RotateCcw className="w-8 h-8" />}
           </div>
         </div>
       )}
 
-      {/* Center Play Button (when paused) */}
-      {!playing && (
+      {/* Center Play Button (when paused & no error) */}
+      {!playing && !error && (
         <button
           onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/30"
+          className="absolute inset-0 flex items-center justify-center bg-black/30 z-10"
         >
           <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center">
             <Play className="w-8 h-8 text-primary-foreground ml-1" />
@@ -160,11 +185,20 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
         </button>
       )}
 
+      {/* Tap to pause when playing */}
+      {playing && (
+        <div
+          className="absolute inset-0 z-10"
+          onClick={togglePlay}
+        />
+      )}
+
       {/* Controls Overlay */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-10 pb-2 px-3 transition-opacity duration-300 ${
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-10 pb-2 px-3 transition-opacity duration-300 z-20 ${
           showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Progress Bar */}
         <div className="relative mb-2">
@@ -179,7 +213,7 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
             onMouseUp={() => setSeeking(false)}
             onTouchStart={() => setSeeking(true)}
             onTouchEnd={() => setSeeking(false)}
-            className="w-full h-1 appearance-none bg-white/30 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer"
+            className="w-full h-1.5 appearance-none bg-white/30 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer"
             style={{
               background: `linear-gradient(to right, hsl(var(--primary)) ${progress}%, rgba(255,255,255,0.3) ${progress}%)`,
             }}
@@ -193,10 +227,10 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
           </button>
 
           <button onClick={() => skip(-10)} className="text-white p-1">
-            <RotateCcw className="w-4.5 h-4.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
           <button onClick={() => skip(10)} className="text-white p-1">
-            <RotateCw className="w-4.5 h-4.5" />
+            <RotateCw className="w-4 h-4" />
           </button>
 
           <span className="text-white text-[11px] font-mono tabular-nums mx-1">
@@ -205,27 +239,14 @@ const VideoPlayer = ({ src, title }: VideoPlayerProps) => {
 
           <div className="flex-1" />
 
-          <button onClick={() => { setMuted(!muted); if (video) video.muted = !muted; }} className="text-white p-1">
-            {muted ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5" />}
+          <button onClick={toggleMute} className="text-white p-1">
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
           <button onClick={toggleFullscreen} className="text-white p-1">
-            {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
         </div>
-      </div>
-
-      {/* Double-tap skip zones */}
-      <div className="absolute inset-0 flex pointer-events-none">
-        <div
-          className="w-1/3 h-full pointer-events-auto"
-          onDoubleClick={() => skip(-10)}
-        />
-        <div className="w-1/3 h-full" />
-        <div
-          className="w-1/3 h-full pointer-events-auto"
-          onDoubleClick={() => skip(10)}
-        />
       </div>
     </div>
   );
