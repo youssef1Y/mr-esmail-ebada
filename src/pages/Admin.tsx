@@ -217,6 +217,9 @@ const Admin = () => {
   const [videoSubject, setVideoSubject] = useState("");
   const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoHomeworkEnabled, setVideoHomeworkEnabled] = useState(false);
+  const [videoHomeworkDesc, setVideoHomeworkDesc] = useState("");
+  const [videoHomeworkQuestions, setVideoHomeworkQuestions] = useState<{ question: string; options: string[]; correct: number }[]>([]);
 
   // Notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -562,13 +565,24 @@ const Admin = () => {
     if (newVideo.subject === "الفقه" && newVideo.madhab) {
       videoData.madhab = newVideo.madhab;
     }
-    const { error } = await supabase.from("videos").insert(videoData);
+    const { data: insertedVideo, error } = await supabase.from("videos").insert(videoData).select("id").single();
     if (error) {
       console.error("Insert video error:", error);
       toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" });
     } else {
+      // Add homework if enabled
+      if (videoHomeworkEnabled && insertedVideo) {
+        await supabase.from("video_homework" as any).insert({
+          video_id: insertedVideo.id,
+          description: videoHomeworkDesc || null,
+          questions: videoHomeworkQuestions,
+        } as any);
+      }
       toast({ title: "تم إضافة الفيديو" });
       setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
+      setVideoHomeworkEnabled(false);
+      setVideoHomeworkDesc("");
+      setVideoHomeworkQuestions([]);
       setShowAddVideo(false);
       fetchVideos();
     }
@@ -951,6 +965,84 @@ const Admin = () => {
                     </select>
                   </div>
                 )}
+                {/* Video Homework Section */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={videoHomeworkEnabled}
+                      onChange={e => setVideoHomeworkEnabled(e.target.checked)}
+                      className="rounded border-input"
+                    />
+                    <Label className="cursor-pointer" onClick={() => setVideoHomeworkEnabled(!videoHomeworkEnabled)}>
+                      إضافة واجب على الفيديو (لفتح الفيديو التالي)
+                    </Label>
+                  </div>
+
+                  {videoHomeworkEnabled && (
+                    <div className="space-y-3 bg-muted/50 rounded-lg p-3">
+                      <div>
+                        <Label>وصف الواجب (اختياري)</Label>
+                        <Input value={videoHomeworkDesc} onChange={e => setVideoHomeworkDesc(e.target.value)} placeholder="تعليمات أو ملاحظات للطالب..." />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>أسئلة اختيار من متعدد</Label>
+                        {videoHomeworkQuestions.map((q, qi) => (
+                          <div key={qi} className="bg-card rounded-lg border border-border p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold">سؤال {qi + 1}</span>
+                              <Button variant="ghost" size="sm" className="text-destructive h-6 px-2 text-xs" onClick={() => setVideoHomeworkQuestions(prev => prev.filter((_, i) => i !== qi))}>حذف</Button>
+                            </div>
+                            <Input
+                              value={q.question}
+                              onChange={e => {
+                                const updated = [...videoHomeworkQuestions];
+                                updated[qi].question = e.target.value;
+                                setVideoHomeworkQuestions(updated);
+                              }}
+                              placeholder="نص السؤال"
+                              className="text-xs"
+                            />
+                            {q.options.map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`q-${qi}-correct`}
+                                  checked={q.correct === oi}
+                                  onChange={() => {
+                                    const updated = [...videoHomeworkQuestions];
+                                    updated[qi].correct = oi;
+                                    setVideoHomeworkQuestions(updated);
+                                  }}
+                                />
+                                <Input
+                                  value={opt}
+                                  onChange={e => {
+                                    const updated = [...videoHomeworkQuestions];
+                                    updated[qi].options[oi] = e.target.value;
+                                    setVideoHomeworkQuestions(updated);
+                                  }}
+                                  placeholder={`الخيار ${oi + 1}`}
+                                  className="text-xs h-8"
+                                />
+                              </div>
+                            ))}
+                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => {
+                              const updated = [...videoHomeworkQuestions];
+                              updated[qi].options.push("");
+                              setVideoHomeworkQuestions(updated);
+                            }}>+ خيار</Button>
+                          </div>
+                        ))}
+                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setVideoHomeworkQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct: 0 }])}>
+                          + إضافة سؤال
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={addVideo} className="flex-1">حفظ الفيديو</Button>
                   <Button variant="outline" onClick={() => setShowAddVideo(false)}>إلغاء</Button>

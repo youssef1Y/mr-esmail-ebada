@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2 } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
+import VideoHomeworkForm from "@/components/VideoHomeworkForm";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,10 @@ const SubjectVideos = () => {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
+
+  // Homework gating
+  const [videoHomework, setVideoHomework] = useState<Record<string, { id: string; description: string | null; questions: any[] }>>({});
+  const [submittedHomework, setSubmittedHomework] = useState<Set<string>>(new Set());
 
   const videosRef = useRef<VideoItem[]>([]);
   const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -150,6 +155,35 @@ const SubjectVideos = () => {
           const playableVideos = await resolvePlayableVideoUrls(filtered as VideoItem[]);
           setVideos(playableVideos);
 
+          // Fetch homework for these videos
+          const videoIds = filtered.map(v => v.id);
+          if (videoIds.length > 0) {
+            const { data: hwData } = await supabase
+              .from("video_homework" as any)
+              .select("*")
+              .in("video_id", videoIds);
+
+            if (hwData && (hwData as any[]).length > 0) {
+              const hwMap: Record<string, { id: string; description: string | null; questions: any[] }> = {};
+              for (const hw of hwData as any[]) {
+                hwMap[hw.video_id] = { id: hw.id, description: hw.description, questions: hw.questions || [] };
+              }
+              setVideoHomework(hwMap);
+
+              // Check which homework the student already submitted
+              const hwIds = (hwData as any[]).map((hw: any) => hw.id);
+              const { data: subs } = await supabase
+                .from("video_homework_submissions" as any)
+                .select("homework_id")
+                .eq("user_id", session.user.id)
+                .in("homework_id", hwIds);
+
+              if (subs) {
+                setSubmittedHomework(new Set((subs as any[]).map((s: any) => s.homework_id)));
+              }
+            }
+          }
+
           // Track views
           for (const v of filtered) {
             supabase.from("video_views").insert({ video_id: v.id, user_id: session.user.id }).then(() => {});
@@ -235,6 +269,24 @@ const SubjectVideos = () => {
     !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
   );
 
+  // Check if a video is locked: the PREVIOUS video must have no homework OR its homework must be submitted
+  const isVideoLocked = (index: number): boolean => {
+    if (isAdmin) return false;
+    if (index === 0) return false; // First video is always unlocked
+    
+    const prevVideo = filteredVideos[index - 1];
+    if (!prevVideo) return false;
+    
+    const hw = videoHomework[prevVideo.id];
+    if (!hw) return false; // No homework on previous video = unlocked
+    
+    return !submittedHomework.has(hw.id); // Locked if homework not submitted
+  };
+
+  const handleHomeworkSubmitted = (homeworkId: string) => {
+    setSubmittedHomework(prev => new Set([...prev, homeworkId]));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -305,10 +357,24 @@ const SubjectVideos = () => {
           </div>
         ) : (
           <StaggerContainer className="space-y-4" staggerDelay={0.1}>
-            {filteredVideos.map((v, i) => (
+            {filteredVideos.map((v, i) => {
+              const locked = isVideoLocked(i);
+              const hw = videoHomework[v.id];
+              const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
+
+              return (
               <StaggerItem key={v.id}>
-                <div className="bg-card rounded-xl border border-border overflow-hidden">
-                {playingId === v.id ? (
+                <div className={`bg-card rounded-xl border border-border overflow-hidden ${locked ? "opacity-60" : ""}`}>
+                {locked ? (
+                  <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3">
+                    <div className="w-14 h-14 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+                      <Lock className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center px-4">
+                      أكمل واجب الفيديو السابق لفتح هذا الفيديو
+                    </p>
+                  </div>
+                ) : playingId === v.id ? (
                   <VideoPlayer
                     src={v.video_url}
                     title={v.title}
@@ -330,6 +396,15 @@ const SubjectVideos = () => {
                       <span className="text-muted-foreground ml-2">{i + 1}.</span>
                       {v.title}
                     </h3>
+                    {hw && (
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                        hwSubmitted
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
+                      }`}>
+                        {hwSubmitted ? "✓ تم التسليم" : "واجب مطلوب"}
+                      </span>
+                    )}
                     {v.madhab && (
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
                         v.madhab === "شافعي" ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" :
@@ -344,18 +419,38 @@ const SubjectVideos = () => {
                   </div>
                   {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
 
-                  {/* Comments Toggle */}
-                  <button
-                    onClick={() => toggleComments(v.id)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-2 transition-colors"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    {showComments === v.id ? "إخفاء التعليقات" : "التعليقات والأسئلة"}
-                    {comments[v.id] && comments[v.id].length > 0 && (
-                      <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px]">{comments[v.id].length}</span>
-                    )}
-                  </button>
+                  {!locked && (
+                    <button
+                      onClick={() => toggleComments(v.id)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-2 transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      {showComments === v.id ? "إخفاء التعليقات" : "التعليقات والأسئلة"}
+                      {comments[v.id] && comments[v.id].length > 0 && (
+                        <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px]">{comments[v.id].length}</span>
+                      )}
+                    </button>
+                  )}
                 </div>
+
+                {/* Homework Form - show if video has homework & not submitted & not locked */}
+                {!locked && hw && !hwSubmitted && userId && (
+                  <VideoHomeworkForm
+                    homeworkId={hw.id}
+                    description={hw.description}
+                    questions={hw.questions}
+                    userId={userId}
+                    onSubmitted={() => handleHomeworkSubmitted(hw.id)}
+                  />
+                )}
+
+                {/* Submitted homework indicator */}
+                {!locked && hw && hwSubmitted && (
+                  <div className="border-t border-border p-3 bg-emerald-50 dark:bg-emerald-950/20 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">تم تسليم الواجب بنجاح</span>
+                  </div>
+                )}
 
                 {/* Comments Section */}
                 {showComments === v.id && (
@@ -399,7 +494,8 @@ const SubjectVideos = () => {
                 )}
                 </div>
               </StaggerItem>
-            ))}
+              );
+            })}
           </StaggerContainer>
         )}
 
