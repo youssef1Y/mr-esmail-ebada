@@ -13,7 +13,7 @@ const HeroSection = () => {
       
       {/* Islamic pattern background overlay */}
       <div 
-        className="absolute inset-0 opacity-[0.08]"
+        className="absolute inset-0 opacity-[0.15]"
         style={{
           backgroundImage: `url(${islamicPattern})`,
           backgroundSize: '400px 400px',
@@ -65,13 +65,36 @@ const HeroSection = () => {
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
-            className="relative"
+            className="relative flex items-center justify-center"
           >
-            <div className="absolute -inset-3 rounded-full border-2 border-gold/30 animate-[spin_20s_linear_infinite]" />
-            <div className="absolute -inset-6 rounded-full border border-gold/10" />
-            <div className="w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]">
+            {/* Ripple rings that expand outward and fade */}
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full border border-gold/40"
+                style={{ width: '160px', height: '160px' }}
+                animate={{
+                  scale: [1, 1.8, 2.5],
+                  opacity: [0.5, 0.2, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  delay: i * 1,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                }}
+              />
+            ))}
+            {/* Static decorative ring */}
+            <div className="absolute w-[170px] h-[170px] md:w-[210px] md:h-[210px] rounded-full border border-gold/20" />
+            {/* Image with subtle breathing scale */}
+            <motion.div
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-36 h-36 md:w-44 md:h-44 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]"
+            >
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" />
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Subject pills */}
