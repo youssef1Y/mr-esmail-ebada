@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -12,7 +14,22 @@ import Footer from "@/components/Footer";
 import { InstallPWABanner } from "@/components/InstallPWA";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
+
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        setChecking(false);
+      }
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (checking) return;
+    
     const jsonLd = {
       "@context": "https://schema.org",
       "@graph": [
@@ -74,7 +91,15 @@ const Index = () => {
       const el = document.getElementById("json-ld-structured-data");
       if (el) el.remove();
     };
-  }, []);
+  }, [checking]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
