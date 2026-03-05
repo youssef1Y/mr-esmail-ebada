@@ -71,12 +71,12 @@ const HeroSection = () => {
             </div>
 
             <div className="flex items-center gap-6 justify-center text-primary-foreground/70 text-sm pt-2">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
+              <div className="flex items-center gap-2 bg-primary-foreground/5 backdrop-blur-sm rounded-full px-3 py-1.5 border border-primary-foreground/10">
+                <BookOpen className="w-4 h-4 text-gold" />
                 <span>مناهج معتمدة</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
+              <div className="flex items-center gap-2 bg-primary-foreground/5 backdrop-blur-sm rounded-full px-3 py-1.5 border border-primary-foreground/10">
+                <Users className="w-4 h-4 text-gold" />
                 <span>+500 طالب</span>
               </div>
             </div>

@@ -3,7 +3,7 @@ import { BookOpen, Newspaper } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border py-8">
+    <footer className="bg-card border-t border-border py-10">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-2">
