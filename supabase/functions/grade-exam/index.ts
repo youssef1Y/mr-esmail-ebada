@@ -101,6 +101,34 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check exam access_type and enforce subscription
+    const { data: exam, error: examError } = await supabaseAdmin
+      .from("exams")
+      .select("access_type")
+      .eq("id", exam_id)
+      .single();
+
+    if (examError || !exam) {
+      return new Response(JSON.stringify({ error: "الامتحان غير موجود" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (exam.access_type === "subscribers_only") {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("is_subscribed")
+        .eq("user_id", userId)
+        .single();
+      if (!profile?.is_subscribed) {
+        return new Response(JSON.stringify({ error: "غير مصرح - يتطلب اشتراك" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     // Check if already taken
     const { data: existing } = await supabaseAdmin
       .from("exam_attempts")

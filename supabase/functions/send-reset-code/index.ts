@@ -28,17 +28,17 @@ serve(async (req) => {
 
     // Check if user exists
     const email = `${phone}@ismail-ebada.platform`;
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({ filter: email });
 
     if (listError) {
-      console.error("Error listing users:", listError.message);
+      console.error("Error looking up user:", listError.message);
       return new Response(
         JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userExists = users.users.some((u: any) => u.email === email);
+    const userExists = users && users.some((u: any) => u.email === email);
     if (!userExists) {
       return new Response(
         JSON.stringify({ error: "هذا الرقم غير مسجل في المنصة" }),

@@ -106,10 +106,10 @@ serve(async (req) => {
 
     // Find user and update password
     const email = `${phone}@ismail-ebada.platform`;
-    const { data: users } = await supabase.auth.admin.listUsers();
-    const user = users?.users?.find((u: any) => u.email === email);
+    const { data: { users }, error: lookupError } = await supabase.auth.admin.listUsers({ filter: email });
+    const user = users?.find((u: any) => u.email === email);
 
-    if (!user) {
+    if (lookupError || !user) {
       return new Response(
         JSON.stringify({ error: "لم يتم العثور على حساب مرتبط بهذا الرقم" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
