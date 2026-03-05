@@ -906,6 +906,9 @@ const Dashboard = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoHomeworkEnabled, setVideoHomeworkEnabled] = useState(false);
+  const [videoHomeworkDesc, setVideoHomeworkDesc] = useState("");
+  const [videoHomeworkQuestions, setVideoHomeworkQuestions] = useState<{ question: string; options: string[]; correct: number }[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [newNotif, setNewNotif] = useState({ title: "", body: "", target_audience: "all" as "all" | "subscribed" | "unsubscribed", target_grades: [] as string[] });
   const [adminViewSubscribed, setAdminViewSubscribed] = useState(true);
@@ -1399,14 +1402,25 @@ const Dashboard = () => {
 
     if (newVideo.publish_at) insertData.publish_at = new Date(newVideo.publish_at).toISOString();
 
-    const { error } = await supabase.from("videos").insert(insertData);
+    const { data: insertedVideo, error } = await supabase.from("videos").insert(insertData).select("id").single();
     if (error) {
       console.error("Insert video error:", error);
       toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الفيديو", variant: "destructive" });
     } else {
+      // Add homework if enabled
+      if (videoHomeworkEnabled && insertedVideo) {
+        await supabase.from("video_homework" as any).insert({
+          video_id: insertedVideo.id,
+          description: videoHomeworkDesc || null,
+          questions: videoHomeworkQuestions,
+        } as any);
+      }
       toast({ title: "تم إضافة الفيديو بنجاح" });
       setNewVideo({ title: "", description: "", grade: "", subject: "", madhab: "", access_type: "all", publish_at: "" });
       setVideoFile(null);
+      setVideoHomeworkEnabled(false);
+      setVideoHomeworkDesc("");
+      setVideoHomeworkQuestions([]);
       setShowAddVideo(false);
       fetchVideos();
       fetchGradeVideos(selectedGrade);
@@ -1769,6 +1783,84 @@ const Dashboard = () => {
                           </p>
                         )}
                       </div>
+
+                      {/* Video Homework Section */}
+                      <div className="border-t border-border pt-3 mt-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            checked={videoHomeworkEnabled}
+                            onChange={e => setVideoHomeworkEnabled(e.target.checked)}
+                            className="rounded border-input"
+                          />
+                          <Label className="text-xs cursor-pointer" onClick={() => setVideoHomeworkEnabled(!videoHomeworkEnabled)}>
+                            إضافة واجب على الفيديو (لفتح الفيديو التالي)
+                          </Label>
+                        </div>
+
+                        {videoHomeworkEnabled && (
+                          <div className="space-y-2 bg-accent/30 rounded-lg p-3">
+                            <Input
+                              value={videoHomeworkDesc}
+                              onChange={e => setVideoHomeworkDesc(e.target.value)}
+                              placeholder="وصف الواجب (اختياري)"
+                              className="text-xs"
+                            />
+                            <Label className="text-xs">أسئلة اختيار من متعدد</Label>
+                            {videoHomeworkQuestions.map((q, qi) => (
+                              <div key={qi} className="bg-card rounded-lg border border-border p-2 space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold">سؤال {qi + 1}</span>
+                                  <button className="text-destructive text-[10px]" onClick={() => setVideoHomeworkQuestions(prev => prev.filter((_, i) => i !== qi))}>حذف</button>
+                                </div>
+                                <Input
+                                  value={q.question}
+                                  onChange={e => {
+                                    const u = [...videoHomeworkQuestions];
+                                    u[qi].question = e.target.value;
+                                    setVideoHomeworkQuestions(u);
+                                  }}
+                                  placeholder="نص السؤال"
+                                  className="text-xs h-8"
+                                />
+                                {q.options.map((opt, oi) => (
+                                  <div key={oi} className="flex items-center gap-1.5">
+                                    <input
+                                      type="radio"
+                                      name={`dash-q-${qi}`}
+                                      checked={q.correct === oi}
+                                      onChange={() => {
+                                        const u = [...videoHomeworkQuestions];
+                                        u[qi].correct = oi;
+                                        setVideoHomeworkQuestions(u);
+                                      }}
+                                    />
+                                    <Input
+                                      value={opt}
+                                      onChange={e => {
+                                        const u = [...videoHomeworkQuestions];
+                                        u[qi].options[oi] = e.target.value;
+                                        setVideoHomeworkQuestions(u);
+                                      }}
+                                      placeholder={`الخيار ${oi + 1}`}
+                                      className="text-xs h-7"
+                                    />
+                                  </div>
+                                ))}
+                                <button className="text-xs text-primary" onClick={() => {
+                                  const u = [...videoHomeworkQuestions];
+                                  u[qi].options.push("");
+                                  setVideoHomeworkQuestions(u);
+                                }}>+ خيار</button>
+                              </div>
+                            ))}
+                            <Button variant="outline" size="sm" className="w-full text-xs h-7" onClick={() => setVideoHomeworkQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct: 0 }])}>
+                              + إضافة سؤال
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
                       {uploading && (
                         <div>
                           <div className="flex justify-between text-xs mb-1">
