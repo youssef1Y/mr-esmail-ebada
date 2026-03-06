@@ -17,6 +17,8 @@ interface VideoHwSubmission {
   answers: any[];
   image_urls: string[];
   submitted_at: string;
+  score: number | null;
+  total: number | null;
   // joined
   video_title: string;
   video_grade: string;
@@ -90,6 +92,8 @@ const AdminVideoHomeworkTab = ({ toast }: { toast: any }) => {
         answers: s.answers || [],
         image_urls: s.image_urls || [],
         submitted_at: s.submitted_at,
+        score: s.score ?? null,
+        total: s.total ?? null,
         video_title: video.title || "—",
         video_grade: video.grade || "",
         video_subject: video.subject || "",
@@ -195,11 +199,22 @@ const AdminVideoHomeworkTab = ({ toast }: { toast: any }) => {
                       {s.student_school && <span className="mr-2">· {s.student_school}</span>}
                       {s.student_governorate && <span className="mr-2">· {s.student_governorate}</span>}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
+                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
                         {s.video_subject}
                       </span>
                       <span className="text-xs font-medium">{s.video_title}</span>
+                      {s.score !== null && s.total !== null && s.total > 0 && (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                          s.score === s.total 
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                            : s.score / s.total >= 0.5
+                            ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
+                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
+                        }`}>
+                          {s.score}/{s.total}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[10px] text-muted-foreground">
                       {new Date(s.submitted_at).toLocaleDateString("ar-EG")} · {new Date(s.submitted_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}

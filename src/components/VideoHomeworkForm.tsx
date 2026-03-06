@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Camera, ImageIcon, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Camera, ImageIcon, Send, Loader2, CheckCircle, XCircle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,8 +24,10 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ score: number; total: number } | null>(null);
 
   const handleSelectAnswer = (qIndex: number, optIndex: number) => {
+    if (result) return; // Don't allow changes after submission
     setAnswers(prev => ({ ...prev, [qIndex]: optIndex }));
   };
 
@@ -46,7 +48,6 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
   };
 
   const handleSubmit = async () => {
-    // Validate MCQ answers
     if (questions.length > 0) {
       const unanswered = questions.findIndex((_, i) => answers[i] === undefined);
       if (unanswered !== -1) {
@@ -57,7 +58,6 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
 
     setSubmitting(true);
     try {
-      // Upload images
       const uploadedUrls: string[] = [];
       for (const file of imageFiles) {
         const ext = file.name.split(".").pop();
@@ -66,25 +66,39 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
         if (!error) uploadedUrls.push(path);
       }
 
-      // Build answers array
-      const answersArray = questions.map((q, i) => ({
-        questionIndex: i,
-        selectedOption: answers[i] ?? -1,
-        isCorrect: answers[i] === q.correct,
-      }));
+      // Calculate score
+      let score = 0;
+      const total = questions.length;
+      const answersArray = questions.map((q, i) => {
+        const isCorrect = answers[i] === q.correct;
+        if (isCorrect) score++;
+        return {
+          questionIndex: i,
+          selectedOption: answers[i] ?? -1,
+          isCorrect,
+        };
+      });
 
       const { error } = await supabase.from("video_homework_submissions").insert({
         homework_id: homeworkId,
         user_id: userId,
         answers: answersArray,
         image_urls: uploadedUrls,
-      });
+        score: total > 0 ? score : null,
+        total: total > 0 ? total : null,
+      } as any);
 
       if (error) {
         console.error("Submit error:", error);
         toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الواجب", variant: "destructive" });
       } else {
-        toast({ title: "تم إرسال الواجب بنجاح! ✅" });
+        if (total > 0) {
+          setResult({ score, total });
+          const points = Math.max(5, Math.min(15, Math.round((score / total) * 15)));
+          toast({ title: `تم إرسال الواجب! النتيجة: ${score}/${total} 🎉`, description: `حصلت على ${points} نقطة` });
+        } else {
+          toast({ title: "تم إرسال الواجب بنجاح! ✅" });
+        }
         onSubmitted();
       }
     } catch (err) {
@@ -107,6 +121,22 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
         <p className="text-xs text-muted-foreground bg-muted rounded-lg p-3">{description}</p>
       )}
 
+      {/* Result Card */}
+      {result && (
+        <div className="bg-card rounded-xl border-2 border-primary/30 p-4 text-center space-y-2">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Trophy className="w-6 h-6 text-primary" />
+          </div>
+          <div className="text-2xl font-bold text-primary">{result.score} / {result.total}</div>
+          <p className="text-xs text-muted-foreground">
+            نسبة النجاح: {Math.round((result.score / result.total) * 100)}%
+          </p>
+          <p className="text-xs font-medium text-emerald-600">
+            +{Math.max(5, Math.min(15, Math.round((result.score / result.total) * 15)))} نقطة 🎉
+          </p>
+        </div>
+      )}
+
       {/* MCQ Questions */}
       {questions.map((q, qIndex) => (
         <div key={qIndex} className="space-y-2">
@@ -115,60 +145,88 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
             {q.question}
           </p>
           <div className="grid gap-1.5">
-            {q.options.map((opt, optIndex) => (
-              <button
-                key={optIndex}
-                onClick={() => handleSelectAnswer(qIndex, optIndex)}
-                className={`w-full text-right px-3 py-2 rounded-lg border text-xs transition-colors ${
-                  answers[qIndex] === optIndex
-                    ? "border-primary bg-primary/10 text-primary font-medium"
-                    : "border-border bg-card hover:border-primary/50"
-                }`}
-              >
-                <span className="text-muted-foreground ml-2">{String.fromCharCode(1571 + optIndex)})</span>
-                {opt}
-              </button>
-            ))}
+            {q.options.map((opt, optIndex) => {
+              const isSelected = answers[qIndex] === optIndex;
+              const showResult = result !== null;
+              const isCorrectOption = optIndex === q.correct;
+
+              let className = "w-full text-right px-3 py-2 rounded-lg border text-xs transition-colors ";
+              if (showResult) {
+                if (isCorrectOption) {
+                  className += "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-medium";
+                } else if (isSelected && !isCorrectOption) {
+                  className += "border-destructive bg-destructive/10 text-destructive font-medium";
+                } else {
+                  className += "border-border bg-card opacity-50";
+                }
+              } else {
+                className += isSelected
+                  ? "border-primary bg-primary/10 text-primary font-medium"
+                  : "border-border bg-card hover:border-primary/50";
+              }
+
+              return (
+                <button
+                  key={optIndex}
+                  onClick={() => handleSelectAnswer(qIndex, optIndex)}
+                  disabled={!!result}
+                  className={className}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>
+                      <span className="text-muted-foreground ml-2">{String.fromCharCode(1571 + optIndex)})</span>
+                      {opt}
+                    </span>
+                    {showResult && isCorrectOption && <CheckCircle className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
+                    {showResult && isSelected && !isCorrectOption && <XCircle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
 
-      {/* Image Upload */}
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">أرفق صور الحل (اختياري)</p>
-        <div className="flex gap-2">
-          <label className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-border bg-card cursor-pointer hover:border-primary/50 transition-colors text-xs">
-            <Camera className="w-3.5 h-3.5" />
-            التقاط صورة
-            <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="hidden" />
-          </label>
-          <label className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-border bg-card cursor-pointer hover:border-primary/50 transition-colors text-xs">
-            <ImageIcon className="w-3.5 h-3.5" />
-            من المعرض
-            <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
-          </label>
-        </div>
-        {imagePreviews.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {imagePreviews.map((src, i) => (
-              <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
-                <img src={src} alt="" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => removeImage(i)}
-                  className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl-lg px-1 text-[10px]"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+      {/* Image Upload - hide after submission */}
+      {!result && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">أرفق صور الحل (اختياري)</p>
+          <div className="flex gap-2">
+            <label className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-border bg-card cursor-pointer hover:border-primary/50 transition-colors text-xs">
+              <Camera className="w-3.5 h-3.5" />
+              التقاط صورة
+              <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="hidden" />
+            </label>
+            <label className="flex items-center gap-1 px-3 py-2 rounded-lg border border-dashed border-border bg-card cursor-pointer hover:border-primary/50 transition-colors text-xs">
+              <ImageIcon className="w-3.5 h-3.5" />
+              من المعرض
+              <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+            </label>
           </div>
-        )}
-      </div>
+          {imagePreviews.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {imagePreviews.map((src, i) => (
+                <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removeImage(i)}
+                    className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl-lg px-1 text-[10px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2">
-        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        {submitting ? "جاري الإرسال..." : "إرسال الواجب"}
-      </Button>
+      {!result && (
+        <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2">
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {submitting ? "جاري الإرسال..." : "إرسال الواجب"}
+        </Button>
+      )}
     </div>
   );
 };

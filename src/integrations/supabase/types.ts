@@ -627,7 +627,9 @@ export type Database = {
           homework_id: string
           id: string
           image_urls: string[] | null
+          score: number | null
           submitted_at: string
+          total: number | null
           user_id: string
         }
         Insert: {
@@ -635,7 +637,9 @@ export type Database = {
           homework_id: string
           id?: string
           image_urls?: string[] | null
+          score?: number | null
           submitted_at?: string
+          total?: number | null
           user_id: string
         }
         Update: {
@@ -643,7 +647,9 @@ export type Database = {
           homework_id?: string
           id?: string
           image_urls?: string[] | null
+          score?: number | null
           submitted_at?: string
+          total?: number | null
           user_id?: string
         }
         Relationships: [
