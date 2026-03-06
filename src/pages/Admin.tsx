@@ -1028,16 +1028,26 @@ const Admin = () => {
                                   placeholder={`الخيار ${oi + 1}`}
                                   className="text-xs h-8"
                                 />
+                                {q.options.length > 2 && (
+                                  <Button variant="ghost" size="sm" className="text-destructive h-6 w-6 p-0 text-xs" onClick={() => {
+                                    const updated = [...videoHomeworkQuestions];
+                                    updated[qi].options = updated[qi].options.filter((_, i) => i !== oi);
+                                    if (updated[qi].correct >= updated[qi].options.length) updated[qi].correct = 0;
+                                    setVideoHomeworkQuestions(updated);
+                                  }}>✕</Button>
+                                )}
                               </div>
                             ))}
-                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => {
-                              const updated = [...videoHomeworkQuestions];
-                              updated[qi].options.push("");
-                              setVideoHomeworkQuestions(updated);
-                            }}>+ خيار</Button>
+                            {q.options.length < 5 && (
+                              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => {
+                                const updated = [...videoHomeworkQuestions];
+                                updated[qi].options.push("");
+                                setVideoHomeworkQuestions(updated);
+                              }}>+ خيار</Button>
+                            )}
                           </div>
                         ))}
-                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setVideoHomeworkQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct: 0 }])}>
+                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setVideoHomeworkQuestions(prev => [...prev, { question: "", options: ["", ""], correct: 0 }])}>
                           + إضافة سؤال
                         </Button>
                       </div>
