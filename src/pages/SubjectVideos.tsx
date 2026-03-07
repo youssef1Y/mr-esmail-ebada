@@ -364,15 +364,31 @@ const SubjectVideos = () => {
 
               return (
               <StaggerItem key={v.id}>
-                <div className={`bg-card rounded-xl border border-border overflow-hidden ${locked ? "opacity-60" : ""}`}>
+                <div className={`bg-card rounded-xl border border-border overflow-hidden ${locked ? "opacity-70" : ""}`}>
                 {locked ? (
-                  <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3">
+                  <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3 p-4">
                     <div className="w-14 h-14 rounded-full bg-muted-foreground/10 flex items-center justify-center">
                       <Lock className="w-7 h-7 text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground text-center px-4">
-                      أكمل واجب الفيديو السابق لفتح هذا الفيديو
+                    <p className="text-sm font-bold text-muted-foreground text-center">
+                      هذا الفيديو مغلق
                     </p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      يجب حل واجب الفيديو السابق أولاً لفتح هذا الفيديو
+                    </p>
+                    {(() => {
+                      const prevVideo = filteredVideos[i - 1];
+                      const prevHw = prevVideo ? videoHomework[prevVideo.id] : null;
+                      if (!prevVideo || !prevHw) return null;
+                      return (
+                        <Link to={`/video-homework/${prevVideo.id}`}>
+                          <Button size="sm" className="gap-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <ClipboardList className="w-4 h-4" />
+                            حل واجب الفيديو السابق
+                          </Button>
+                        </Link>
+                      );
+                    })()}
                   </div>
                 ) : playingId === v.id ? (
                   <VideoPlayer
