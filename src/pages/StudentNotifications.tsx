@@ -23,6 +23,7 @@ interface BroadcastNotification {
 
 const StudentNotifications = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [personalNotifs, setPersonalNotifs] = useState<StudentNotification[]>([]);
   const [broadcastNotifs, setBroadcastNotifs] = useState<BroadcastNotification[]>([]);
   const [loading, setLoading] = useState(true);
