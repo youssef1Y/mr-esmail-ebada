@@ -583,9 +583,16 @@ const AdminStudentReportTab = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-bold text-sm flex items-center gap-2">
-        <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-sm flex items-center gap-2">
+          <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
+        </h3>
+        {reportGrade && (
+          <Button size="sm" variant="outline" onClick={() => fetchStudentReport(reportGrade)} className="gap-1 text-xs">
+            🔄 تحديث البيانات
+          </Button>
+        )}
+      </div>
       
       <select
         value={reportGrade}
