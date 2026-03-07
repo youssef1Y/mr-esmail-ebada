@@ -1,0 +1,1 @@
+ALTER TABLE public.video_homework_submissions ADD CONSTRAINT unique_user_homework UNIQUE (user_id, homework_id);
