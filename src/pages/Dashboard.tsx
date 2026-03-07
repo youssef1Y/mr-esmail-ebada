@@ -700,6 +700,26 @@ const AdminStudentReportTab = () => {
               </div>
             </div>
 
+            {/* Video Homework */}
+            <div className="mb-4">
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">📹 واجبات الفيديو ({selectedStudent.vh_count})</h4>
+              {selectedStudent.vh_count === 0 ? (
+                <p className="text-xs text-muted-foreground">لم يسلم أي واجب فيديو بعد</p>
+              ) : (
+                <div className="bg-muted rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>واجبات مسلمة:</span><span className="font-bold">{selectedStudent.vh_count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>إجمالي الدرجات:</span><span className="font-bold">{selectedStudent.vh_total_score}/{selectedStudent.vh_total_max}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>متوسط النسبة:</span><span className="font-bold text-primary">{selectedStudent.avg_vh_percent}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Level */}
             <div>
               <h4 className="font-bold text-sm mb-2 flex items-center gap-1">🏆 المستوى</h4>
