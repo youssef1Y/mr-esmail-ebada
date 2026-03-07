@@ -26,6 +26,7 @@ import StudentNotifications from "./pages/StudentNotifications";
 import Terms from "./pages/Terms";
 import Certificates from "./pages/Certificates";
 import News from "./pages/News";
+import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
