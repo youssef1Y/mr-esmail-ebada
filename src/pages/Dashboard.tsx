@@ -520,6 +520,7 @@ const AdminStudentReportTab = () => {
     const hwSubs = hwSubsRes.data || [];
     const views = viewsRes.data || [];
     const points = pointsRes.data || [];
+    const vhSubs = vhSubsRes.data || [];
     
     // Build student reports
     const studentReports = profs.map(p => {
@@ -527,6 +528,7 @@ const AdminStudentReportTab = () => {
       const studentHw = hwSubs.filter(h => h.user_id === p.user_id);
       const studentViews = views.filter(v => v.user_id === p.user_id);
       const studentPoints = points.filter(pt => pt.user_id === p.user_id);
+      const studentVh = vhSubs.filter(v => v.user_id === p.user_id);
       const totalPoints = studentPoints.reduce((sum, pt) => sum + pt.points, 0);
       
       const totalExamScore = studentAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
@@ -536,6 +538,11 @@ const AdminStudentReportTab = () => {
       const totalHwScore = studentHw.filter(h => h.score !== null).reduce((sum, h) => sum + (h.score || 0), 0);
       const hwGraded = studentHw.filter(h => h.score !== null).length;
       const avgHwScore = hwGraded > 0 ? Math.round(totalHwScore / hwGraded * 10) / 10 : 0;
+
+      const vhCount = studentVh.length;
+      const vhTotalScore = studentVh.reduce((sum, v) => sum + (v.score || 0), 0);
+      const vhTotalMax = studentVh.reduce((sum, v) => sum + (v.total || 0), 0);
+      const avgVhPercent = vhTotalMax > 0 ? Math.round((vhTotalScore / vhTotalMax) * 100) : 0;
       
       return {
         ...p,
@@ -548,8 +555,13 @@ const AdminStudentReportTab = () => {
         avg_hw_score: avgHwScore,
         videos_watched: studentViews.length,
         total_points: totalPoints,
+        vh_count: vhCount,
+        vh_total_score: vhTotalScore,
+        vh_total_max: vhTotalMax,
+        avg_vh_percent: avgVhPercent,
         attempts: studentAttempts,
         hw_submissions: studentHw,
+        vh_submissions: studentVh,
         views_list: studentViews,
         points_list: studentPoints,
       };
