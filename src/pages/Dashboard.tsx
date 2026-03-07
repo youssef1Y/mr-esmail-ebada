@@ -508,17 +508,19 @@ const AdminStudentReportTab = () => {
     const userIds = profs.map(p => p.user_id);
     
     // Fetch all data in parallel
-    const [attemptsRes, hwSubsRes, viewsRes, pointsRes] = await Promise.all([
+    const [attemptsRes, hwSubsRes, viewsRes, pointsRes, vhSubsRes] = await Promise.all([
       supabase.from("exam_attempts").select("user_id, score, total, submitted_at, exam_id").in("user_id", userIds),
       supabase.from("homework_submissions").select("user_id, score, submitted_at, homework_id").in("user_id", userIds),
       supabase.from("video_views").select("user_id, video_id, viewed_at").in("user_id", userIds),
       supabase.from("student_points").select("user_id, points, reason, source_type").in("user_id", userIds),
+      supabase.from("video_homework_submissions").select("user_id, score, total, submitted_at, homework_id").in("user_id", userIds),
     ]);
     
     const attempts = attemptsRes.data || [];
     const hwSubs = hwSubsRes.data || [];
     const views = viewsRes.data || [];
     const points = pointsRes.data || [];
+    const vhSubs = vhSubsRes.data || [];
     
     // Build student reports
     const studentReports = profs.map(p => {
@@ -526,6 +528,7 @@ const AdminStudentReportTab = () => {
       const studentHw = hwSubs.filter(h => h.user_id === p.user_id);
       const studentViews = views.filter(v => v.user_id === p.user_id);
       const studentPoints = points.filter(pt => pt.user_id === p.user_id);
+      const studentVh = vhSubs.filter(v => v.user_id === p.user_id);
       const totalPoints = studentPoints.reduce((sum, pt) => sum + pt.points, 0);
       
       const totalExamScore = studentAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
@@ -535,6 +538,11 @@ const AdminStudentReportTab = () => {
       const totalHwScore = studentHw.filter(h => h.score !== null).reduce((sum, h) => sum + (h.score || 0), 0);
       const hwGraded = studentHw.filter(h => h.score !== null).length;
       const avgHwScore = hwGraded > 0 ? Math.round(totalHwScore / hwGraded * 10) / 10 : 0;
+
+      const vhCount = studentVh.length;
+      const vhTotalScore = studentVh.reduce((sum, v) => sum + (v.score || 0), 0);
+      const vhTotalMax = studentVh.reduce((sum, v) => sum + (v.total || 0), 0);
+      const avgVhPercent = vhTotalMax > 0 ? Math.round((vhTotalScore / vhTotalMax) * 100) : 0;
       
       return {
         ...p,
@@ -547,8 +555,13 @@ const AdminStudentReportTab = () => {
         avg_hw_score: avgHwScore,
         videos_watched: studentViews.length,
         total_points: totalPoints,
+        vh_count: vhCount,
+        vh_total_score: vhTotalScore,
+        vh_total_max: vhTotalMax,
+        avg_vh_percent: avgVhPercent,
         attempts: studentAttempts,
         hw_submissions: studentHw,
+        vh_submissions: studentVh,
         views_list: studentViews,
         points_list: studentPoints,
       };
@@ -570,9 +583,16 @@ const AdminStudentReportTab = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-bold text-sm flex items-center gap-2">
-        <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-sm flex items-center gap-2">
+          <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
+        </h3>
+        {reportGrade && (
+          <Button size="sm" variant="outline" onClick={() => fetchStudentReport(reportGrade)} className="gap-1 text-xs">
+            🔄 تحديث البيانات
+          </Button>
+        )}
+      </div>
       
       <select
         value={reportGrade}
@@ -687,6 +707,26 @@ const AdminStudentReportTab = () => {
               </div>
             </div>
 
+            {/* Video Homework */}
+            <div className="mb-4">
+              <h4 className="font-bold text-sm mb-2 flex items-center gap-1">📹 واجبات الفيديو ({selectedStudent.vh_count})</h4>
+              {selectedStudent.vh_count === 0 ? (
+                <p className="text-xs text-muted-foreground">لم يسلم أي واجب فيديو بعد</p>
+              ) : (
+                <div className="bg-muted rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>واجبات مسلمة:</span><span className="font-bold">{selectedStudent.vh_count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>إجمالي الدرجات:</span><span className="font-bold">{selectedStudent.vh_total_score}/{selectedStudent.vh_total_max}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>متوسط النسبة:</span><span className="font-bold text-primary">{selectedStudent.avg_vh_percent}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Level */}
             <div>
               <h4 className="font-bold text-sm mb-2 flex items-center gap-1">🏆 المستوى</h4>
@@ -726,20 +766,24 @@ const AdminStudentReportTab = () => {
                 </div>
               </div>
               {/* Quick stats bar */}
-              <div className="mt-2 grid grid-cols-4 gap-1">
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">امتحانات</span>
                   <span className="text-xs font-bold">{s.avg_exam_percent}%</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">واجبات</span>
                   <span className="text-xs font-bold">{s.avg_hw_score}/10</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">واجب فيديو</span>
+                  <span className="text-xs font-bold">{s.avg_vh_percent}%</span>
+                </div>
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">فيديوهات</span>
                   <span className="text-xs font-bold">{s.videos_watched}</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">اشتراك</span>
                   <span className="text-xs font-bold">{s.is_subscribed ? "✅" : "❌"}</span>
                 </div>
