@@ -142,6 +142,9 @@ const StudentNotifications = () => {
                         {new Date(n.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
+                    <button onClick={() => deleteNotification(n.id)} className="text-destructive hover:text-destructive/80 p-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
