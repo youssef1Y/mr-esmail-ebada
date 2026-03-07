@@ -107,11 +107,45 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
-    const onError = () => {
-      setError(true);
-      void refreshSource();
+    
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    
+    const onError = async () => {
+      // Ignore abort errors
+      if (v.error?.code === MediaError.MEDIA_ERR_ABORTED) return;
+      
+      retryCount++;
+      if (retryCount <= MAX_RETRIES) {
+        // Try refreshing the signed URL first
+        const refreshed = await refreshSource();
+        if (!refreshed) {
+          // If no refresh available, retry loading after a delay
+          setTimeout(() => {
+            v.load();
+          }, 1000 * retryCount);
+        }
+      } else {
+        setError(true);
+      }
     };
-    const onCanPlay = () => setError(false);
+    
+    const onCanPlay = () => {
+      setError(false);
+      retryCount = 0;
+    };
+    
+    const onStalled = () => {
+      // When video stalls, try to recover
+      setTimeout(() => {
+        if (v.readyState < 3 && !v.paused) {
+          const currentPos = v.currentTime;
+          v.load();
+          v.currentTime = currentPos;
+          v.play().catch(() => {});
+        }
+      }, 3000);
+    };
 
     v.addEventListener("timeupdate", onTimeUpdate);
     v.addEventListener("loadedmetadata", onLoadedMetadata);
@@ -120,6 +154,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     v.addEventListener("pause", onPause);
     v.addEventListener("error", onError);
     v.addEventListener("canplay", onCanPlay);
+    v.addEventListener("stalled", onStalled);
 
     // Force load
     v.load();
@@ -132,6 +167,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       v.removeEventListener("pause", onPause);
       v.removeEventListener("error", onError);
       v.removeEventListener("canplay", onCanPlay);
+      v.removeEventListener("stalled", onStalled);
     };
   }, [src, seeking, refreshSource]);
 
