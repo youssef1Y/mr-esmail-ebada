@@ -79,6 +79,14 @@ const StudentNotifications = () => {
     init();
   }, [navigate]);
 
+  const deleteNotification = async (id: string) => {
+    const { error } = await supabase.from("student_notifications").delete().eq("id", id);
+    if (!error) {
+      setPersonalNotifs(prev => prev.filter(n => n.id !== id));
+      toast({ title: "تم حذف الإشعار" });
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "subscription_approved": return "✅";
