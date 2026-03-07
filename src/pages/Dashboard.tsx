@@ -508,11 +508,12 @@ const AdminStudentReportTab = () => {
     const userIds = profs.map(p => p.user_id);
     
     // Fetch all data in parallel
-    const [attemptsRes, hwSubsRes, viewsRes, pointsRes] = await Promise.all([
+    const [attemptsRes, hwSubsRes, viewsRes, pointsRes, vhSubsRes] = await Promise.all([
       supabase.from("exam_attempts").select("user_id, score, total, submitted_at, exam_id").in("user_id", userIds),
       supabase.from("homework_submissions").select("user_id, score, submitted_at, homework_id").in("user_id", userIds),
       supabase.from("video_views").select("user_id, video_id, viewed_at").in("user_id", userIds),
       supabase.from("student_points").select("user_id, points, reason, source_type").in("user_id", userIds),
+      supabase.from("video_homework_submissions").select("user_id, score, total, submitted_at, homework_id").in("user_id", userIds),
     ]);
     
     const attempts = attemptsRes.data || [];
