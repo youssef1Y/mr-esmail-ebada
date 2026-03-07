@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2 } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoHomeworkForm from "@/components/VideoHomeworkForm";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
