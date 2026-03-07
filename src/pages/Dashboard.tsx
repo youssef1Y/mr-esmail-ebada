@@ -766,20 +766,24 @@ const AdminStudentReportTab = () => {
                 </div>
               </div>
               {/* Quick stats bar */}
-              <div className="mt-2 grid grid-cols-4 gap-1">
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">امتحانات</span>
                   <span className="text-xs font-bold">{s.avg_exam_percent}%</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">واجبات</span>
                   <span className="text-xs font-bold">{s.avg_hw_score}/10</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
+                  <span className="text-[10px] text-muted-foreground block">واجب فيديو</span>
+                  <span className="text-xs font-bold">{s.avg_vh_percent}%</span>
+                </div>
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">فيديوهات</span>
                   <span className="text-xs font-bold">{s.videos_watched}</span>
                 </div>
-                <div className="bg-muted rounded-lg px-2 py-1 text-center">
+                <div className="bg-muted rounded-lg px-1 py-1 text-center">
                   <span className="text-[10px] text-muted-foreground block">اشتراك</span>
                   <span className="text-xs font-bold">{s.is_subscribed ? "✅" : "❌"}</span>
                 </div>
