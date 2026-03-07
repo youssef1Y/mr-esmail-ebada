@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Bell, ChevronRight, CheckCheck } from "lucide-react";
+import { BookOpen, Bell, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentNotification {
   id: string;
@@ -22,6 +23,7 @@ interface BroadcastNotification {
 
 const StudentNotifications = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [personalNotifs, setPersonalNotifs] = useState<StudentNotification[]>([]);
   const [broadcastNotifs, setBroadcastNotifs] = useState<BroadcastNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,14 @@ const StudentNotifications = () => {
     };
     init();
   }, [navigate]);
+
+  const deleteNotification = async (id: string) => {
+    const { error } = await supabase.from("student_notifications").delete().eq("id", id);
+    if (!error) {
+      setPersonalNotifs(prev => prev.filter(n => n.id !== id));
+      toast({ title: "تم حذف الإشعار" });
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -132,6 +142,9 @@ const StudentNotifications = () => {
                         {new Date(n.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
+                    <button onClick={() => deleteNotification(n.id)} className="text-destructive hover:text-destructive/80 p-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}

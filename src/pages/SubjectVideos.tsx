@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2 } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoHomeworkForm from "@/components/VideoHomeworkForm";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
@@ -433,22 +433,21 @@ const SubjectVideos = () => {
                   )}
                 </div>
 
-                {/* Homework Form - show if video has homework & not submitted & not locked */}
-                {!locked && hw && !hwSubmitted && userId && (
-                  <VideoHomeworkForm
-                    homeworkId={hw.id}
-                    description={hw.description}
-                    questions={hw.questions}
-                    userId={userId}
-                    onSubmitted={() => handleHomeworkSubmitted(hw.id)}
-                  />
-                )}
-
-                {/* Submitted homework indicator */}
-                {!locked && hw && hwSubmitted && (
-                  <div className="border-t border-border p-3 bg-emerald-50 dark:bg-emerald-950/20 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">تم تسليم الواجب بنجاح</span>
+                {/* Homework link - show icon to open separate page */}
+                {!locked && hw && (
+                  <div className="border-t border-border p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className={`w-4 h-4 ${hwSubmitted ? "text-emerald-600" : "text-primary"}`} />
+                      <span className={`text-xs font-medium ${hwSubmitted ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"}`}>
+                        {hwSubmitted ? "تم تسليم الواجب" : "واجب مطلوب"}
+                      </span>
+                    </div>
+                    <Link to={`/video-homework/${v.id}`}>
+                      <Button variant={hwSubmitted ? "ghost" : "default"} size="sm" className="text-xs h-7 gap-1">
+                        {hwSubmitted ? "عرض النتيجة" : "حل الواجب"}
+                        <ChevronRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
                   </div>
                 )}
 

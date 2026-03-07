@@ -26,6 +26,7 @@ import StudentNotifications from "./pages/StudentNotifications";
 import Terms from "./pages/Terms";
 import Certificates from "./pages/Certificates";
 import News from "./pages/News";
+import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/login" element={<PageTransition><AdminLogin /></PageTransition>} />
         <Route path="/admin" element={<PageTransition><Admin /></PageTransition>} />
         <Route path="/subject/:subject" element={<PageTransition><SubjectVideos /></PageTransition>} />
+        <Route path="/video-homework/:videoId" element={<PageTransition><VideoHomeworkPage /></PageTransition>} />
         <Route path="/exam/:examId" element={<PageTransition><TakeExam /></PageTransition>} />
         <Route path="/my-results" element={<PageTransition><MyResults /></PageTransition>} />
         <Route path="/homework" element={<PageTransition><Homework /></PageTransition>} />
