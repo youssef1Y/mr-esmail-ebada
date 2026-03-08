@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
+import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
