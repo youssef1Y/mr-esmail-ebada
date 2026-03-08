@@ -66,27 +66,18 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
         if (!error) uploadedUrls.push(path);
       }
 
-      // Calculate score
-      let score = 0;
-      const total = questions.length;
-      const answersArray = questions.map((q, i) => {
-        const isCorrect = answers[i] === q.correct;
-        if (isCorrect) score++;
-        return {
-          questionIndex: i,
-          selectedOption: answers[i] ?? -1,
-          isCorrect,
-        };
-      });
+      // Submit via server-side grading function (prevents score injection)
+      const answersArray = questions.map((q, i) => ({
+        questionIndex: i,
+        selectedOption: answers[i] ?? -1,
+      }));
 
-      const { error } = await supabase.from("video_homework_submissions").insert({
-        homework_id: homeworkId,
-        user_id: userId,
-        answers: answersArray,
-        image_urls: uploadedUrls,
-        score: total > 0 ? score : null,
-        total: total > 0 ? total : null,
-      } as any);
+      const { data: gradeResult, error } = await supabase.rpc("submit_video_homework", {
+        p_homework_id: homeworkId,
+        p_user_id: userId,
+        p_answers: answersArray,
+        p_image_urls: uploadedUrls,
+      });
 
       if (error) {
         console.error("Submit error:", error);
