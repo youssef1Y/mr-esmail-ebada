@@ -307,7 +307,10 @@ const SubjectVideos = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          <p className="text-xs text-muted-foreground">جاري تحميل المحتوى...</p>
+        </div>
       </div>
     );
   }
