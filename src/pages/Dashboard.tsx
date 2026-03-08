@@ -2848,14 +2848,27 @@ const Dashboard = () => {
 
         {/* Student Exams */}
         {!adminUnlocked && studentExams.length > 0 && (
-          <div className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
             <h2 className="text-xl font-bold font-amiri text-center mb-4 flex items-center justify-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               الامتحانات المتاحة
             </h2>
             <div className="space-y-3">
-              {studentExams.map(e => (
-                <div key={e.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+              {studentExams.map((e, i) => (
+                <motion.div
+                  key={e.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.3 }}
+                  whileHover={{ scale: 1.01 }}
+                  className="bg-card rounded-xl border border-border p-4 flex items-center justify-between hover:border-primary/30 transition-colors"
+                >
                   <div>
                     <h3 className="font-bold text-sm">{e.title}</h3>
                     <p className="text-xs text-muted-foreground">{e.subject}</p>
@@ -2866,10 +2879,10 @@ const Dashboard = () => {
                       <ChevronLeft className="w-3 h-3" />
                     </Button>
                   </Link>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Subjects */}
