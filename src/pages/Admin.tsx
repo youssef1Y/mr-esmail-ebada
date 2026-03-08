@@ -1448,9 +1448,23 @@ const Admin = () => {
                           </span>
                         )}
                         {hwViewMode === "graded" && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteHomeworkSubmission(s.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent dir="rtl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>حذف التسليم</AlertDialogTitle>
+                                <AlertDialogDescription>هل أنت متأكد من حذف هذا التسليم؟</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteHomeworkSubmission(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </div>
