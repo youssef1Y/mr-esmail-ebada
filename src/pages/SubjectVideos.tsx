@@ -381,7 +381,7 @@ const SubjectVideos = () => {
 
               return (
               <StaggerItem key={v.id}>
-                <div className={`bg-card rounded-xl border border-border overflow-hidden ${locked ? "opacity-70" : ""}`}>
+                <div className={`bg-card rounded-2xl border border-border overflow-hidden transition-all hover:shadow-lg hover:border-primary/20 ${locked ? "opacity-70" : ""}`}>
                 {locked ? (
                   <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3 p-4">
                     <div className="w-14 h-14 rounded-full bg-muted-foreground/10 flex items-center justify-center">
