@@ -780,6 +780,7 @@ const Admin = () => {
             { key: "video_homework" as const, label: "واجبات الفيديو", icon: Video },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
+            { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
