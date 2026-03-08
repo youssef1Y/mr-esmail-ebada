@@ -189,16 +189,29 @@ const Schedule = () => {
             <Calendar className="w-3 h-3 ml-1" /> اليوم
           </Button>
           {isAdmin && scheduleEventIds.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-              disabled={deletingAll}
-              onClick={deleteAllScheduleEvents}
-            >
-              <Trash2 className="w-3 h-3 ml-1" />
-              {deletingAll ? "جاري الحذف..." : `حذف الكل (${scheduleEventIds.length})`}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={deletingAll}
+                >
+                  <Trash2 className="w-3 h-3 ml-1" />
+                  {deletingAll ? "جاري الحذف..." : `حذف الكل (${scheduleEventIds.length})`}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent dir="rtl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>حذف كل الأحداث</AlertDialogTitle>
+                  <AlertDialogDescription>سيتم حذف {scheduleEventIds.length} حدث من الجدول. هل أنت متأكد؟</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                  <AlertDialogAction onClick={deleteAllScheduleEvents} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف الكل</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
 
