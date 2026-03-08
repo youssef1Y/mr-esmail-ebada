@@ -581,17 +581,69 @@ const AdminStudentReportTab = () => {
     ? reportStudents.filter(s => s.full_name.includes(searchQuery) || s.student_phone.includes(searchQuery))
     : reportStudents;
 
+  const exportToExcel = () => {
+    if (filtered.length === 0) return;
+    
+    const BOM = "\uFEFF";
+    const headers = [
+      "الترتيب", "الاسم", "الصف", "الهاتف", "ولي الأمر", "المدرسة", "المحافظة", "المذهب", "الاشتراك",
+      "النقاط", "عدد الامتحانات", "متوسط الامتحانات %", "عدد الواجبات", "واجبات مُقيّمة", "متوسط الواجبات /10",
+      "واجبات فيديو", "متوسط واجبات الفيديو %", "فيديوهات مشاهدة"
+    ];
+    
+    const rows = filtered.map((s, i) => [
+      i + 1,
+      s.full_name,
+      s.grade,
+      s.student_phone,
+      s.parent_phone || "",
+      s.school || "",
+      s.governorate || "",
+      s.madhab || "",
+      s.is_subscribed ? "مشترك" : "غير مشترك",
+      s.total_points,
+      s.exams_count,
+      s.avg_exam_percent,
+      s.homework_count,
+      s.hw_graded,
+      s.avg_hw_score,
+      s.vh_count,
+      s.avg_vh_percent,
+      s.videos_watched,
+    ]);
+    
+    const csvContent = BOM + [headers, ...rows].map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `تقرير_الطلاب_${reportGrade}_${new Date().toLocaleDateString("ar-EG")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-bold text-sm flex items-center gap-2">
           <UserCog className="w-4 h-4" /> تقرير أداء الطلاب التفصيلي
         </h3>
-        {reportGrade && (
-          <Button size="sm" variant="outline" onClick={() => fetchStudentReport(reportGrade)} className="gap-1 text-xs">
-            🔄 تحديث البيانات
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {reportGrade && filtered.length > 0 && (
+            <Button size="sm" variant="outline" onClick={exportToExcel} className="gap-1 text-xs">
+              <Download className="w-3.5 h-3.5" />
+              تصدير Excel
+            </Button>
+          )}
+          {reportGrade && (
+            <Button size="sm" variant="outline" onClick={() => fetchStudentReport(reportGrade)} className="gap-1 text-xs">
+              🔄 تحديث البيانات
+            </Button>
+          )}
+        </div>
       </div>
       
       <select
