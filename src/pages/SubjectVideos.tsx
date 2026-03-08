@@ -200,28 +200,43 @@ const SubjectVideos = () => {
     videosRef.current = videos;
   }, [videos]);
 
+  // Lazy resolve a single video URL when user clicks play
+  const resolveAndPlay = useCallback(async (videoId: string) => {
+    if (isVideoLocked(videoId)) return;
+    
+    // If already resolved and not expired, just play
+    if (resolvedUrls[videoId]) {
+      setPlayingId(videoId);
+      return;
+    }
+
+    const video = videos.find(v => v.id === videoId);
+    if (!video) return;
+
+    const [resolved] = await resolvePlayableVideoUrls([video]);
+    if (resolved) {
+      setResolvedUrls(prev => ({ ...prev, [videoId]: resolved.video_url }));
+      setPlayingId(videoId);
+    }
+  }, [videos, resolvedUrls, resolvePlayableVideoUrls]);
+
+  // Refresh URL for currently playing video periodically
   useEffect(() => {
-    if (!videos.length) return;
+    if (!playingId) return;
 
     const refreshIntervalMs = Math.max(60_000, (SIGNED_URL_TTL_SECONDS * 1000) - REFRESH_BUFFER_MS);
 
-    const interval = setInterval(() => {
-      void (async () => {
-        const refreshedVideos = await resolvePlayableVideoUrls(videosRef.current);
-        const refreshedMap = new Map(refreshedVideos.map((video) => [video.id, video.video_url]));
-
-        setVideos((prev) =>
-          prev.map((video) =>
-            refreshedMap.has(video.id)
-              ? { ...video, video_url: refreshedMap.get(video.id)! }
-              : video
-          )
-        );
-      })();
+    const interval = setInterval(async () => {
+      const video = videosRef.current.find(v => v.id === playingId);
+      if (!video) return;
+      const [refreshed] = await resolvePlayableVideoUrls([video]);
+      if (refreshed) {
+        setResolvedUrls(prev => ({ ...prev, [playingId]: refreshed.video_url }));
+      }
     }, refreshIntervalMs);
 
     return () => clearInterval(interval);
-  }, [videos.length, resolvePlayableVideoUrls]);
+  }, [playingId, resolvePlayableVideoUrls]);
 
   const fetchComments = async (videoId: string) => {
     const { data } = await supabase
