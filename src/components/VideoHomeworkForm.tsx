@@ -126,7 +126,7 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
             نسبة النجاح: {Math.round((result.score / result.total) * 100)}%
           </p>
           <p className="text-xs font-medium text-emerald-600">
-            +{Math.max(5, Math.min(15, Math.round((result.score / result.total) * 15)))} نقطة 🎉
+            +{Math.max(2, Math.min(8, Math.round((result.score / result.total) * 8)))} نقطة 🎉
           </p>
         </div>
       )}
