@@ -148,6 +148,7 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
     if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
+      sendPushToGrade("📋 واجب جديد", `تم إضافة واجب جديد: ${newHw.title} - ${newHw.subject}`, [newHw.grade]);
       setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
       setShowAdd(false);
       fetchHomework();
