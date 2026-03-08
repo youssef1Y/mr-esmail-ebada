@@ -2937,7 +2937,13 @@ const Dashboard = () => {
 
         {/* Subscription CTA for non-subscribed students */}
         {!isAdmin && !profile?.is_subscribed && (
-          <div className="mt-12 mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-8 text-center max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mt-12 mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-8 text-center max-w-2xl mx-auto"
+          >
             <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
               <Star className="w-8 h-8 text-primary" />
             </div>
