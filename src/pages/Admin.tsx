@@ -1238,7 +1238,12 @@ const Admin = () => {
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground">عرض {filteredProfiles.length} من {totalStudents} طالب</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">عرض {filteredProfiles.length} من {totalStudents} طالب</p>
+              <Button variant="outline" size="sm" onClick={exportStudentsToExcel} className="gap-1">
+                <Download className="w-3 h-3" /> تصدير Excel
+              </Button>
+            </div>
 
             {/* Student Cards */}
             <div className="space-y-3">
