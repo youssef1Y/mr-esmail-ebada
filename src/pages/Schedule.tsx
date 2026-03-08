@@ -173,10 +173,22 @@ const Schedule = () => {
           </Button>
         </motion.div>
 
-        <div className="flex justify-center mb-5">
+        <div className="flex justify-center gap-2 mb-5">
           <Button variant="ghost" size="sm" className="text-xs rounded-full" onClick={() => setCurrentWeek(new Date())}>
             <Calendar className="w-3 h-3 ml-1" /> اليوم
           </Button>
+          {isAdmin && scheduleEventIds.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              disabled={deletingAll}
+              onClick={deleteAllScheduleEvents}
+            >
+              <Trash2 className="w-3 h-3 ml-1" />
+              {deletingAll ? "جاري الحذف..." : `حذف الكل (${scheduleEventIds.length})`}
+            </Button>
+          )}
         </div>
 
         {/* Week Grid */}
