@@ -25,6 +25,7 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
+  const [gradedAnswers, setGradedAnswers] = useState<{ questionIndex: number; selectedOption: number; isCorrect: boolean }[]>([]);
 
   const handleSelectAnswer = (qIndex: number, optIndex: number) => {
     if (result) return; // Don't allow changes after submission
