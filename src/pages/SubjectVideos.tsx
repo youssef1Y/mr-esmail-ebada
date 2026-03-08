@@ -35,6 +35,7 @@ const SubjectVideos = () => {
   const grade = searchParams.get("grade") || "";
   const navigate = useNavigate();
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
