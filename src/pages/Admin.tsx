@@ -236,6 +236,7 @@ const Admin = () => {
   const [editScore, setEditScore] = useState("");
   const [editFeedback, setEditFeedback] = useState("");
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+  const [hwViewMode, setHwViewMode] = useState<"ungraded" | "graded">("ungraded");
 
   // Exams state
   const [examAttempts, setExamAttempts] = useState<ExamAttemptWithDetails[]>([]);
@@ -673,6 +674,16 @@ const Admin = () => {
     }
   };
 
+  const deleteHomeworkSubmission = async (submissionId: string) => {
+    const { error } = await supabase.from("homework_submissions").delete().eq("id", submissionId);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل حذف التسليم", variant: "destructive" });
+    } else {
+      toast({ title: "تم حذف التسليم" });
+      setHwSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    }
+  };
+
   const filteredProfiles = profiles.filter(p => {
     if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
     if (filterGrade && p.grade !== filterGrade) return false;
@@ -686,6 +697,9 @@ const Admin = () => {
     if (hwSearchQuery && !s.student_name.includes(hwSearchQuery) && !s.student_phone.includes(hwSearchQuery)) return false;
     return true;
   });
+
+  const ungradedSubmissions = filteredHwSubmissions.filter(s => s.score === null);
+  const gradedSubmissions = filteredHwSubmissions.filter(s => s.score !== null);
 
   const filteredExamAttempts = examAttempts.filter(a => {
     if (examFilterGrade && a.exam_grade !== examFilterGrade) return false;
@@ -1329,20 +1343,42 @@ const Admin = () => {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">عرض {filteredHwSubmissions.length} تسليم</p>
+            {/* View mode toggle: ungraded vs graded */}
+            <div className="flex gap-2">
+              <Button
+                variant={hwViewMode === "ungraded" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setHwViewMode("ungraded")}
+                className="flex-1 gap-1"
+              >
+                <ClipboardList className="w-3 h-3" />
+                لم يتم التصحيح ({ungradedSubmissions.length})
+              </Button>
+              <Button
+                variant={hwViewMode === "graded" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setHwViewMode("graded")}
+                className="flex-1 gap-1"
+              >
+                <Star className="w-3 h-3" />
+                تم التصحيح ({gradedSubmissions.length})
+              </Button>
+            </div>
 
             {hwLoadingData ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
               </div>
-            ) : filteredHwSubmissions.length === 0 ? (
+            ) : (hwViewMode === "ungraded" ? ungradedSubmissions : gradedSubmissions).length === 0 ? (
               <div className="bg-card rounded-2xl border border-border p-8 text-center">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">لا توجد تسليمات بعد</p>
+                <p className="text-muted-foreground">
+                  {hwViewMode === "ungraded" ? "لا توجد تسليمات تحتاج تصحيح 🎉" : "لا توجد تسليمات مصححة"}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredHwSubmissions.map(s => (
+                {(hwViewMode === "ungraded" ? ungradedSubmissions : gradedSubmissions).map(s => (
                   <div key={s.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
                     {/* Homework info */}
                     <div className="flex items-start justify-between">
@@ -1351,11 +1387,18 @@ const Admin = () => {
                         <p className="text-xs text-muted-foreground">{s.homework_subject} · {s.homework_grade}</p>
                         <p className="text-xs text-muted-foreground">تاريخ التسليم: {new Date(s.submitted_at).toLocaleDateString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
-                      {s.score !== null && (
-                        <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-bold">
-                          {s.score} درجة
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {s.score !== null && (
+                          <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-bold">
+                            {s.score} درجة
+                          </span>
+                        )}
+                        {hwViewMode === "graded" && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteHomeworkSubmission(s.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Student info */}
@@ -1400,7 +1443,7 @@ const Admin = () => {
                     )}
 
                     {/* Feedback */}
-                    {s.feedback && !editingSubmission && (
+                    {s.feedback && editingSubmission !== s.id && (
                       <div className="bg-primary/5 rounded-lg p-3">
                         <p className="text-xs font-medium">ملاحظات الأستاذ:</p>
                         <p className="text-sm">{s.feedback}</p>

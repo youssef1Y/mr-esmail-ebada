@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, ChevronRight, ChevronLeft, Clock, FileText, ClipboardList, Video, BookOpen, CalendarDays, Star } from "lucide-react";
+import { Calendar, ChevronRight, ChevronLeft, Clock, FileText, ClipboardList, Video, BookOpen, CalendarDays, Star, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,8 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [grade, setGrade] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 6 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 6 });
@@ -48,6 +50,10 @@ const Schedule = () => {
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
       if (!profile) return;
       setGrade(profile.grade);
+
+      // Check if admin
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
+      if (roles && roles.length > 0) setIsAdmin(true);
 
       setLoading(true);
       const allEvents: ScheduleEvent[] = [];
@@ -89,6 +95,15 @@ const Schedule = () => {
   }, [navigate, currentWeek]);
 
   const getEventsForDay = (day: Date) => events.filter(e => isSameDay(e.date, day));
+
+  const deleteScheduleEvent = async (eventId: string) => {
+    setDeletingId(eventId);
+    const { error } = await supabase.from("schedule_events").delete().eq("id", eventId);
+    if (!error) {
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+    }
+    setDeletingId(null);
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -225,6 +240,17 @@ const Schedule = () => {
                               </div>
                               {event.description && <p className="text-[10px] opacity-70 mt-0.5">{event.description}</p>}
                             </div>
+                            {isAdmin && event.type === "admin_event" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive/70 hover:text-destructive flex-shrink-0"
+                                disabled={deletingId === event.id}
+                                onClick={() => deleteScheduleEvent(event.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </motion.div>
                         );
                       })}
