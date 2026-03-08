@@ -28,15 +28,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !data?.claims) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const userId = data.claims.sub;
+    const userId = user.id;
 
     const { password } = await req.json();
     const adminPassword = Deno.env.get("ADMIN_PASSWORD");
