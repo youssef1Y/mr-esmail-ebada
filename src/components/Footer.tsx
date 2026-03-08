@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Newspaper } from "lucide-react";
+import { BookOpen, Newspaper, Users } from "lucide-react";
 
 const Footer = () => {
   return (
