@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { sendPushToUsers } from "@/lib/push-utils";
+import { sendPushToGrade, sendPushToUsers } from "@/lib/push-utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import * as XLSX from "xlsx";
 const grades = [
   "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
   "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
