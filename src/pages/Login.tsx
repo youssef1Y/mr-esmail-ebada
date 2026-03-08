@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,6 +69,12 @@ const Login = () => {
           ليس لديك حساب؟{" "}
           <Link to="/auth/register" className="text-primary font-medium hover:underline">إنشاء حساب جديد</Link>
         </p>
+        <div className="mt-4 pt-4 border-t border-border">
+          <Link to="/parent/login" className="flex items-center justify-center gap-2 text-sm text-primary hover:underline">
+            <Users className="w-4 h-4" />
+            هل أنت ولي أمر؟ ادخل من هنا
+          </Link>
+        </div>
         <p className="text-center text-xs text-muted-foreground mt-3">
           <Link to="/terms" className="hover:text-primary transition-colors">شروط وأحكام الاستخدام</Link>
         </p>
