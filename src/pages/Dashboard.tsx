@@ -2886,12 +2886,18 @@ const Dashboard = () => {
         )}
 
         {/* Subjects */}
-        <div className="mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-6"
+        >
           <h2 className="text-xl font-bold font-amiri text-center mb-2">المواد الدراسية - {displayGrade}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6 max-w-lg mx-auto">
             نقدم لك شرحًا شاملاً ومتميزًا لجميع مواد التربية الدينية الإسلامية بأسلوب سهل ومبسط
           </p>
-        </div>
+        </motion.div>
 
         <StaggerContainer className="space-y-4 max-w-2xl mx-auto" staggerDelay={0.12}>
           {subjects.map((subject, i) => (
