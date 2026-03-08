@@ -674,6 +674,16 @@ const Admin = () => {
     }
   };
 
+  const deleteHomeworkSubmission = async (submissionId: string) => {
+    const { error } = await supabase.from("homework_submissions").delete().eq("id", submissionId);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل حذف التسليم", variant: "destructive" });
+    } else {
+      toast({ title: "تم حذف التسليم" });
+      setHwSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    }
+  };
+
   const filteredProfiles = profiles.filter(p => {
     if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
     if (filterGrade && p.grade !== filterGrade) return false;
@@ -687,6 +697,9 @@ const Admin = () => {
     if (hwSearchQuery && !s.student_name.includes(hwSearchQuery) && !s.student_phone.includes(hwSearchQuery)) return false;
     return true;
   });
+
+  const ungradedSubmissions = filteredHwSubmissions.filter(s => s.score === null);
+  const gradedSubmissions = filteredHwSubmissions.filter(s => s.score !== null);
 
   const filteredExamAttempts = examAttempts.filter(a => {
     if (examFilterGrade && a.exam_grade !== examFilterGrade) return false;
