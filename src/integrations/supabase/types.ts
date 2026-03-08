@@ -803,6 +803,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_video_homework: {
+        Args: {
+          p_answers: Json
+          p_homework_id: string
+          p_image_urls: string[]
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
