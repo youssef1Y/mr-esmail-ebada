@@ -2902,7 +2902,11 @@ const Dashboard = () => {
         <StaggerContainer className="space-y-4 max-w-2xl mx-auto" staggerDelay={0.12}>
           {subjects.map((subject, i) => (
             <StaggerItem key={i}>
-              <div className="bg-card rounded-xl border border-border p-5 relative">
+              <motion.div
+                whileHover={{ y: -2, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-card rounded-xl border border-border p-5 relative hover:border-primary/30 transition-colors"
+              >
                 {!adminUnlocked && badgeCounts.newVideosPerSubject[subject.title] > 0 && (
                   <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center gap-0.5">
                     <Video className="w-3 h-3" />
@@ -2910,7 +2914,7 @@ const Dashboard = () => {
                   </span>
                 )}
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center flex-shrink-0">
                     <subject.icon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
@@ -2926,7 +2930,7 @@ const Dashboard = () => {
                     </Link>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </StaggerItem>
           ))}
         </StaggerContainer>
