@@ -28,6 +28,8 @@ import Certificates from "./pages/Certificates";
 import News from "./pages/News";
 import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
+import ParentLogin from "./pages/ParentLogin";
+import ParentDashboard from "./pages/ParentDashboard";
 
 const queryClient = new QueryClient();
 
