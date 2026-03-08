@@ -2720,7 +2720,12 @@ const Dashboard = () => {
 
            {/* Quick Actions */}
            {!adminUnlocked && (
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="flex flex-wrap justify-center gap-3 mb-8"
+          >
             {profile?.is_subscribed ? (
               <Link to="/my-results">
                 <Button variant="outline" size="sm" className="gap-1">
