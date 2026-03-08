@@ -316,6 +316,30 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_accounts: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          password_hash: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          password_hash: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          password_hash?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       password_reset_otps: {
         Row: {
           attempt_count: number

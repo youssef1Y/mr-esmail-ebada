@@ -28,6 +28,8 @@ import Certificates from "./pages/Certificates";
 import News from "./pages/News";
 import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
+import ParentLogin from "./pages/ParentLogin";
+import ParentDashboard from "./pages/ParentDashboard";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +60,8 @@ const AnimatedRoutes = () => {
         <Route path="/terms" element={<PageTransition><Terms /></PageTransition>} />
         <Route path="/certificates" element={<PageTransition><Certificates /></PageTransition>} />
         <Route path="/news" element={<PageTransition><News /></PageTransition>} />
+        <Route path="/parent/login" element={<PageTransition><ParentLogin /></PageTransition>} />
+        <Route path="/parent/dashboard" element={<PageTransition><ParentDashboard /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
