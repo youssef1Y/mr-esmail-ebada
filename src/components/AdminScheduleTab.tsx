@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Plus, Trash2, Clock, Repeat, RefreshCw } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Clock, Repeat, RefreshCw, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,6 +183,32 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
     } else {
       toast({ title: "تم حذف الحدث" });
       setEvents(events.filter(e => e.id !== id));
+    }
+  };
+
+  const deleteSimilarEvents = async (event: ScheduleEvent) => {
+    let query = supabase.from("schedule_events").delete()
+      .eq("title", event.title)
+      .eq("event_type", event.event_type)
+      .eq("grade", event.grade);
+    
+    if (event.event_time) {
+      query = query.eq("event_time", event.event_time);
+    }
+    if (event.subject) {
+      query = query.eq("subject", event.subject);
+    }
+
+    const { error } = await query;
+    if (error) {
+      toast({ title: "خطأ", description: "فشل الحذف", variant: "destructive" });
+    } else {
+      const remaining = events.filter(e => 
+        !(e.title === event.title && e.event_type === event.event_type && e.grade === event.grade && e.event_time === event.event_time && e.subject === event.subject)
+      );
+      setEvents(remaining);
+      const deletedCount = events.length - remaining.length;
+      toast({ title: `تم حذف ${deletedCount} حدث متشابه ✅` });
     }
   };
 
@@ -375,9 +401,14 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
                   <p className="text-[11px] text-muted-foreground mt-1">{event.description}</p>
                 )}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteEvent(event.id)}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteEvent(event.id)} title="حذف هذا الحدث فقط">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => deleteSimilarEvents(event)} title="حذف كل المتشابهة">
+                  <Trash className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
