@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer } from "lucide-react";
+import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer, Share2, MessageCircle, Facebook, Twitter, Copy, Check, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
+import html2canvas from "html2canvas";
 
 interface CertificateData {
   title: string;
@@ -18,6 +20,11 @@ const Certificates = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<CertificateData[]>([]);
+  const [viewCert, setViewCert] = useState<CertificateData | null>(null);
+  const [shareMenuCert, setShareMenuCert] = useState<number | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const certRenderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -79,7 +86,6 @@ const Certificates = () => {
         }
       }
 
-      // Sort by date descending
       allCerts.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       setCertificates(allCerts);
       setLoading(false);
@@ -87,7 +93,108 @@ const Certificates = () => {
     init();
   }, [navigate]);
 
-  const [viewCert, setViewCert] = useState<CertificateData | null>(null);
+  const getShareText = (cert: CertificateData) => {
+    const typeText = cert.type === "homework" ? "واجب" : "امتحان";
+    return `🏆 حصلت على الدرجة الكاملة (${cert.score}) في ${typeText} "${cert.title}" - مادة ${cert.subject}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
+  };
+
+  const shareWhatsApp = (cert: CertificateData) => {
+    const text = encodeURIComponent(getShareText(cert));
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+    setShareMenuCert(null);
+  };
+
+  const shareFacebook = (cert: CertificateData) => {
+    const url = encodeURIComponent(window.location.origin);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(getShareText(cert))}`, "_blank");
+    setShareMenuCert(null);
+  };
+
+  const shareTwitter = (cert: CertificateData) => {
+    const text = encodeURIComponent(getShareText(cert));
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank");
+    setShareMenuCert(null);
+  };
+
+  const copyShareText = async (cert: CertificateData) => {
+    try {
+      await navigator.clipboard.writeText(getShareText(cert));
+      setCopied(true);
+      toast({ title: "تم النسخ ✅" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "فشل النسخ", variant: "destructive" });
+    }
+    setShareMenuCert(null);
+  };
+
+  const downloadAsImage = async (cert: CertificateData) => {
+    setGeneratingImage(true);
+    setShareMenuCert(null);
+
+    // Render certificate in hidden div
+    const container = certRenderRef.current;
+    if (!container) { setGeneratingImage(false); return; }
+
+    container.innerHTML = getCertInlineHtml(cert);
+    container.style.display = "block";
+
+    // Wait for fonts to load
+    await new Promise(r => setTimeout(r, 500));
+
+    try {
+      const canvas = await html2canvas(container.querySelector(".certificate") as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#fff",
+        width: 800,
+        height: 560,
+      });
+
+      container.style.display = "none";
+      container.innerHTML = "";
+
+      const link = document.createElement("a");
+      link.download = `شهادة_${cert.title}_${cert.student_name}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      toast({ title: "تم تحميل الشهادة كصورة ✅" });
+    } catch {
+      toast({ title: "فشل إنشاء الصورة", variant: "destructive" });
+    }
+
+    setGeneratingImage(false);
+  };
+
+  const getCertInlineHtml = (cert: CertificateData) => {
+    const achievementText = cert.type === "homework"
+      ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
+      : `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`;
+
+    return `
+      <div class="certificate" style="width:800px;height:560px;background:white;position:relative;overflow:hidden;border:3px solid #1a5c35;box-shadow:0 0 0 8px #d4a843,0 0 0 11px #1a5c35;font-family:'Amiri',serif;direction:rtl;">
+        <div style="position:absolute;inset:20px;border:2px solid #d4a843;"></div>
+        <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;top:30px;left:30px;border-right:none;border-bottom:none;"></div>
+        <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;top:30px;right:30px;border-left:none;border-bottom:none;"></div>
+        <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;left:30px;border-right:none;border-top:none;"></div>
+        <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;right:30px;border-left:none;border-top:none;"></div>
+        <div style="position:relative;z-index:1;padding:50px 60px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;">
+          <div style="font-size:40px;margin-bottom:10px;">🏆</div>
+          <div style="font-size:32px;color:#1a5c35;font-weight:700;margin-bottom:5px;">شهادة تفوق ودرجة كاملة</div>
+          <div style="font-size:14px;color:#666;margin-bottom:20px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
+          <div style="font-size:16px;color:#333;">يُشهد بأن الطالب/ة</div>
+          <div style="font-size:28px;color:#d4a843;font-weight:700;margin:15px 0;padding:8px 40px;border-bottom:2px solid #d4a843;display:inline-block;">${cert.student_name}</div>
+          <div style="font-size:14px;color:#333;margin:10px 0;line-height:1.8;">
+            ${achievementText}
+            <span style="font-weight:700;color:#1a5c35;">"${cert.title}"</span>
+            - مادة ${cert.subject}
+          </div>
+          <div style="font-size:12px;color:#888;margin-top:15px;">بتاريخ: ${new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
+          <div style="font-size:16px;color:#1a5c35;margin-top:10px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
+        </div>
+      </div>`;
+  };
 
   const getCertHtml = (cert: CertificateData, forPrint = false) => {
     const achievementText = cert.type === "homework"
@@ -104,10 +211,7 @@ const Certificates = () => {
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${forPrint ? '#f5f0e8' : 'transparent'}; }
-          .certificate {
-            width: 800px; height: 560px; background: white; position: relative; overflow: hidden;
-            border: 3px solid #1a5c35; box-shadow: 0 0 0 8px #d4a843, 0 0 0 11px #1a5c35;
-          }
+          .certificate { width: 800px; height: 560px; background: white; position: relative; overflow: hidden; border: 3px solid #1a5c35; box-shadow: 0 0 0 8px #d4a843, 0 0 0 11px #1a5c35; }
           .inner-border { position: absolute; inset: 20px; border: 2px solid #d4a843; }
           .corner { position: absolute; width: 60px; height: 60px; border: 3px solid #d4a843; }
           .corner-tl { top: 30px; left: 30px; border-right: none; border-bottom: none; }
@@ -167,7 +271,10 @@ const Certificates = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir="rtl">
+      {/* Hidden render container for html2canvas */}
+      <div ref={certRenderRef} style={{ position: "fixed", top: "-9999px", left: "-9999px", display: "none", direction: "rtl" }} />
+
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
@@ -186,8 +293,8 @@ const Certificates = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold font-amiri mb-2">شهادات التفوق</h1>
-          <p className="text-sm text-muted-foreground">الشهادات التي حصلت عليها عند تحقيق الدرجة الكاملة في الواجبات والامتحانات</p>
+          <h1 className="text-2xl font-bold font-amiri mb-2">شهادات التفوق 🏆</h1>
+          <p className="text-sm text-muted-foreground">شاركها مع أصدقائك وأهلك على السوشيال ميديا!</p>
         </div>
 
         {certificates.length === 0 ? (
@@ -199,39 +306,85 @@ const Certificates = () => {
         ) : (
           <div className="space-y-3">
             {certificates.map((cert, i) => (
-              <div key={i} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  cert.type === "exam" ? "bg-primary/10" : "bg-amber-500/10"
-                }`}>
-                  {cert.type === "exam" 
-                    ? <FileText className="w-6 h-6 text-primary" />
-                    : <Award className="w-6 h-6 text-amber-600" />
-                  }
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm">{cert.title}</h3>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                      cert.type === "exam" ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-600"
-                    }`}>
-                      {cert.type === "exam" ? "امتحان" : "واجب"}
-                    </span>
+              <div key={i} className="bg-card rounded-xl border border-border p-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    cert.type === "exam" ? "bg-primary/10" : "bg-accent/50"
+                  }`}>
+                    {cert.type === "exam" 
+                      ? <FileText className="w-6 h-6 text-primary" />
+                      : <Award className="w-6 h-6 text-accent-foreground" />
+                    }
                   </div>
-                  <p className="text-xs text-muted-foreground">{cert.subject} • {cert.score}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm truncate">{cert.title}</h3>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                        cert.type === "exam" ? "bg-primary/10 text-primary" : "bg-accent/50 text-accent-foreground"
+                      }`}>
+                        {cert.type === "exam" ? "امتحان" : "واجب"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{cert.subject} • {cert.score}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="عرض" onClick={() => setViewCert(cert)}>
-                    <Eye className="w-3.5 h-3.5" />
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border flex-wrap">
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => setViewCert(cert)}>
+                    <Eye className="w-3 h-3" /> عرض
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="طباعة" onClick={() => openCertWindow(cert, true)}>
-                    <Printer className="w-3.5 h-3.5" />
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => openCertWindow(cert, true)}>
+                    <Printer className="w-3 h-3" /> طباعة
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="تحميل PDF" onClick={() => openCertWindow(cert, false)}>
-                    <Download className="w-3.5 h-3.5" />
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => downloadAsImage(cert)} disabled={generatingImage}>
+                    <Image className="w-3 h-3" /> {generatingImage ? "جاري..." : "حفظ صورة"}
                   </Button>
+
+                  {/* Share dropdown */}
+                  <div className="relative mr-auto">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => setShareMenuCert(shareMenuCert === i ? null : i)}
+                    >
+                      <Share2 className="w-3 h-3" /> شارك
+                    </Button>
+
+                    {shareMenuCert === i && (
+                      <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg p-1.5 z-50 min-w-[160px]">
+                        <button
+                          onClick={() => shareWhatsApp(cert)}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-md hover:bg-muted transition-colors"
+                        >
+                          <MessageCircle className="w-4 h-4 text-green-600" /> واتساب
+                        </button>
+                        <button
+                          onClick={() => shareFacebook(cert)}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-md hover:bg-muted transition-colors"
+                        >
+                          <Facebook className="w-4 h-4 text-blue-600" /> فيسبوك
+                        </button>
+                        <button
+                          onClick={() => shareTwitter(cert)}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-md hover:bg-muted transition-colors"
+                        >
+                          <Twitter className="w-4 h-4 text-sky-500" /> تويتر
+                        </button>
+                        <button
+                          onClick={() => copyShareText(cert)}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-md hover:bg-muted transition-colors"
+                        >
+                          {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                          {copied ? "تم النسخ!" : "نسخ النص"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -252,12 +405,18 @@ const Certificates = () => {
                   style={{ height: '620px', minWidth: '320px' }}
                   title="شهادة تفوق"
                 />
-                <div className="flex justify-center gap-2 mt-3">
+                <div className="flex justify-center gap-2 mt-3 flex-wrap">
                   <Button size="sm" variant="outline" className="gap-1" onClick={() => openCertWindow(viewCert, true)}>
                     <Printer className="w-3 h-3" /> طباعة
                   </Button>
-                  <Button size="sm" className="gap-1" onClick={() => openCertWindow(viewCert, false)}>
-                    <Download className="w-3 h-3" /> تحميل PDF
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => downloadAsImage(viewCert)} disabled={generatingImage}>
+                    <Image className="w-3 h-3" /> {generatingImage ? "جاري..." : "حفظ كصورة"}
+                  </Button>
+                  <Button size="sm" className="gap-1" onClick={() => shareWhatsApp(viewCert)}>
+                    <MessageCircle className="w-3 h-3" /> شارك واتساب
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => shareFacebook(viewCert)}>
+                    <Facebook className="w-3 h-3" /> فيسبوك
                   </Button>
                 </div>
               </div>
@@ -265,6 +424,16 @@ const Certificates = () => {
           </DialogContent>
         </Dialog>
       </main>
+
+      {/* Loading overlay for image generation */}
+      {generatingImage && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+            <p className="text-sm font-medium">جاري إنشاء الصورة...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
