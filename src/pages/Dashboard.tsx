@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendPushToGrade } from "@/lib/push-utils";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
 // Admin password is securely stored server-side
