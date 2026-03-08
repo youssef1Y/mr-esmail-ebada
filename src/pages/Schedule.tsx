@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, ChevronRight, ChevronLeft, Clock, FileText, ClipboardList, Video, BookOpen, CalendarDays, Star } from "lucide-react";
+import { Calendar, ChevronRight, ChevronLeft, Clock, FileText, ClipboardList, Video, BookOpen, CalendarDays, Star, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
