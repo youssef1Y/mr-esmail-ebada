@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendPushToGrade } from "@/lib/push-utils";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
 // Admin password is securely stored server-side
@@ -148,6 +149,7 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
     if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
+      sendPushToGrade("📋 واجب جديد", `تم إضافة واجب جديد: ${newHw.title} - ${newHw.subject}`, [newHw.grade]);
       setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
       setShowAdd(false);
       fetchHomework();
@@ -1289,6 +1291,7 @@ const Dashboard = () => {
 
     await supabase.from("exam_questions").insert(questionsToInsert);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
+    sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
     setShowAddExam(false);
