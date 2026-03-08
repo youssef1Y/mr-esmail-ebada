@@ -35,6 +35,8 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [grade, setGrade] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 6 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 6 });
