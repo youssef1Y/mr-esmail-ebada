@@ -9,7 +9,7 @@ export const PushNotificationBanner = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const wasDismissed = sessionStorage.getItem("push_banner_dismissed");
+    const wasDismissed = localStorage.getItem("push_banner_dismissed");
     if (wasDismissed) setDismissed(true);
   }, []);
 
@@ -23,7 +23,7 @@ export const PushNotificationBanner = () => {
 
   const handleDismiss = () => {
     setDismissed(true);
-    sessionStorage.setItem("push_banner_dismissed", "true");
+    localStorage.setItem("push_banner_dismissed", "true");
   };
 
   return (
