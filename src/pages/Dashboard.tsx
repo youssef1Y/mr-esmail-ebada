@@ -6,6 +6,7 @@ import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
+import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { Button } from "@/components/ui/button";
@@ -974,7 +975,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1760,13 +1761,14 @@ const Dashboard = () => {
         {isAdmin && adminUnlocked && (
           <div className="mb-8">
             {/* Admin Tabs */}
-            <div className="flex gap-2 mb-4 justify-center flex-wrap">
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
               {[
                 { key: "subscribers" as const, label: "المشتركين", icon: Users },
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
                 { key: "exams" as const, label: "الامتحانات", icon: FileText },
                 { key: "homework" as const, label: "الواجبات", icon: ClipboardList },
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
+                { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
@@ -2443,6 +2445,11 @@ const Dashboard = () => {
                 <AdminStudentReportTab />
               )}
 
+              {/* Schedule */}
+              {adminTab === "schedule" && (
+                <AdminScheduleTab toast={toast} />
+              )}
+
               {/* Grade Promotion */}
               {adminTab === "promote" && (
                 <AdminPromoteTab toast={toast} />
@@ -2736,14 +2743,14 @@ const Dashboard = () => {
                 </Button>
               </Link>
             )}
-            <Link to="/certificates">
-              <Button variant="outline" size="sm" className="gap-1">
-                <Trophy className="w-4 h-4" /> شهاداتي
-              </Button>
-            </Link>
             <Link to="/schedule">
               <Button variant="outline" size="sm" className="gap-1">
                 <CalendarDays className="w-4 h-4" /> الجدول الدراسي
+              </Button>
+            </Link>
+            <Link to="/certificates">
+              <Button variant="outline" size="sm" className="gap-1">
+                <Trophy className="w-4 h-4" /> شهاداتي
               </Button>
             </Link>
             <Link to="/contact" className="relative">
