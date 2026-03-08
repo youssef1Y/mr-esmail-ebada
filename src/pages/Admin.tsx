@@ -670,6 +670,8 @@ const Admin = () => {
       toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الإشعار", variant: "destructive" });
     } else {
       toast({ title: "تم إرسال الإشعار" });
+      // Send push notification
+      sendPushToGrade(newNotif.title, newNotif.body, newNotif.target_grades.length > 0 ? newNotif.target_grades : undefined);
       setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] });
       fetchNotifications();
     }
