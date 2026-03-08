@@ -1427,12 +1427,12 @@ const Dashboard = () => {
         : "تم إلغاء اشتراكك في المنصة.",
       type: isActivating ? "subscription_activated" : "subscription_expired",
     });
-    // Send push notification to the student
+    // Send push notification to the same student only
     const pushTitle = isActivating ? "🎉 تم تفعيل اشتراكك!" : "⚠️ تم إلغاء اشتراكك";
     const pushBody = isActivating
       ? "يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم."
       : "تم إلغاء اشتراكك في المنصة.";
-    sendPushToGrade(pushTitle, pushBody, [p.grade]);
+    await sendPushToUsers(pushTitle, pushBody, [p.user_id]);
     fetchProfiles();
     toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
