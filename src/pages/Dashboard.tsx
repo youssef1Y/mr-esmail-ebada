@@ -2810,21 +2810,36 @@ const Dashboard = () => {
         {/* Why Choose Us */}
         {!adminUnlocked && (
         <>
-        <div className="text-center mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-6"
+        >
           <h2 className="text-xl font-bold font-amiri mb-2">لماذا تختار منصتنا؟</h2>
-        </div>
+        </motion.div>
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10" staggerDelay={0.1}>
           {[
-            { title: "شرح على أعلى مستوى", desc: "شروحات مفصلة ومبسطة لجميع المواد الشرعية" },
-            { title: "متابعة مستمرة", desc: "متابعة دورية ومستمرة لمستوى كل طالب" },
-            { title: "نتائج مضمونة", desc: "نتائج مميزة ومضمونة بإذن الله" },
-            { title: "محتوى متجدد", desc: "محتوى تعليمي متجدد ومحدث باستمرار" },
+            { title: "شرح على أعلى مستوى", desc: "شروحات مفصلة ومبسطة لجميع المواد الشرعية", emoji: "📚" },
+            { title: "متابعة مستمرة", desc: "متابعة دورية ومستمرة لمستوى كل طالب", emoji: "👨‍🏫" },
+            { title: "نتائج مضمونة", desc: "نتائج مميزة ومضمونة بإذن الله", emoji: "🏆" },
+            { title: "محتوى متجدد", desc: "محتوى تعليمي متجدد ومحدث باستمرار", emoji: "✨" },
           ].map((item, i) => (
             <StaggerItem key={i}>
-              <div className="bg-card rounded-xl border border-border p-4">
-                <h3 className="font-bold text-sm mb-1">{item.title}</h3>
-                <p className="text-muted-foreground text-xs">{item.desc}</p>
-              </div>
+              <motion.div
+                whileHover={{ y: -3, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-card rounded-xl border border-border p-4 hover:border-primary/30 transition-all cursor-default"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{item.emoji}</span>
+                  <div>
+                    <h3 className="font-bold text-sm mb-1">{item.title}</h3>
+                    <p className="text-muted-foreground text-xs">{item.desc}</p>
+                  </div>
+                </div>
+              </motion.div>
             </StaggerItem>
           ))}
         </StaggerContainer>
