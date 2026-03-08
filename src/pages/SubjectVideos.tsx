@@ -152,8 +152,8 @@ const SubjectVideos = () => {
             filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
           }
 
-          const playableVideos = await resolvePlayableVideoUrls(filtered as VideoItem[]);
-          setVideos(playableVideos);
+          // Store videos without pre-resolving URLs (lazy resolution on play)
+          setVideos(filtered as VideoItem[]);
 
           // Fetch homework for these videos
           const videoIds = filtered.map(v => v.id);

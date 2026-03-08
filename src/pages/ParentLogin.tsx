@@ -111,7 +111,7 @@ const ParentLogin = () => {
           parent: data.parent,
           students: data.students,
           phone: phone.trim(),
-          password,
+          session_token: data.session_token,
         }));
         toast({ title: `أهلاً ${data.parent.full_name} 👋` });
         navigate("/parent/dashboard");

@@ -26,6 +26,37 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // IP-based rate limiting: max 10 requests per IP per minute
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 
+      || req.headers.get("cf-connecting-ip") 
+      || "unknown";
+
+    if (clientIp !== "unknown") {
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+      
+      const { count } = await supabase
+        .from("otp_ip_tracking")
+        .select("*", { count: "exact", head: true })
+        .eq("ip_address", clientIp)
+        .gt("created_at", oneMinuteAgo);
+
+      if (count !== null && count >= 10) {
+        return new Response(
+          JSON.stringify({ error: "عدد محاولات كثيرة. حاول بعد دقيقة." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Track this request
+      await supabase.from("otp_ip_tracking").insert({ ip_address: clientIp });
+
+      // Cleanup old entries (older than 5 minutes)
+      await supabase
+        .from("otp_ip_tracking")
+        .delete()
+        .lt("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    }
+
     // Check if user exists
     const email = `${phone}@ismail-ebada.platform`;
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({ filter: email });
