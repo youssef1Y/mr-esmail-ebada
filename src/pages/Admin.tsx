@@ -637,6 +637,8 @@ const Admin = () => {
         } as any);
       }
       toast({ title: "تم إضافة الفيديو" });
+      // Send push notification for new video
+      sendPushToGrade(`فيديو جديد: ${newVideo.title}`, `تم إضافة فيديو جديد في ${newVideo.subject}`, [newVideo.grade]);
       setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
       setVideoHomeworkEnabled(false);
       setVideoHomeworkDesc("");
