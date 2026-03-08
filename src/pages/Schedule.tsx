@@ -96,6 +96,15 @@ const Schedule = () => {
 
   const getEventsForDay = (day: Date) => events.filter(e => isSameDay(e.date, day));
 
+  const deleteScheduleEvent = async (eventId: string) => {
+    setDeletingId(eventId);
+    const { error } = await supabase.from("schedule_events").delete().eq("id", eventId);
+    if (!error) {
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+    }
+    setDeletingId(null);
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <motion.div
