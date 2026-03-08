@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 interface MCQQuestion {
   question: string;
   options: string[];
-  correct: number;
+  correct?: number; // May not be present if hidden from client
 }
 
 interface VideoHomeworkFormProps {
