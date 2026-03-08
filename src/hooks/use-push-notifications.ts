@@ -20,6 +20,54 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
 
+  const persistSubscription = useCallback(async (subscription: PushSubscription) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const subJson = subscription.toJSON();
+    if (!subJson.endpoint || !subJson.keys?.p256dh || !subJson.keys?.auth) {
+      return false;
+    }
+
+    const { error: upsertError } = await supabase.from("push_subscriptions" as any).upsert(
+      {
+        user_id: session.user.id,
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      },
+      { onConflict: "user_id,endpoint" }
+    );
+
+    if (upsertError) {
+      console.error("Failed to save push subscription:", upsertError);
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  const checkExistingSubscription = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        setIsSubscribed(false);
+        return;
+      }
+
+      const persisted = await persistSubscription(subscription);
+      if (!persisted) {
+        await subscription.unsubscribe();
+      }
+
+      setIsSubscribed(persisted);
+    } catch {
+      setIsSubscribed(false);
+    }
+  }, [persistSubscription]);
+
   useEffect(() => {
     const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     setIsSupported(supported);
@@ -27,17 +75,7 @@ export function usePushNotifications() {
       setPermission(Notification.permission);
       checkExistingSubscription();
     }
-  }, []);
-
-  const checkExistingSubscription = async () => {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
-    } catch {
-      // ignore
-    }
-  };
+  }, [checkExistingSubscription]);
 
   const subscribe = useCallback(async () => {
     if (!isSupported || !VAPID_PUBLIC_KEY) return false;
@@ -48,35 +86,19 @@ export function usePushNotifications() {
       if (perm !== "granted") return false;
 
       const registration = await navigator.serviceWorker.ready;
-      
-      // Check if already subscribed
       let subscription = await registration.pushManager.getSubscription();
-      
+
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
         });
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return false;
-
-      const subJson = subscription.toJSON();
-      
-      // Save to database
-      const { error: upsertError } = await supabase.from("push_subscriptions" as any).upsert(
-        {
-          user_id: session.user.id,
-          endpoint: subJson.endpoint,
-          p256dh: subJson.keys?.p256dh || "",
-          auth: subJson.keys?.auth || "",
-        },
-        { onConflict: "user_id,endpoint" }
-      );
-      
-      if (upsertError) {
-        console.error("Failed to save push subscription:", upsertError);
+      const persisted = await persistSubscription(subscription);
+      if (!persisted) {
+        await subscription.unsubscribe();
+        setIsSubscribed(false);
         return false;
       }
 
@@ -86,7 +108,7 @@ export function usePushNotifications() {
       console.error("Push subscription error:", err);
       return false;
     }
-  }, [isSupported]);
+  }, [isSupported, persistSubscription]);
 
   const unsubscribe = useCallback(async () => {
     try {
@@ -95,7 +117,7 @@ export function usePushNotifications() {
       if (subscription) {
         const endpoint = subscription.endpoint;
         await subscription.unsubscribe();
-        
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await (supabase.from("push_subscriptions" as any) as any)
@@ -112,3 +134,4 @@ export function usePushNotifications() {
 
   return { isSupported, isSubscribed, permission, subscribe, unsubscribe };
 }
+
