@@ -2741,6 +2741,11 @@ const Dashboard = () => {
                 <Trophy className="w-4 h-4" /> شهاداتي
               </Button>
             </Link>
+            <Link to="/schedule">
+              <Button variant="outline" size="sm" className="gap-1">
+                <CalendarDays className="w-4 h-4" /> الجدول الدراسي
+              </Button>
+            </Link>
             <Link to="/contact" className="relative">
               <Button variant="outline" size="sm" className="gap-1">
                 <MessageCircle className="w-4 h-4" /> التواصل مع المعلم
