@@ -1259,9 +1259,23 @@ const Admin = () => {
                     <p>تاريخ التسجيل: {new Date(p.created_at).toLocaleDateString("ar-EG")}</p>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id, p.user_id)} className="gap-1 text-destructive">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent dir="rtl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>حذف الطالب</AlertDialogTitle>
+                          <AlertDialogDescription>هل أنت متأكد من حذف {p.full_name}؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteProfile(p.id, p.user_id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     <Button size="sm" variant={p.is_subscribed ? "outline" : "default"} onClick={() => toggleSubscription(p)} className="gap-1 flex-1">
                       {p.is_subscribed ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
                       {p.is_subscribed ? "إلغاء الاشتراك" : "تفعيل الاشتراك"}
