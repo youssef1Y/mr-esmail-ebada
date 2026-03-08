@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Plus, Trash2, Clock, Repeat, RefreshCw } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Clock, Repeat, RefreshCw, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
