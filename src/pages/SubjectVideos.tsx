@@ -375,7 +375,7 @@ const SubjectVideos = () => {
         ) : (
           <StaggerContainer className="space-y-4" staggerDelay={0.1}>
             {filteredVideos.map((v, i) => {
-              const locked = isVideoLocked(i);
+              const locked = isVideoLocked(v.id);
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
 
@@ -394,11 +394,10 @@ const SubjectVideos = () => {
                       يجب حل واجب الفيديو السابق أولاً لفتح هذا الفيديو
                     </p>
                     {(() => {
-                      const prevVideo = filteredVideos[i - 1];
-                      const prevHw = prevVideo ? videoHomework[prevVideo.id] : null;
-                      if (!prevVideo || !prevHw) return null;
+                      const blockingVideo = getBlockingVideo(v.id);
+                      if (!blockingVideo) return null;
                       return (
-                        <Link to={`/video-homework/${prevVideo.id}`}>
+                        <Link to={`/video-homework/${blockingVideo.id}`}>
                           <Button size="sm" className="gap-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">
                             <ClipboardList className="w-4 h-4" />
                             حل واجب الفيديو السابق
