@@ -30,6 +30,7 @@ import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
 import ParentLogin from "./pages/ParentLogin";
 import ParentDashboard from "./pages/ParentDashboard";
+import Schedule from "./pages/Schedule";
 
 const queryClient = new QueryClient();
 
