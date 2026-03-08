@@ -2445,6 +2445,11 @@ const Dashboard = () => {
                 <AdminStudentReportTab />
               )}
 
+              {/* Schedule */}
+              {adminTab === "schedule" && (
+                <AdminScheduleTab toast={toast} />
+              )}
+
               {/* Grade Promotion */}
               {adminTab === "promote" && (
                 <AdminPromoteTab toast={toast} />
