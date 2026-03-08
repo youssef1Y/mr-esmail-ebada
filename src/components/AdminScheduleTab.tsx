@@ -1,0 +1,260 @@
+import { useEffect, useState } from "react";
+import { CalendarDays, Plus, Trash2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+
+const grades = [
+  "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
+  "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
+];
+const subjects = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية", "النحو"];
+const eventTypes = [
+  { value: "exam", label: "امتحان" },
+  { value: "homework", label: "واجب" },
+  { value: "admin_event", label: "حدث عام" },
+  { value: "video", label: "فيديو جديد" },
+];
+
+interface ScheduleEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  event_type: string;
+  grade: string;
+  subject: string | null;
+  created_at: string;
+}
+
+const AdminScheduleTab = ({ toast }: { toast: any }) => {
+  const [events, setEvents] = useState<ScheduleEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [filterGrade, setFilterGrade] = useState(grades[0]);
+
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    event_date: "",
+    event_time: "",
+    event_type: "exam",
+    grade: grades[0],
+    subject: "",
+  });
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("schedule_events")
+      .select("*")
+      .eq("grade", filterGrade)
+      .order("event_date", { ascending: true });
+    setEvents(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchEvents(); }, [filterGrade]);
+
+  const addEvent = async () => {
+    if (!newEvent.title || !newEvent.event_date || !newEvent.grade) {
+      toast({ title: "خطأ", description: "أكمل العنوان والتاريخ والصف", variant: "destructive" });
+      return;
+    }
+
+    const insertData: any = {
+      title: newEvent.title,
+      event_date: newEvent.event_date,
+      event_type: newEvent.event_type,
+      grade: newEvent.grade,
+    };
+    if (newEvent.description) insertData.description = newEvent.description;
+    if (newEvent.event_time) insertData.event_time = newEvent.event_time;
+    if (newEvent.subject) insertData.subject = newEvent.subject;
+
+    const { error } = await supabase.from("schedule_events").insert(insertData);
+
+    if (error) {
+      toast({ title: "خطأ", description: "فشل الإضافة", variant: "destructive" });
+    } else {
+      toast({ title: "تم إضافة الحدث ✅" });
+      setNewEvent({ title: "", description: "", event_date: "", event_time: "", event_type: "exam", grade: newEvent.grade, subject: "" });
+      setShowAdd(false);
+      fetchEvents();
+    }
+  };
+
+  const deleteEvent = async (id: string) => {
+    const { error } = await supabase.from("schedule_events").delete().eq("id", id);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل الحذف", variant: "destructive" });
+    } else {
+      toast({ title: "تم حذف الحدث" });
+      setEvents(events.filter(e => e.id !== id));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-bold flex items-center gap-2">
+          <CalendarDays className="w-5 h-5 text-primary" /> الجدول الدراسي
+        </h2>
+        <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1">
+          <Plus className="w-3 h-3" /> إضافة حدث
+        </Button>
+      </div>
+
+      {/* Grade filter */}
+      <div className="flex gap-2 flex-wrap">
+        {grades.map(g => (
+          <Button
+            key={g}
+            variant={filterGrade === g ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterGrade(g)}
+            className="text-xs"
+          >
+            {g.replace("الصف ", "")}
+          </Button>
+        ))}
+      </div>
+
+      {/* Add form */}
+      {showAdd && (
+        <div className="bg-muted rounded-xl p-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">العنوان *</Label>
+              <Input
+                value={newEvent.title}
+                onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
+                placeholder="مثل: امتحان الفقه الشهري"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">النوع</Label>
+              <select
+                value={newEvent.event_type}
+                onChange={e => setNewEvent({ ...newEvent, event_type: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                {eventTypes.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">التاريخ *</Label>
+              <Input
+                type="date"
+                value={newEvent.event_date}
+                onChange={e => setNewEvent({ ...newEvent, event_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">الوقت (اختياري)</Label>
+              <Input
+                type="time"
+                value={newEvent.event_time}
+                onChange={e => setNewEvent({ ...newEvent, event_time: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">الصف *</Label>
+              <select
+                value={newEvent.grade}
+                onChange={e => setNewEvent({ ...newEvent, grade: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">المادة (اختياري)</Label>
+              <select
+                value={newEvent.subject}
+                onChange={e => setNewEvent({ ...newEvent, subject: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">بدون مادة</option>
+                {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">ملاحظات (اختياري)</Label>
+            <textarea
+              value={newEvent.description}
+              onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
+              placeholder="تفاصيل إضافية..."
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={addEvent} size="sm" className="flex-1">إضافة الحدث</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Events list */}
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin w-6 h-6 border-3 border-primary border-t-transparent rounded-full mx-auto" />
+        </div>
+      ) : events.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border p-8 text-center">
+          <CalendarDays className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">لا توجد أحداث مجدولة لهذا الصف</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {events.map(event => (
+            <div key={event.id} className="bg-card rounded-xl border border-border p-3 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-center">
+                <div>
+                  <span className="text-xs font-bold text-primary block leading-tight">
+                    {format(new Date(event.event_date), "d")}
+                  </span>
+                  <span className="text-[8px] text-muted-foreground leading-tight">
+                    {format(new Date(event.event_date), "MMM", { locale: ar })}
+                  </span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold">{event.title}</h3>
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
+                    {eventTypes.find(t => t.value === event.event_type)?.label || event.event_type}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                  {event.subject && <span>{event.subject}</span>}
+                  {event.event_time && (
+                    <span className="flex items-center gap-0.5">
+                      <Clock className="w-2.5 h-2.5" /> {event.event_time}
+                    </span>
+                  )}
+                  <span>{event.grade.replace("الصف ", "")}</span>
+                </div>
+                {event.description && (
+                  <p className="text-[11px] text-muted-foreground mt-1">{event.description}</p>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteEvent(event.id)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminScheduleTab;

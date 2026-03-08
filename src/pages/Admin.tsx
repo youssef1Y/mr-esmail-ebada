@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
+import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -202,7 +203,7 @@ const AdminNewsTab = ({ toast }: { toast: any }) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -779,6 +780,7 @@ const Admin = () => {
             { key: "video_homework" as const, label: "واجبات الفيديو", icon: Video },
             { key: "exams" as const, label: "الامتحانات", icon: ClipboardList },
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
+            { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
@@ -1645,6 +1647,10 @@ const Admin = () => {
 
         {tab === "news" && (
           <AdminNewsTab toast={toast} />
+        )}
+
+        {tab === "schedule" && (
+          <AdminScheduleTab toast={toast} />
         )}
       </main>
     </div>

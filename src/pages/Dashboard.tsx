@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays } from "lucide-react";
 import { StudentLevelBadge } from "@/components/StudentLevel";
 import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
@@ -2739,6 +2739,11 @@ const Dashboard = () => {
             <Link to="/certificates">
               <Button variant="outline" size="sm" className="gap-1">
                 <Trophy className="w-4 h-4" /> شهاداتي
+              </Button>
+            </Link>
+            <Link to="/schedule">
+              <Button variant="outline" size="sm" className="gap-1">
+                <CalendarDays className="w-4 h-4" /> الجدول الدراسي
               </Button>
             </Link>
             <Link to="/contact" className="relative">
