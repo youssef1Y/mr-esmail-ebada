@@ -29,6 +29,7 @@ import Certificates from "./pages/Certificates";
 import News from "./pages/News";
 import VideoHomeworkPage from "./pages/VideoHomeworkPage";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 import ParentLogin from "./pages/ParentLogin";
 import ParentDashboard from "./pages/ParentDashboard";
 import Schedule from "./pages/Schedule";
