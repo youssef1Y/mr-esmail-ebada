@@ -316,10 +316,29 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_ip_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+        }
+        Relationships: []
+      }
       parent_accounts: {
         Row: {
           created_at: string
           full_name: string
+          hash_version: number
           id: string
           password_hash: string
           phone: string
@@ -327,6 +346,7 @@ export type Database = {
         Insert: {
           created_at?: string
           full_name?: string
+          hash_version?: number
           id?: string
           password_hash: string
           phone: string
@@ -334,11 +354,44 @@ export type Database = {
         Update: {
           created_at?: string
           full_name?: string
+          hash_version?: number
           id?: string
           password_hash?: string
           phone?: string
         }
         Relationships: []
+      }
+      parent_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          parent_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          parent_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          parent_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_sessions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parent_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       password_reset_otps: {
         Row: {

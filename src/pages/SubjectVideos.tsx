@@ -35,6 +35,7 @@ const SubjectVideos = () => {
   const grade = searchParams.get("grade") || "";
   const navigate = useNavigate();
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -152,8 +153,8 @@ const SubjectVideos = () => {
             filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
           }
 
-          const playableVideos = await resolvePlayableVideoUrls(filtered as VideoItem[]);
-          setVideos(playableVideos);
+          // Store videos without pre-resolving URLs (lazy resolution on play)
+          setVideos(filtered as VideoItem[]);
 
           // Fetch homework for these videos
           const videoIds = filtered.map(v => v.id);
@@ -199,28 +200,43 @@ const SubjectVideos = () => {
     videosRef.current = videos;
   }, [videos]);
 
+  // Lazy resolve a single video URL when user clicks play
+  const resolveAndPlay = useCallback(async (videoId: string) => {
+    if (isVideoLocked(videoId)) return;
+    
+    // If already resolved and not expired, just play
+    if (resolvedUrls[videoId]) {
+      setPlayingId(videoId);
+      return;
+    }
+
+    const video = videos.find(v => v.id === videoId);
+    if (!video) return;
+
+    const [resolved] = await resolvePlayableVideoUrls([video]);
+    if (resolved) {
+      setResolvedUrls(prev => ({ ...prev, [videoId]: resolved.video_url }));
+      setPlayingId(videoId);
+    }
+  }, [videos, resolvedUrls, resolvePlayableVideoUrls]);
+
+  // Refresh URL for currently playing video periodically
   useEffect(() => {
-    if (!videos.length) return;
+    if (!playingId) return;
 
     const refreshIntervalMs = Math.max(60_000, (SIGNED_URL_TTL_SECONDS * 1000) - REFRESH_BUFFER_MS);
 
-    const interval = setInterval(() => {
-      void (async () => {
-        const refreshedVideos = await resolvePlayableVideoUrls(videosRef.current);
-        const refreshedMap = new Map(refreshedVideos.map((video) => [video.id, video.video_url]));
-
-        setVideos((prev) =>
-          prev.map((video) =>
-            refreshedMap.has(video.id)
-              ? { ...video, video_url: refreshedMap.get(video.id)! }
-              : video
-          )
-        );
-      })();
+    const interval = setInterval(async () => {
+      const video = videosRef.current.find(v => v.id === playingId);
+      if (!video) return;
+      const [refreshed] = await resolvePlayableVideoUrls([video]);
+      if (refreshed) {
+        setResolvedUrls(prev => ({ ...prev, [playingId]: refreshed.video_url }));
+      }
     }, refreshIntervalMs);
 
     return () => clearInterval(interval);
-  }, [videos.length, resolvePlayableVideoUrls]);
+  }, [playingId, resolvePlayableVideoUrls]);
 
   const fetchComments = async (videoId: string) => {
     const { data } = await supabase
@@ -409,15 +425,22 @@ const SubjectVideos = () => {
                       );
                     })()}
                   </div>
-                ) : playingId === v.id ? (
+                ) : playingId === v.id && resolvedUrls[v.id] ? (
                   <VideoPlayer
-                    src={v.video_url}
+                    src={resolvedUrls[v.id]}
                     title={v.title}
-                    onRefreshSource={() => refreshSingleVideoUrl(v.id)}
+                    onRefreshSource={async () => {
+                      const [refreshed] = await resolvePlayableVideoUrls([v]);
+                      if (refreshed) {
+                        setResolvedUrls(prev => ({ ...prev, [v.id]: refreshed.video_url }));
+                        return true;
+                      }
+                      return false;
+                    }}
                   />
                 ) : (
                   <button
-                    onClick={() => setPlayingId(v.id)}
+                    onClick={() => resolveAndPlay(v.id)}
                     className="w-full aspect-video bg-muted flex items-center justify-center relative group"
                   >
                     <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:bg-primary transition-colors">

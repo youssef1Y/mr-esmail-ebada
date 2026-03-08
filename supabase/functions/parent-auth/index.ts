@@ -1,12 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { hash as bcryptHash, compare as bcryptCompare } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function hashPassword(password: string, salt: string): Promise<string> {
+// Legacy SHA-256 hash for migration
+async function sha256Hash(password: string, salt: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password + salt);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -14,12 +16,63 @@ async function hashPassword(password: string, salt: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+function generateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function createSession(supabaseAdmin: any, parentId: string): Promise<string> {
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  // Clean up expired sessions for this parent
+  await supabaseAdmin
+    .from("parent_sessions")
+    .delete()
+    .eq("parent_id", parentId)
+    .lt("expires_at", new Date().toISOString());
+
+  await supabaseAdmin
+    .from("parent_sessions")
+    .insert({ parent_id: parentId, token, expires_at: expiresAt.toISOString() });
+
+  return token;
+}
+
+async function validateSession(supabaseAdmin: any, token: string): Promise<{ parentId: string; phone: string } | null> {
+  const { data } = await supabaseAdmin
+    .from("parent_sessions")
+    .select("parent_id, expires_at")
+    .eq("token", token)
+    .single();
+
+  if (!data || new Date(data.expires_at) < new Date()) return null;
+
+  const { data: parent } = await supabaseAdmin
+    .from("parent_accounts")
+    .select("id, phone")
+    .eq("id", data.parent_id)
+    .single();
+
+  if (!parent) return null;
+  return { parentId: parent.id, phone: parent.phone };
+}
+
+async function verifyPassword(password: string, storedHash: string, phone: string, hashVersion: number): Promise<boolean> {
+  if (hashVersion === 2) {
+    return await bcryptCompare(password, storedHash);
+  }
+  // Legacy SHA-256
+  const sha256 = await sha256Hash(password, phone);
+  return sha256 === storedHash;
+}
+
 async function sendSMS(phone: string, message: string) {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
   const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER")!;
 
-  // Format Egyptian phone to international
   let intlPhone = phone;
   if (phone.startsWith("0")) {
     intlPhone = "+2" + phone;
@@ -61,20 +114,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { action, phone, password, full_name, otp } = await req.json();
+    const { action, phone, password, full_name, otp, session_token } = await req.json();
 
-    if (!phone) {
+    if (!phone && action !== "get_student_data") {
       return new Response(JSON.stringify({ error: "رقم الهاتف مطلوب" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const normalizedPhone = phone.trim().replace(/\s+/g, "");
+    const normalizedPhone = phone ? phone.trim().replace(/\s+/g, "") : "";
 
     // ========== STEP 1: Send OTP to verify parent phone ==========
     if (action === "send_otp") {
-      // Check if parent phone exists in any student profile
       const { data: linkedStudents } = await supabaseAdmin
         .from("profiles")
         .select("full_name, grade")
@@ -87,7 +139,6 @@ serve(async (req) => {
         });
       }
 
-      // Check if already registered
       const { data: existing } = await supabaseAdmin
         .from("parent_accounts")
         .select("id")
@@ -101,17 +152,14 @@ serve(async (req) => {
         });
       }
 
-      // Generate 6-digit OTP
       const code = String(Math.floor(100000 + Math.random() * 900000));
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-      // Delete old OTPs for this phone
       await supabaseAdmin
         .from("password_reset_otps")
         .delete()
         .eq("phone", normalizedPhone + "_parent");
 
-      // Insert OTP
       await supabaseAdmin
         .from("password_reset_otps")
         .insert({
@@ -122,7 +170,6 @@ serve(async (req) => {
           used: false,
         });
 
-      // Send SMS
       try {
         await sendSMS(normalizedPhone, `كود التحقق لتسجيل ولي الأمر في منصة الأستاذ إسماعيل أحمد عبادة: ${code}\nصالح لمدة 10 دقائق.`);
       } catch {
@@ -158,7 +205,6 @@ serve(async (req) => {
         });
       }
 
-      // Find OTP
       const { data: otpRecord } = await supabaseAdmin
         .from("password_reset_otps")
         .select("*")
@@ -175,7 +221,6 @@ serve(async (req) => {
         });
       }
 
-      // Check expiry
       if (new Date(otpRecord.expires_at) < new Date()) {
         return new Response(JSON.stringify({ error: "انتهت صلاحية الكود. أعد الإرسال." }), {
           status: 400,
@@ -183,7 +228,6 @@ serve(async (req) => {
         });
       }
 
-      // Check attempts
       if (otpRecord.attempt_count >= 5) {
         await supabaseAdmin
           .from("password_reset_otps")
@@ -195,13 +239,11 @@ serve(async (req) => {
         });
       }
 
-      // Increment attempt
       await supabaseAdmin
         .from("password_reset_otps")
         .update({ attempt_count: otpRecord.attempt_count + 1 })
         .eq("id", otpRecord.id);
 
-      // Verify code
       if (otpRecord.code !== otp.trim()) {
         return new Response(JSON.stringify({ error: "كود التحقق غير صحيح" }), {
           status: 400,
@@ -209,13 +251,11 @@ serve(async (req) => {
         });
       }
 
-      // Mark as used
       await supabaseAdmin
         .from("password_reset_otps")
         .update({ used: true })
         .eq("id", otpRecord.id);
 
-      // Check if already registered (race condition)
       const { data: existing } = await supabaseAdmin
         .from("parent_accounts")
         .select("id")
@@ -229,16 +269,19 @@ serve(async (req) => {
         });
       }
 
-      // Hash and create account
-      const hashHex = await hashPassword(password, normalizedPhone);
+      // Use bcrypt for new accounts
+      const passwordHash = await bcryptHash(password);
 
-      const { error: insertErr } = await supabaseAdmin
+      const { data: newParent, error: insertErr } = await supabaseAdmin
         .from("parent_accounts")
         .insert({
           phone: normalizedPhone,
-          password_hash: hashHex,
+          password_hash: passwordHash,
           full_name: full_name || "ولي أمر",
-        });
+          hash_version: 2,
+        })
+        .select("id, phone, full_name")
+        .single();
 
       if (insertErr) {
         console.error("Insert error:", insertErr);
@@ -248,24 +291,20 @@ serve(async (req) => {
         });
       }
 
-      // Get linked students
       const { data: students } = await supabaseAdmin
         .from("profiles")
         .select("user_id, full_name, grade, is_subscribed, student_phone, school, governorate, madhab")
         .eq("parent_phone", normalizedPhone);
 
-      // Get parent account
-      const { data: parent } = await supabaseAdmin
-        .from("parent_accounts")
-        .select("id, phone, full_name")
-        .eq("phone", normalizedPhone)
-        .single();
+      // Create session token
+      const token = await createSession(supabaseAdmin, newParent.id);
 
       return new Response(JSON.stringify({
         success: true,
         message: "تم التسجيل بنجاح",
-        parent,
+        parent: { id: newParent.id, phone: newParent.phone, full_name: newParent.full_name },
         students: students || [],
+        session_token: token,
       }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -281,13 +320,10 @@ serve(async (req) => {
         });
       }
 
-      const hashHex = await hashPassword(password, normalizedPhone);
-
       const { data: parent } = await supabaseAdmin
         .from("parent_accounts")
-        .select("id, phone, full_name")
+        .select("id, phone, full_name, password_hash, hash_version")
         .eq("phone", normalizedPhone)
-        .eq("password_hash", hashHex)
         .maybeSingle();
 
       if (!parent) {
@@ -297,15 +333,36 @@ serve(async (req) => {
         });
       }
 
+      const valid = await verifyPassword(password, parent.password_hash, normalizedPhone, parent.hash_version || 1);
+      if (!valid) {
+        return new Response(JSON.stringify({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Migrate from SHA-256 to bcrypt on successful login
+      if ((parent.hash_version || 1) === 1) {
+        const newHash = await bcryptHash(password);
+        await supabaseAdmin
+          .from("parent_accounts")
+          .update({ password_hash: newHash, hash_version: 2 })
+          .eq("id", parent.id);
+      }
+
       const { data: students } = await supabaseAdmin
         .from("profiles")
         .select("user_id, full_name, grade, is_subscribed, student_phone, school, governorate, madhab")
         .eq("parent_phone", normalizedPhone);
 
+      // Create session token
+      const token = await createSession(supabaseAdmin, parent.id);
+
       return new Response(JSON.stringify({
         success: true,
-        parent,
+        parent: { id: parent.id, phone: parent.phone, full_name: parent.full_name },
         students: students || [],
+        session_token: token,
       }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -314,23 +371,34 @@ serve(async (req) => {
 
     // ========== GET STUDENT DATA ==========
     if (action === "get_student_data") {
-      if (!password) {
-        return new Response(JSON.stringify({ error: "غير مصرح" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
+      // Validate by session token (preferred) or legacy password
+      let parentPhone: string | null = null;
 
-      const hashHex = await hashPassword(password, normalizedPhone);
+      if (session_token) {
+        const session = await validateSession(supabaseAdmin, session_token);
+        if (!session) {
+          return new Response(JSON.stringify({ error: "غير مصرح" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        parentPhone = session.phone;
+      } else if (password && normalizedPhone) {
+        // Legacy fallback - validate with password
+        const { data: parent } = await supabaseAdmin
+          .from("parent_accounts")
+          .select("id, phone, password_hash, hash_version")
+          .eq("phone", normalizedPhone)
+          .maybeSingle();
 
-      const { data: parent } = await supabaseAdmin
-        .from("parent_accounts")
-        .select("id")
-        .eq("phone", normalizedPhone)
-        .eq("password_hash", hashHex)
-        .maybeSingle();
-
-      if (!parent) {
+        if (!parent || !(await verifyPassword(password, parent.password_hash, normalizedPhone, parent.hash_version || 1))) {
+          return new Response(JSON.stringify({ error: "غير مصرح" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        parentPhone = parent.phone;
+      } else {
         return new Response(JSON.stringify({ error: "غير مصرح" }), {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -340,7 +408,7 @@ serve(async (req) => {
       const { data: students } = await supabaseAdmin
         .from("profiles")
         .select("user_id, full_name, grade, is_subscribed, subscription_expires_at, student_phone, school, governorate, madhab")
-        .eq("parent_phone", normalizedPhone);
+        .eq("parent_phone", parentPhone);
 
       if (!students || students.length === 0) {
         return new Response(JSON.stringify({ students: [] }), {
@@ -371,20 +439,20 @@ serve(async (req) => {
         ]);
 
         const videos = videosRes.data || [];
-        const views = new Set((viewsRes.data || []).map(v => v.video_id));
+        const views = new Set((viewsRes.data || []).map((v: any) => v.video_id));
         const homework = homeworkRes.data || [];
-        const hwSubs = new Map((hwSubsRes.data || []).map(h => [h.homework_id, h]));
+        const hwSubs = new Map((hwSubsRes.data || []).map((h: any) => [h.homework_id, h]));
         const exams = examsRes.data || [];
-        const attempts = new Map((attemptsRes.data || []).map(a => [a.exam_id, a]));
+        const attempts = new Map((attemptsRes.data || []).map((a: any) => [a.exam_id, a]));
 
-        const subjects = [...new Set([...videos.map(v => v.subject), ...homework.map(h => h.subject), ...exams.map(e => e.subject)])];
+        const subjects = [...new Set([...videos.map((v: any) => v.subject), ...homework.map((h: any) => h.subject), ...exams.map((e: any) => e.subject)])];
         const subjectProgress = subjects.map(subject => {
-          const subVideos = videos.filter(v => v.subject === subject);
-          const subHw = homework.filter(h => h.subject === subject);
-          const subExams = exams.filter(e => e.subject === subject);
-          const watchedCount = subVideos.filter(v => views.has(v.id)).length;
-          const hwDone = subHw.filter(h => hwSubs.has(h.id)).length;
-          const examsDone = subExams.filter(e => attempts.has(e.id)).length;
+          const subVideos = videos.filter((v: any) => v.subject === subject);
+          const subHw = homework.filter((h: any) => h.subject === subject);
+          const subExams = exams.filter((e: any) => e.subject === subject);
+          const watchedCount = subVideos.filter((v: any) => views.has(v.id)).length;
+          const hwDone = subHw.filter((h: any) => hwSubs.has(h.id)).length;
+          const examsDone = subExams.filter((e: any) => attempts.has(e.id)).length;
           const total = subVideos.length + subHw.length + subExams.length;
           const done = watchedCount + hwDone + examsDone;
           return {
@@ -396,13 +464,13 @@ serve(async (req) => {
           };
         });
 
-        const pendingHomework = homework.filter(h => !hwSubs.has(h.id)).map(h => ({ title: h.title, subject: h.subject, due_date: h.due_date }));
-        const pendingExams = exams.filter(e => !attempts.has(e.id)).map(e => ({ title: e.title, subject: e.subject }));
-        const examResults = exams.filter(e => attempts.has(e.id)).map(e => {
+        const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({ title: h.title, subject: h.subject, due_date: h.due_date }));
+        const pendingExams = exams.filter((e: any) => !attempts.has(e.id)).map((e: any) => ({ title: e.title, subject: e.subject }));
+        const examResults = exams.filter((e: any) => attempts.has(e.id)).map((e: any) => {
           const a = attempts.get(e.id)!;
           return { title: e.title, subject: e.subject, score: a.score, total: a.total, submitted_at: a.submitted_at };
         });
-        const homeworkResults = homework.filter(h => hwSubs.has(h.id)).map(h => {
+        const homeworkResults = homework.filter((h: any) => hwSubs.has(h.id)).map((h: any) => {
           const s = hwSubs.get(h.id)!;
           return { title: h.title, subject: h.subject, score: s.score, submitted_at: s.submitted_at };
         });
@@ -421,6 +489,20 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ students: studentDataList }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // ========== LOGOUT ==========
+    if (action === "logout") {
+      if (session_token) {
+        await supabaseAdmin
+          .from("parent_sessions")
+          .delete()
+          .eq("token", session_token);
+      }
+      return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });

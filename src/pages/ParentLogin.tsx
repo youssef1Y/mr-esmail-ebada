@@ -80,7 +80,7 @@ const ParentLogin = () => {
           parent: data.parent,
           students: data.students,
           phone: phone.trim(),
-          password,
+          session_token: data.session_token,
         }));
         toast({ title: "تم التسجيل بنجاح ✅", description: `مرحباً ${data.parent?.full_name || "ولي الأمر"}` });
         navigate("/parent/dashboard");
@@ -111,7 +111,7 @@ const ParentLogin = () => {
           parent: data.parent,
           students: data.students,
           phone: phone.trim(),
-          password,
+          session_token: data.session_token,
         }));
         toast({ title: `أهلاً ${data.parent.full_name} 👋` });
         navigate("/parent/dashboard");

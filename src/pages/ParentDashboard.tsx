@@ -65,7 +65,7 @@ const ParentDashboard = () => {
         body: {
           action: "get_student_data",
           phone: session.phone,
-          password: session.password,
+          session_token: session.session_token,
         },
       });
 
@@ -90,7 +90,18 @@ const ParentDashboard = () => {
     fetchData();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const sessionStr = localStorage.getItem("parent_session");
+    if (sessionStr) {
+      try {
+        const session = JSON.parse(sessionStr);
+        if (session.session_token) {
+          await supabase.functions.invoke("parent-auth", {
+            body: { action: "logout", session_token: session.session_token },
+          });
+        }
+      } catch {}
+    }
     localStorage.removeItem("parent_session");
     navigate("/parent/login");
   };
