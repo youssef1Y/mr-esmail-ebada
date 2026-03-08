@@ -19,6 +19,11 @@ const Footer = () => {
               <Newspaper className="w-3 h-3" />
               أخبار المنصة
             </Link>
+            <span className="text-border">|</span>
+            <Link to="/parent/login" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              ولي الأمر
+            </Link>
           </div>
           <p className="text-muted-foreground text-xs">
             © {new Date().getFullYear()} جميع الحقوق محفوظة
