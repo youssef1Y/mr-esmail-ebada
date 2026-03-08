@@ -1290,6 +1290,7 @@ const Dashboard = () => {
 
     await supabase.from("exam_questions").insert(questionsToInsert);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
+    sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
     setShowAddExam(false);
