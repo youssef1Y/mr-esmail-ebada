@@ -236,6 +236,7 @@ const Admin = () => {
   const [editScore, setEditScore] = useState("");
   const [editFeedback, setEditFeedback] = useState("");
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+  const [hwViewMode, setHwViewMode] = useState<"ungraded" | "graded">("ungraded");
 
   // Exams state
   const [examAttempts, setExamAttempts] = useState<ExamAttemptWithDetails[]>([]);
