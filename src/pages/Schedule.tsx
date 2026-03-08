@@ -97,6 +97,8 @@ const Schedule = () => {
 
   const getEventsForDay = (day: Date) => events.filter(e => isSameDay(e.date, day));
 
+  const scheduleEventIds = events.filter(e => !e.id.startsWith("hw_") && !e.id.startsWith("exam_") && !e.id.startsWith("vid_")).map(e => e.id);
+
   const deleteScheduleEvent = async (eventId: string) => {
     setDeletingId(eventId);
     const { error } = await supabase.from("schedule_events").delete().eq("id", eventId);
@@ -104,6 +106,16 @@ const Schedule = () => {
       setEvents(prev => prev.filter(e => e.id !== eventId));
     }
     setDeletingId(null);
+  };
+
+  const deleteAllScheduleEvents = async () => {
+    if (!scheduleEventIds.length) return;
+    setDeletingAll(true);
+    const { error } = await supabase.from("schedule_events").delete().in("id", scheduleEventIds);
+    if (!error) {
+      setEvents(prev => prev.filter(e => e.id.startsWith("hw_") || e.id.startsWith("exam_") || e.id.startsWith("vid_")));
+    }
+    setDeletingAll(false);
   };
 
   if (loading) return (
