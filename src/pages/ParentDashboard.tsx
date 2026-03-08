@@ -65,7 +65,7 @@ const ParentDashboard = () => {
         body: {
           action: "get_student_data",
           phone: session.phone,
-          password: session.password,
+          session_token: session.session_token,
         },
       });
 
