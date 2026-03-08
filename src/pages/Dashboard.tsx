@@ -7,6 +7,7 @@ import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
+import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
