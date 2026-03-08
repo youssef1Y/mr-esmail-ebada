@@ -1544,7 +1544,39 @@ const Dashboard = () => {
       target_grades: newNotif.target_grades,
     });
     if (error) { console.error("Insert notification error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الإشعار", variant: "destructive" }); }
-    else { toast({ title: "تم إرسال الإشعار" }); setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] }); fetchNotifications(); }
+    else {
+      // Also send push notification
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+          const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              title: newNotif.title,
+              body: newNotif.body,
+              target_audience: newNotif.target_audience === "subscribed" ? "subscribers" : newNotif.target_audience === "unsubscribed" ? "non_subscribers" : "all",
+              target_grades: newNotif.target_grades.length > 0 ? newNotif.target_grades : undefined,
+            }),
+          });
+          const pushResult = await resp.json();
+          if (pushResult.sent > 0) {
+            toast({ title: `تم إرسال الإشعار + ${pushResult.sent} إشعار Push` });
+          } else {
+            toast({ title: "تم إرسال الإشعار" });
+          }
+        }
+      } catch (pushErr) {
+        console.error("Push notification error:", pushErr);
+        toast({ title: "تم إرسال الإشعار (بدون Push)" });
+      }
+      setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] });
+      fetchNotifications();
+    }
   };
 
   const toggleGradeTarget = (grade: string) => {
