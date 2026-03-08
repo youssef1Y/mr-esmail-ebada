@@ -1761,13 +1761,14 @@ const Dashboard = () => {
         {isAdmin && adminUnlocked && (
           <div className="mb-8">
             {/* Admin Tabs */}
-            <div className="flex gap-2 mb-4 justify-center flex-wrap">
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
               {[
                 { key: "subscribers" as const, label: "المشتركين", icon: Users },
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
                 { key: "exams" as const, label: "الامتحانات", icon: FileText },
                 { key: "homework" as const, label: "الواجبات", icon: ClipboardList },
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
+                { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
