@@ -1650,6 +1650,12 @@ const Dashboard = () => {
                 <span className="hidden sm:inline">إغلاق لوحة التحكم</span>
               </Button>
             )}
+            <Link to="/schedule">
+              <Button variant="ghost" size="sm" className="gap-1">
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden sm:inline">الجدول</span>
+              </Button>
+            </Link>
             {!adminUnlocked && (
               <>
                 <Link to="/student-notifications" className="relative">
