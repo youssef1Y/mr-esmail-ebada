@@ -595,6 +595,25 @@ const Admin = () => {
     toast({ title: "تم حذف الطالب" });
   };
 
+  const exportStudentsToExcel = () => {
+    const data = filteredProfiles.map(p => ({
+      "الاسم": p.full_name,
+      "الصف": p.grade,
+      "المدرسة": p.school || "-",
+      "المحافظة": p.governorate || "-",
+      "المذهب": p.madhab || "-",
+      "موبايل الطالب": p.student_phone,
+      "موبايل ولي الأمر": p.parent_phone || "-",
+      "مشترك": p.is_subscribed ? "نعم" : "لا",
+      "تاريخ التسجيل": new Date(p.created_at).toLocaleDateString("ar-EG"),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الطلاب");
+    XLSX.writeFile(wb, `طلاب_${filterGrade || "الكل"}_${new Date().toLocaleDateString("ar-EG")}.xlsx`);
+    toast({ title: "تم تصدير البيانات ✅" });
+  };
+
   const addVideo = async () => {
     if (!newVideo.title || !newVideo.video_url || !newVideo.grade || !newVideo.subject) {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
