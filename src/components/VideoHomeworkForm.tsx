@@ -81,11 +81,14 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
 
       if (error) {
         console.error("Submit error:", error);
-        toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الواجب", variant: "destructive" });
+        toast({ title: "خطأ", description: error.message || "حدث خطأ أثناء إرسال الواجب", variant: "destructive" });
       } else {
-        if (total > 0) {
+        const serverResult = gradeResult as any;
+        const score = serverResult?.score;
+        const total = serverResult?.total;
+        if (score !== null && total !== null && total > 0) {
           setResult({ score, total });
-          const points = Math.max(5, Math.min(15, Math.round((score / total) * 15)));
+          const points = Math.max(2, Math.min(8, Math.round((score / total) * 8)));
           toast({ title: `تم إرسال الواجب! النتيجة: ${score}/${total} 🎉`, description: `حصلت على ${points} نقطة` });
         } else {
           toast({ title: "تم إرسال الواجب بنجاح! ✅" });
