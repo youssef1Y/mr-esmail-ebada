@@ -7,6 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type PushRequestBody = {
+  title?: string;
+  body?: string;
+  target_grades?: string[];
+  target_audience?: "all" | "subscribers" | "non_subscribers";
+  target_user_ids?: string[];
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,27 +29,28 @@ serve(async (req) => {
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify admin
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser(token);
     if (userError || !user) {
+      console.error("Push auth error:", userError?.message);
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Check admin role
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -55,7 +64,8 @@ serve(async (req) => {
       });
     }
 
-    const { title, body, target_grades, target_audience } = await req.json();
+    const { title, body, target_grades, target_audience, target_user_ids }: PushRequestBody = await req.json();
+
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "العنوان والمحتوى مطلوبان" }), {
         status: 400,
@@ -63,10 +73,9 @@ serve(async (req) => {
       });
     }
 
-    // Setup VAPID
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-    
+
     if (!vapidPublicKey || !vapidPrivateKey) {
       return new Response(JSON.stringify({ error: "VAPID keys not configured" }), {
         status: 500,
@@ -80,33 +89,33 @@ serve(async (req) => {
       vapidPrivateKey
     );
 
-    // Get target user IDs based on audience
     let userIds: string[] = [];
-    
-    if (target_grades && target_grades.length > 0) {
+
+    if (Array.isArray(target_user_ids) && target_user_ids.length > 0) {
+      userIds = [...new Set(target_user_ids.filter(Boolean))];
+    } else if (target_grades && target_grades.length > 0) {
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id")
         .in("grade", target_grades);
-      userIds = profiles?.map(p => p.user_id) || [];
+      userIds = profiles?.map((p) => p.user_id) || [];
     } else if (target_audience === "subscribers") {
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id")
         .eq("is_subscribed", true);
-      userIds = profiles?.map(p => p.user_id) || [];
+      userIds = profiles?.map((p) => p.user_id) || [];
     } else if (target_audience === "non_subscribers") {
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id")
         .eq("is_subscribed", false);
-      userIds = profiles?.map(p => p.user_id) || [];
+      userIds = profiles?.map((p) => p.user_id) || [];
     } else {
-      // All users
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id");
-      userIds = profiles?.map(p => p.user_id) || [];
+      userIds = profiles?.map((p) => p.user_id) || [];
     }
 
     if (userIds.length === 0) {
@@ -116,10 +125,9 @@ serve(async (req) => {
       });
     }
 
-    // Get push subscriptions for these users
     const { data: subscriptions } = await supabaseAdmin
       .from("push_subscriptions")
-      .select("*")
+      .select("id, endpoint, p256dh, auth")
       .in("user_id", userIds);
 
     if (!subscriptions || subscriptions.length === 0) {
@@ -153,14 +161,12 @@ serve(async (req) => {
         sent++;
       } catch (err: any) {
         failed++;
-        // Remove expired/invalid subscriptions
         if (err.statusCode === 404 || err.statusCode === 410) {
           expiredIds.push(sub.id);
         }
       }
     }
 
-    // Clean up expired subscriptions
     if (expiredIds.length > 0) {
       await supabaseAdmin
         .from("push_subscriptions")
@@ -172,8 +178,8 @@ serve(async (req) => {
       JSON.stringify({ sent, failed, expired_cleaned: expiredIds.length }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
-  } catch (err) {
-    console.error("Push notification error:", err);
+  } catch (err: any) {
+    console.error("Push notification error:", err?.message || err);
     return new Response(JSON.stringify({ error: "حدث خطأ غير متوقع" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
