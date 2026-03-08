@@ -2673,12 +2673,34 @@ const Dashboard = () => {
 
         {/* Student View */}
         {!adminUnlocked && (
-        <div className="bg-card rounded-2xl border border-border p-6 mb-8 text-center">
-          <h1 className="text-2xl font-bold font-amiri mb-2">أهلاً بك يا {profile?.full_name}</h1>
-          <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-card rounded-2xl border border-border p-6 mb-8 text-center"
+        >
+          <motion.h1
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="text-2xl font-bold font-amiri mb-2"
+          >
+            أهلاً بك يا {profile?.full_name}
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-muted-foreground text-sm mb-4 max-w-md mx-auto"
+          >
             مرحبًا بك في منصة الأستاذ إسماعيل أحمد عباده لتعليم أصول الدين والفقه الإسلامي
-          </p>
-          <div className="inline-block bg-muted rounded-xl p-4 text-sm space-y-1">
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="inline-block bg-muted rounded-xl p-4 text-sm space-y-1"
+          >
             <div className="font-bold">{profile?.full_name}</div>
             <div className="text-muted-foreground">{displayGrade}</div>
             {profile?.school && <div className="text-muted-foreground">{profile.school} - {profile.governorate}</div>}
@@ -2692,8 +2714,8 @@ const Dashboard = () => {
             <div className="mt-3">
               <StudentLevelBadge points={studentPoints} showProgress />
             </div>
-          </div>
-          </div>
+          </motion.div>
+        </motion.div>
           )}
 
            {/* Quick Actions */}
