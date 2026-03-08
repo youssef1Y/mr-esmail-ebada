@@ -1651,6 +1651,7 @@ const Dashboard = () => {
                 <span className="hidden sm:inline">إغلاق لوحة التحكم</span>
               </Button>
             )}
+            <ThemeToggle />
             <Link to="/schedule">
               <Button variant="ghost" size="sm" className="gap-1">
                 <CalendarDays className="w-4 h-4" />

@@ -75,7 +75,8 @@ const Navbar = () => {
           <Link to="/" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>الرئيسية</Link>
           <a href="/#about" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>من نحن</a>
           <a href="/#join" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>انضم إلينا</a>
-          <div className="flex gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2">
+            <ThemeToggle />
             <Link to="/auth/login" className="flex-1" onClick={() => setMenuOpen(false)}>
               <Button variant="outline" size="sm" className="w-full">تسجيل الدخول</Button>
             </Link>
