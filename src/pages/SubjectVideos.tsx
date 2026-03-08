@@ -425,15 +425,22 @@ const SubjectVideos = () => {
                       );
                     })()}
                   </div>
-                ) : playingId === v.id ? (
+                ) : playingId === v.id && resolvedUrls[v.id] ? (
                   <VideoPlayer
-                    src={v.video_url}
+                    src={resolvedUrls[v.id]}
                     title={v.title}
-                    onRefreshSource={() => refreshSingleVideoUrl(v.id)}
+                    onRefreshSource={async () => {
+                      const [refreshed] = await resolvePlayableVideoUrls([v]);
+                      if (refreshed) {
+                        setResolvedUrls(prev => ({ ...prev, [v.id]: refreshed.video_url }));
+                        return true;
+                      }
+                      return false;
+                    }}
                   />
                 ) : (
                   <button
-                    onClick={() => setPlayingId(v.id)}
+                    onClick={() => resolveAndPlay(v.id)}
                     className="w-full aspect-video bg-muted flex items-center justify-center relative group"
                   >
                     <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:bg-primary transition-colors">
