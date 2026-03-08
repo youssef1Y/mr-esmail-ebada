@@ -2739,6 +2739,9 @@ const Dashboard = () => {
           </div>
           )}
 
+        {/* Push Notification Banner */}
+        {!adminUnlocked && <PushNotificationBanner />}
+
         {/* Student Progress Tracker */}
         {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
 
