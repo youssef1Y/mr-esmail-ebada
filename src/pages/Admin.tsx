@@ -493,23 +493,30 @@ const Admin = () => {
   };
 
   const handleApproveRequest = async (request: any) => {
-    // Update request status
     await supabase.from("subscription_requests").update({ status: "approved" }).eq("id", request.id);
-    // Activate subscription
+
     const newPrice = request.student_grade.includes("إعدادي") ? 150 : 200;
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
     await supabase.from("profiles").update({
       is_subscribed: true,
       subscription_price: newPrice,
       subscription_expires_at: expiresAt,
     }).eq("user_id", request.user_id);
-    // Send notification to student
+
     await supabase.from("student_notifications").insert({
       user_id: request.user_id,
       title: "تم تفعيل اشتراكك! 🎉",
       body: "تم تفعيل اشتراكك بنجاح. يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم.",
       type: "subscription_approved",
     });
+
+    await sendPushToUsers(
+      "🎉 تم تفعيل اشتراكك!",
+      "يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم.",
+      [request.user_id]
+    );
+
     toast({ title: "تم تفعيل الاشتراك وإشعار الطالب" });
     fetchSubRequests();
     fetchProfiles();
@@ -517,13 +524,20 @@ const Admin = () => {
 
   const handleRejectRequest = async (request: any) => {
     await supabase.from("subscription_requests").update({ status: "rejected" }).eq("id", request.id);
-    // Send notification to student
+
     await supabase.from("student_notifications").insert({
       user_id: request.user_id,
       title: "تم رفض طلب الاشتراك",
       body: "تم رفض طلب اشتراكك. يرجى التأكد من بيانات التحويل وإعادة المحاولة أو التواصل مع الإدارة.",
       type: "subscription_rejected",
     });
+
+    await sendPushToUsers(
+      "❌ تم رفض طلب الاشتراك",
+      "تم رفض طلب اشتراكك. يرجى مراجعة بيانات التحويل وإعادة المحاولة.",
+      [request.user_id]
+    );
+
     toast({ title: "تم رفض الطلب وإشعار الطالب" });
     fetchSubRequests();
   };
@@ -534,12 +548,13 @@ const Admin = () => {
     const expiresAt = isActivating
       ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       : null;
+
     await supabase.from("profiles").update({
       is_subscribed: isActivating,
       subscription_price: isActivating ? newPrice : 0,
       subscription_expires_at: expiresAt,
     }).eq("id", profile.id);
-    // Send notification to student
+
     await supabase.from("student_notifications").insert({
       user_id: profile.user_id,
       title: isActivating ? "تم تفعيل اشتراكك! 🎉" : "تم إلغاء اشتراكك",
@@ -548,6 +563,15 @@ const Admin = () => {
         : "تم إلغاء اشتراكك في المنصة.",
       type: isActivating ? "subscription_activated" : "subscription_expired",
     });
+
+    await sendPushToUsers(
+      isActivating ? "🎉 تم تفعيل اشتراكك!" : "⚠️ تم إلغاء اشتراكك",
+      isActivating
+        ? "يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم."
+        : "تم إلغاء اشتراكك في المنصة.",
+      [profile.user_id]
+    );
+
     fetchProfiles();
     toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
