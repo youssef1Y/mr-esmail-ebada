@@ -65,7 +65,7 @@ export function usePushNotifications() {
       const subJson = subscription.toJSON();
       
       // Save to database
-      await supabase.from("push_subscriptions" as any).upsert(
+      const { error: upsertError } = await supabase.from("push_subscriptions" as any).upsert(
         {
           user_id: session.user.id,
           endpoint: subJson.endpoint,
@@ -74,6 +74,11 @@ export function usePushNotifications() {
         },
         { onConflict: "user_id,endpoint" }
       );
+      
+      if (upsertError) {
+        console.error("Failed to save push subscription:", upsertError);
+        return false;
+      }
 
       setIsSubscribed(true);
       return true;

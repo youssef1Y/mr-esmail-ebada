@@ -15,8 +15,6 @@ verify_jwt = false
 [functions.verify-reset-code]
 verify_jwt = false
 
-[functions.generate-vapid-keys]
-verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
