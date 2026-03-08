@@ -484,6 +484,42 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_date: string
+          event_time: string | null
+          event_type: string
+          grade: string
+          id: string
+          subject: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          event_type?: string
+          grade: string
+          id?: string
+          subject?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          event_type?: string
+          grade?: string
+          id?: string
+          subject?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       student_notifications: {
         Row: {
           body: string
