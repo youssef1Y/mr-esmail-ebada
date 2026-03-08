@@ -47,6 +47,7 @@ const Navbar = () => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle className={!scrolled ? "text-primary-foreground hover:bg-primary-foreground/10" : ""} />
           <Link to="/auth/login">
             <Button variant={scrolled ? "outline" : "ghost"} size="sm" className={!scrolled ? "text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10" : ""}>
               تسجيل الدخول
