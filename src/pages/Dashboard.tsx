@@ -2974,7 +2974,7 @@ const Dashboard = () => {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* Install App Button */}
