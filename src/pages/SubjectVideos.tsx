@@ -269,18 +269,35 @@ const SubjectVideos = () => {
     !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
   );
 
-  // Check if a video is locked: the PREVIOUS video must have no homework OR its homework must be submitted
-  const isVideoLocked = (index: number): boolean => {
+  // Check if a video is locked: ANY previous video with homework must have its homework submitted
+  const isVideoLocked = (videoId: string): boolean => {
     if (isAdmin) return false;
-    if (index === 0) return false; // First video is always unlocked
     
-    const prevVideo = filteredVideos[index - 1];
-    if (!prevVideo) return false;
+    // Find this video's index in the FULL ordered videos array
+    const videoIndex = videos.findIndex(v => v.id === videoId);
+    if (videoIndex <= 0) return false; // First video always unlocked
     
-    const hw = videoHomework[prevVideo.id];
-    if (!hw) return false; // No homework on previous video = unlocked
-    
-    return !submittedHomework.has(hw.id); // Locked if homework not submitted
+    // Check ALL previous videos - if any has unsubmitted homework, lock this video
+    for (let i = 0; i < videoIndex; i++) {
+      const prevVideo = videos[i];
+      const hw = videoHomework[prevVideo.id];
+      if (hw && !submittedHomework.has(hw.id)) {
+        return true; // Locked - a previous video's homework is not submitted
+      }
+    }
+    return false;
+  };
+
+  // Find the first previous video with unsubmitted homework (for the lock button)
+  const getBlockingVideo = (videoId: string): VideoItem | null => {
+    const videoIndex = videos.findIndex(v => v.id === videoId);
+    if (videoIndex <= 0) return null;
+    for (let i = videoIndex - 1; i >= 0; i--) {
+      const prevVideo = videos[i];
+      const hw = videoHomework[prevVideo.id];
+      if (hw && !submittedHomework.has(hw.id)) return prevVideo;
+    }
+    return null;
   };
 
   const handleHomeworkSubmitted = (homeworkId: string) => {
