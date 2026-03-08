@@ -269,18 +269,35 @@ const SubjectVideos = () => {
     !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
   );
 
-  // Check if a video is locked: the PREVIOUS video must have no homework OR its homework must be submitted
-  const isVideoLocked = (index: number): boolean => {
+  // Check if a video is locked: ANY previous video with homework must have its homework submitted
+  const isVideoLocked = (videoId: string): boolean => {
     if (isAdmin) return false;
-    if (index === 0) return false; // First video is always unlocked
     
-    const prevVideo = filteredVideos[index - 1];
-    if (!prevVideo) return false;
+    // Find this video's index in the FULL ordered videos array
+    const videoIndex = videos.findIndex(v => v.id === videoId);
+    if (videoIndex <= 0) return false; // First video always unlocked
     
-    const hw = videoHomework[prevVideo.id];
-    if (!hw) return false; // No homework on previous video = unlocked
-    
-    return !submittedHomework.has(hw.id); // Locked if homework not submitted
+    // Check ALL previous videos - if any has unsubmitted homework, lock this video
+    for (let i = 0; i < videoIndex; i++) {
+      const prevVideo = videos[i];
+      const hw = videoHomework[prevVideo.id];
+      if (hw && !submittedHomework.has(hw.id)) {
+        return true; // Locked - a previous video's homework is not submitted
+      }
+    }
+    return false;
+  };
+
+  // Find the first previous video with unsubmitted homework (for the lock button)
+  const getBlockingVideo = (videoId: string): VideoItem | null => {
+    const videoIndex = videos.findIndex(v => v.id === videoId);
+    if (videoIndex <= 0) return null;
+    for (let i = videoIndex - 1; i >= 0; i--) {
+      const prevVideo = videos[i];
+      const hw = videoHomework[prevVideo.id];
+      if (hw && !submittedHomework.has(hw.id)) return prevVideo;
+    }
+    return null;
   };
 
   const handleHomeworkSubmitted = (homeworkId: string) => {
@@ -358,7 +375,7 @@ const SubjectVideos = () => {
         ) : (
           <StaggerContainer className="space-y-4" staggerDelay={0.1}>
             {filteredVideos.map((v, i) => {
-              const locked = isVideoLocked(i);
+              const locked = isVideoLocked(v.id);
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
 
@@ -377,11 +394,10 @@ const SubjectVideos = () => {
                       يجب حل واجب الفيديو السابق أولاً لفتح هذا الفيديو
                     </p>
                     {(() => {
-                      const prevVideo = filteredVideos[i - 1];
-                      const prevHw = prevVideo ? videoHomework[prevVideo.id] : null;
-                      if (!prevVideo || !prevHw) return null;
+                      const blockingVideo = getBlockingVideo(v.id);
+                      if (!blockingVideo) return null;
                       return (
-                        <Link to={`/video-homework/${prevVideo.id}`}>
+                        <Link to={`/video-homework/${blockingVideo.id}`}>
                           <Button size="sm" className="gap-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">
                             <ClipboardList className="w-4 h-4" />
                             حل واجب الفيديو السابق
