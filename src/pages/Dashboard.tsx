@@ -2810,21 +2810,36 @@ const Dashboard = () => {
         {/* Why Choose Us */}
         {!adminUnlocked && (
         <>
-        <div className="text-center mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-6"
+        >
           <h2 className="text-xl font-bold font-amiri mb-2">لماذا تختار منصتنا؟</h2>
-        </div>
+        </motion.div>
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10" staggerDelay={0.1}>
           {[
-            { title: "شرح على أعلى مستوى", desc: "شروحات مفصلة ومبسطة لجميع المواد الشرعية" },
-            { title: "متابعة مستمرة", desc: "متابعة دورية ومستمرة لمستوى كل طالب" },
-            { title: "نتائج مضمونة", desc: "نتائج مميزة ومضمونة بإذن الله" },
-            { title: "محتوى متجدد", desc: "محتوى تعليمي متجدد ومحدث باستمرار" },
+            { title: "شرح على أعلى مستوى", desc: "شروحات مفصلة ومبسطة لجميع المواد الشرعية", emoji: "📚" },
+            { title: "متابعة مستمرة", desc: "متابعة دورية ومستمرة لمستوى كل طالب", emoji: "👨‍🏫" },
+            { title: "نتائج مضمونة", desc: "نتائج مميزة ومضمونة بإذن الله", emoji: "🏆" },
+            { title: "محتوى متجدد", desc: "محتوى تعليمي متجدد ومحدث باستمرار", emoji: "✨" },
           ].map((item, i) => (
             <StaggerItem key={i}>
-              <div className="bg-card rounded-xl border border-border p-4">
-                <h3 className="font-bold text-sm mb-1">{item.title}</h3>
-                <p className="text-muted-foreground text-xs">{item.desc}</p>
-              </div>
+              <motion.div
+                whileHover={{ y: -3, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-card rounded-xl border border-border p-4 hover:border-primary/30 transition-all cursor-default"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{item.emoji}</span>
+                  <div>
+                    <h3 className="font-bold text-sm mb-1">{item.title}</h3>
+                    <p className="text-muted-foreground text-xs">{item.desc}</p>
+                  </div>
+                </div>
+              </motion.div>
             </StaggerItem>
           ))}
         </StaggerContainer>
@@ -2833,14 +2848,27 @@ const Dashboard = () => {
 
         {/* Student Exams */}
         {!adminUnlocked && studentExams.length > 0 && (
-          <div className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
             <h2 className="text-xl font-bold font-amiri text-center mb-4 flex items-center justify-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               الامتحانات المتاحة
             </h2>
             <div className="space-y-3">
-              {studentExams.map(e => (
-                <div key={e.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+              {studentExams.map((e, i) => (
+                <motion.div
+                  key={e.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.3 }}
+                  whileHover={{ scale: 1.01 }}
+                  className="bg-card rounded-xl border border-border p-4 flex items-center justify-between hover:border-primary/30 transition-colors"
+                >
                   <div>
                     <h3 className="font-bold text-sm">{e.title}</h3>
                     <p className="text-xs text-muted-foreground">{e.subject}</p>
@@ -2851,24 +2879,34 @@ const Dashboard = () => {
                       <ChevronLeft className="w-3 h-3" />
                     </Button>
                   </Link>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Subjects */}
-        <div className="mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-6"
+        >
           <h2 className="text-xl font-bold font-amiri text-center mb-2">المواد الدراسية - {displayGrade}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6 max-w-lg mx-auto">
             نقدم لك شرحًا شاملاً ومتميزًا لجميع مواد التربية الدينية الإسلامية بأسلوب سهل ومبسط
           </p>
-        </div>
+        </motion.div>
 
         <StaggerContainer className="space-y-4 max-w-2xl mx-auto" staggerDelay={0.12}>
           {subjects.map((subject, i) => (
             <StaggerItem key={i}>
-              <div className="bg-card rounded-xl border border-border p-5 relative">
+              <motion.div
+                whileHover={{ y: -2, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-card rounded-xl border border-border p-5 relative hover:border-primary/30 transition-colors"
+              >
                 {!adminUnlocked && badgeCounts.newVideosPerSubject[subject.title] > 0 && (
                   <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center gap-0.5">
                     <Video className="w-3 h-3" />
@@ -2876,7 +2914,7 @@ const Dashboard = () => {
                   </span>
                 )}
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center flex-shrink-0">
                     <subject.icon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
@@ -2892,14 +2930,20 @@ const Dashboard = () => {
                     </Link>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </StaggerItem>
           ))}
         </StaggerContainer>
 
         {/* Subscription CTA for non-subscribed students */}
         {!isAdmin && !profile?.is_subscribed && (
-          <div className="mt-12 mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-8 text-center max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mt-12 mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-8 text-center max-w-2xl mx-auto"
+          >
             <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
               <Star className="w-8 h-8 text-primary" />
             </div>
@@ -2930,7 +2974,7 @@ const Dashboard = () => {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* Install App Button */}
