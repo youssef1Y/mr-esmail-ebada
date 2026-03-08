@@ -210,7 +210,7 @@ serve(async (req) => {
     await supabaseAdmin.from("exam_answers").insert(answersToInsert);
 
     // Award points server-side
-    const pointsAwarded = Math.max(5, Math.round((score / (mcqCount || 1)) * 20));
+    const pointsAwarded = Math.max(2, Math.round((score / (mcqCount || 1)) * 10));
     await supabaseAdmin.from("student_points").insert({
       user_id: userId,
       points: pointsAwarded,
