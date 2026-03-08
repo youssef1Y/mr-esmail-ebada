@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff2}"],
+        importScripts: ["/sw-push.js"],
       },
       manifest: {
         name: "منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية",
