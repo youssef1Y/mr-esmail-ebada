@@ -156,8 +156,10 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
           <div className="grid gap-1.5">
             {q.options.map((opt, optIndex) => {
               const isSelected = answers[qIndex] === optIndex;
-              const showResult = result !== null;
-              const isCorrectOption = optIndex === q.correct;
+              const showResult = result !== null && gradedAnswers.length > 0;
+              const gradedAnswer = gradedAnswers.find(a => a.questionIndex === qIndex);
+              const isCorrectOption = showResult && gradedAnswer?.isCorrect && gradedAnswer?.selectedOption === optIndex;
+              const isWrongSelected = showResult && isSelected && gradedAnswer && !gradedAnswer.isCorrect;
 
               let className = "w-full text-right px-3 py-2 rounded-lg border text-xs transition-colors ";
               if (showResult) {
