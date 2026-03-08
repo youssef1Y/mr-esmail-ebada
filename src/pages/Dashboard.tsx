@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun } from "lucide-react";
+import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StudentLevelBadge } from "@/components/StudentLevel";
 import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
@@ -2672,12 +2673,34 @@ const Dashboard = () => {
 
         {/* Student View */}
         {!adminUnlocked && (
-        <div className="bg-card rounded-2xl border border-border p-6 mb-8 text-center">
-          <h1 className="text-2xl font-bold font-amiri mb-2">أهلاً بك يا {profile?.full_name}</h1>
-          <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-card rounded-2xl border border-border p-6 mb-8 text-center"
+        >
+          <motion.h1
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="text-2xl font-bold font-amiri mb-2"
+          >
+            أهلاً بك يا {profile?.full_name}
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-muted-foreground text-sm mb-4 max-w-md mx-auto"
+          >
             مرحبًا بك في منصة الأستاذ إسماعيل أحمد عباده لتعليم أصول الدين والفقه الإسلامي
-          </p>
-          <div className="inline-block bg-muted rounded-xl p-4 text-sm space-y-1">
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="inline-block bg-muted rounded-xl p-4 text-sm space-y-1"
+          >
             <div className="font-bold">{profile?.full_name}</div>
             <div className="text-muted-foreground">{displayGrade}</div>
             {profile?.school && <div className="text-muted-foreground">{profile.school} - {profile.governorate}</div>}
@@ -2691,13 +2714,18 @@ const Dashboard = () => {
             <div className="mt-3">
               <StudentLevelBadge points={studentPoints} showProgress />
             </div>
-          </div>
-          </div>
+          </motion.div>
+        </motion.div>
           )}
 
            {/* Quick Actions */}
            {!adminUnlocked && (
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="flex flex-wrap justify-center gap-3 mb-8"
+          >
             {profile?.is_subscribed ? (
               <Link to="/my-results">
                 <Button variant="outline" size="sm" className="gap-1">
@@ -2767,7 +2795,7 @@ const Dashboard = () => {
               </Button>
               <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
-          </div>
+          </motion.div>
           )}
 
         {/* Push Notification Banner */}
