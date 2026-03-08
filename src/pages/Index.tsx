@@ -108,6 +108,7 @@ const Index = () => {
       <FeaturesSection />
       <TestimonialsSection />
       <FAQSection />
+      <ParentSection />
       <CTASection />
       <Footer />
       <InstallPWABanner />
