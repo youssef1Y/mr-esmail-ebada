@@ -37,6 +37,7 @@ const Schedule = () => {
   const [grade, setGrade] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 6 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 6 });
@@ -96,6 +97,8 @@ const Schedule = () => {
 
   const getEventsForDay = (day: Date) => events.filter(e => isSameDay(e.date, day));
 
+  const scheduleEventIds = events.filter(e => !e.id.startsWith("hw_") && !e.id.startsWith("exam_") && !e.id.startsWith("vid_")).map(e => e.id);
+
   const deleteScheduleEvent = async (eventId: string) => {
     setDeletingId(eventId);
     const { error } = await supabase.from("schedule_events").delete().eq("id", eventId);
@@ -103,6 +106,16 @@ const Schedule = () => {
       setEvents(prev => prev.filter(e => e.id !== eventId));
     }
     setDeletingId(null);
+  };
+
+  const deleteAllScheduleEvents = async () => {
+    if (!scheduleEventIds.length) return;
+    setDeletingAll(true);
+    const { error } = await supabase.from("schedule_events").delete().in("id", scheduleEventIds);
+    if (!error) {
+      setEvents(prev => prev.filter(e => e.id.startsWith("hw_") || e.id.startsWith("exam_") || e.id.startsWith("vid_")));
+    }
+    setDeletingAll(false);
   };
 
   if (loading) return (
@@ -160,10 +173,22 @@ const Schedule = () => {
           </Button>
         </motion.div>
 
-        <div className="flex justify-center mb-5">
+        <div className="flex justify-center gap-2 mb-5">
           <Button variant="ghost" size="sm" className="text-xs rounded-full" onClick={() => setCurrentWeek(new Date())}>
             <Calendar className="w-3 h-3 ml-1" /> اليوم
           </Button>
+          {isAdmin && scheduleEventIds.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              disabled={deletingAll}
+              onClick={deleteAllScheduleEvents}
+            >
+              <Trash2 className="w-3 h-3 ml-1" />
+              {deletingAll ? "جاري الحذف..." : `حذف الكل (${scheduleEventIds.length})`}
+            </Button>
+          )}
         </div>
 
         {/* Week Grid */}
