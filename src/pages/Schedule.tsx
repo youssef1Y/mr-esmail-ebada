@@ -240,6 +240,17 @@ const Schedule = () => {
                               </div>
                               {event.description && <p className="text-[10px] opacity-70 mt-0.5">{event.description}</p>}
                             </div>
+                            {isAdmin && event.type === "admin_event" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive/70 hover:text-destructive flex-shrink-0"
+                                disabled={deletingId === event.id}
+                                onClick={() => deleteScheduleEvent(event.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </motion.div>
                         );
                       })}
