@@ -416,9 +416,23 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteEvent(event.id)} title="حذف هذا الحدث فقط">
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => deleteSimilarEvents(event)} title="حذف كل المتشابهة">
-                  <Trash className="w-3.5 h-3.5" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" title="حذف كل المتشابهة">
+                      <Trash className="w-3.5 h-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent dir="rtl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>حذف كل الأحداث المتشابهة</AlertDialogTitle>
+                      <AlertDialogDescription>سيتم حذف كل الأحداث بعنوان "{event.title}" من نفس النوع والصف. هل أنت متأكد؟</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteSimilarEvents(event)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف الكل</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}
