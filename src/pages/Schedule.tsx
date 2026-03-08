@@ -240,7 +240,7 @@ const Schedule = () => {
                               </div>
                               {event.description && <p className="text-[10px] opacity-70 mt-0.5">{event.description}</p>}
                             </div>
-                            {isAdmin && event.type === "admin_event" && (
+                            {isAdmin && !event.id.startsWith("hw_") && !event.id.startsWith("exam_") && !event.id.startsWith("vid_") && (
                               <Button
                                 variant="ghost"
                                 size="icon"
