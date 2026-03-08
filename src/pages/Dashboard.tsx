@@ -1516,6 +1516,7 @@ const Dashboard = () => {
         } as any);
       }
       toast({ title: "تم إضافة الفيديو بنجاح" });
+      sendPushToGrade("🎬 فيديو جديد", `تم إضافة فيديو جديد: ${newVideo.title} - ${newVideo.subject}`, [newVideo.grade]);
       setNewVideo({ title: "", description: "", grade: "", subject: "", madhab: "", access_type: "all", publish_at: "" });
       setVideoFile(null);
       setVideoHomeworkEnabled(false);
