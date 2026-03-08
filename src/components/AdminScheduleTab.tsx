@@ -401,10 +401,14 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
                   <p className="text-[11px] text-muted-foreground mt-1">{event.description}</p>
                 )}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteEvent(event.id)}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteEvent(event.id)} title="حذف هذا الحدث فقط">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => deleteSimilarEvents(event)} title="حذف كل المتشابهة">
+                  <Trash className="w-3.5 h-3.5" />
+                </Button>
+              </div>
           ))}
         </div>
       )}
