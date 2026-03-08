@@ -23,7 +23,7 @@ export const PushNotificationBanner = () => {
 
   const handleDismiss = () => {
     setDismissed(true);
-    sessionStorage.setItem("push_banner_dismissed", "true");
+    localStorage.setItem("push_banner_dismissed", "true");
   };
 
   return (

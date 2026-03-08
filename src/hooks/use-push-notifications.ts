@@ -57,12 +57,10 @@ export function usePushNotifications() {
         return;
       }
 
-      const persisted = await persistSubscription(subscription);
-      if (!persisted) {
-        await subscription.unsubscribe();
-      }
-
-      setIsSubscribed(persisted);
+      // Subscription exists in browser - mark as subscribed
+      // Try to persist but don't unsubscribe on failure
+      setIsSubscribed(true);
+      await persistSubscription(subscription);
     } catch {
       setIsSubscribed(false);
     }
