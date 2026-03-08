@@ -79,7 +79,7 @@ const Register = () => {
         });
       } catch (e) { console.error("Notification error:", e); }
       toast({ title: "تم التسجيل بنجاح", description: "مرحباً بك في المنصة" });
-      navigate("/dashboard");
+      navigate("/onboarding");
     }
   };
 

@@ -107,6 +107,7 @@ const Index = () => {
       <SubjectsSection />
       <StatsSection />
       <FeaturesSection />
+      <WhyUsSection />
       <TestimonialsSection />
       <FAQSection />
       <ParentSection />
