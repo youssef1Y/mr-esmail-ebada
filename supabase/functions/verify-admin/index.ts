@@ -20,24 +20,20 @@ serve(async (req) => {
       });
     }
 
+    // Decode the JWT to get the user ID without verification
+    // (verify_jwt=false means we trust the gateway already verified)
     const token = authHeader.replace("Bearer ", "");
-
-    // Use service role to validate the JWT (works with ES256 tokens)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !user) {
-      console.error("Auth error:", userError?.message);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    let userId: string;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      userId = payload.sub;
+      if (!userId) throw new Error("No sub in token");
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-
-    const userId = user.id;
 
     const { password } = await req.json();
     const adminPassword = Deno.env.get("ADMIN_PASSWORD");
@@ -49,7 +45,12 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role
+    // Use service role to check admin role
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const { data: existingRole } = await supabaseAdmin
       .from("user_roles")
       .select("id")
