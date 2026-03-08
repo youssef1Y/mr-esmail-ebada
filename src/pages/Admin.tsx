@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { sendPushToUsers } from "@/lib/push-utils";
+import { sendPushToGrade, sendPushToUsers } from "@/lib/push-utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import * as XLSX from "xlsx";
 const grades = [
   "الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي",
   "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
@@ -583,6 +595,25 @@ const Admin = () => {
     toast({ title: "تم حذف الطالب" });
   };
 
+  const exportStudentsToExcel = () => {
+    const data = filteredProfiles.map(p => ({
+      "الاسم": p.full_name,
+      "الصف": p.grade,
+      "المدرسة": p.school || "-",
+      "المحافظة": p.governorate || "-",
+      "المذهب": p.madhab || "-",
+      "موبايل الطالب": p.student_phone,
+      "موبايل ولي الأمر": p.parent_phone || "-",
+      "مشترك": p.is_subscribed ? "نعم" : "لا",
+      "تاريخ التسجيل": new Date(p.created_at).toLocaleDateString("ar-EG"),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الطلاب");
+    XLSX.writeFile(wb, `طلاب_${filterGrade || "الكل"}_${new Date().toLocaleDateString("ar-EG")}.xlsx`);
+    toast({ title: "تم تصدير البيانات ✅" });
+  };
+
   const addVideo = async () => {
     if (!newVideo.title || !newVideo.video_url || !newVideo.grade || !newVideo.subject) {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
@@ -606,6 +637,8 @@ const Admin = () => {
         } as any);
       }
       toast({ title: "تم إضافة الفيديو" });
+      // Send push notification for new video
+      sendPushToGrade(`فيديو جديد: ${newVideo.title}`, `تم إضافة فيديو جديد في ${newVideo.subject}`, [newVideo.grade]);
       setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
       setVideoHomeworkEnabled(false);
       setVideoHomeworkDesc("");
@@ -637,6 +670,8 @@ const Admin = () => {
       toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الإشعار", variant: "destructive" });
     } else {
       toast({ title: "تم إرسال الإشعار" });
+      // Send push notification
+      sendPushToGrade(newNotif.title, newNotif.body, newNotif.target_grades.length > 0 ? newNotif.target_grades : undefined);
       setNewNotif({ title: "", body: "", target_audience: "all", target_grades: [] });
       fetchNotifications();
     }
@@ -1203,7 +1238,12 @@ const Admin = () => {
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground">عرض {filteredProfiles.length} من {totalStudents} طالب</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">عرض {filteredProfiles.length} من {totalStudents} طالب</p>
+              <Button variant="outline" size="sm" onClick={exportStudentsToExcel} className="gap-1">
+                <Download className="w-3 h-3" /> تصدير Excel
+              </Button>
+            </div>
 
             {/* Student Cards */}
             <div className="space-y-3">
@@ -1224,9 +1264,23 @@ const Admin = () => {
                     <p>تاريخ التسجيل: {new Date(p.created_at).toLocaleDateString("ar-EG")}</p>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id, p.user_id)} className="gap-1 text-destructive">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent dir="rtl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>حذف الطالب</AlertDialogTitle>
+                          <AlertDialogDescription>هل أنت متأكد من حذف {p.full_name}؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteProfile(p.id, p.user_id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     <Button size="sm" variant={p.is_subscribed ? "outline" : "default"} onClick={() => toggleSubscription(p)} className="gap-1 flex-1">
                       {p.is_subscribed ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
                       {p.is_subscribed ? "إلغاء الاشتراك" : "تفعيل الاشتراك"}
@@ -1394,9 +1448,23 @@ const Admin = () => {
                           </span>
                         )}
                         {hwViewMode === "graded" && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteHomeworkSubmission(s.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent dir="rtl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>حذف التسليم</AlertDialogTitle>
+                                <AlertDialogDescription>هل أنت متأكد من حذف هذا التسليم؟</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteHomeworkSubmission(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </div>
