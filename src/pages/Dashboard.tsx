@@ -2795,7 +2795,7 @@ const Dashboard = () => {
               </Button>
               <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
-          </div>
+          </motion.div>
           )}
 
         {/* Push Notification Banner */}
