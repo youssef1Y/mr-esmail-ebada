@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Plus, Trash2, Clock } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Clock, Repeat, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, addDays, parseISO, isBefore, isEqual } from "date-fns";
 import { ar } from "date-fns/locale";
 
 const grades = [
@@ -17,6 +17,17 @@ const eventTypes = [
   { value: "homework", label: "واجب" },
   { value: "admin_event", label: "حدث عام" },
   { value: "video", label: "فيديو جديد" },
+  { value: "class", label: "حصة" },
+];
+
+const dayOptions = [
+  { value: 0, label: "الأحد" },
+  { value: 1, label: "الاثنين" },
+  { value: 2, label: "الثلاثاء" },
+  { value: 3, label: "الأربعاء" },
+  { value: 4, label: "الخميس" },
+  { value: 5, label: "الجمعة" },
+  { value: 6, label: "السبت" },
 ];
 
 interface ScheduleEvent {
@@ -35,7 +46,9 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [showRecurring, setShowRecurring] = useState(false);
   const [filterGrade, setFilterGrade] = useState(grades[0]);
+  const [addingRecurring, setAddingRecurring] = useState(false);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -45,6 +58,18 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
     event_type: "exam",
     grade: grades[0],
     subject: "",
+  });
+
+  const [recurringEvent, setRecurringEvent] = useState({
+    title: "",
+    description: "",
+    event_time: "",
+    event_type: "class",
+    grade: grades[0],
+    subject: "",
+    day_of_week: 0,
+    start_date: "",
+    end_date: "",
   });
 
   const fetchEvents = async () => {
@@ -88,6 +113,69 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
     }
   };
 
+  const addRecurringEvents = async () => {
+    const { title, start_date, end_date, day_of_week, grade, event_type, event_time, subject, description } = recurringEvent;
+    
+    if (!title || !start_date || !end_date || !grade) {
+      toast({ title: "خطأ", description: "أكمل العنوان وتاريخ البداية والنهاية والصف", variant: "destructive" });
+      return;
+    }
+
+    const startD = parseISO(start_date);
+    const endD = parseISO(end_date);
+
+    if (isBefore(endD, startD)) {
+      toast({ title: "خطأ", description: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية", variant: "destructive" });
+      return;
+    }
+
+    // Generate all dates for the chosen day of week between start and end
+    const dates: string[] = [];
+    let current = startD;
+    
+    // Find the first occurrence of the chosen day
+    while (current.getDay() !== day_of_week) {
+      current = addDays(current, 1);
+    }
+
+    while (isBefore(current, endD) || isEqual(current, endD)) {
+      dates.push(format(current, "yyyy-MM-dd"));
+      current = addDays(current, 7); // next week same day
+    }
+
+    if (dates.length === 0) {
+      toast({ title: "خطأ", description: "لا يوجد أيام تطابق الاختيار في هذه الفترة", variant: "destructive" });
+      return;
+    }
+
+    setAddingRecurring(true);
+
+    const rows = dates.map(d => {
+      const row: any = {
+        title,
+        event_date: d,
+        event_type,
+        grade,
+      };
+      if (description) row.description = description;
+      if (event_time) row.event_time = event_time;
+      if (subject) row.subject = subject;
+      return row;
+    });
+
+    const { error } = await supabase.from("schedule_events").insert(rows);
+    setAddingRecurring(false);
+
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إضافة الأحداث المتكررة", variant: "destructive" });
+    } else {
+      toast({ title: `تم إضافة ${dates.length} حدث متكرر ✅`, description: `كل ${dayOptions.find(d => d.value === day_of_week)?.label} من ${start_date} إلى ${end_date}` });
+      setRecurringEvent({ title: "", description: "", event_time: "", event_type: "class", grade: recurringEvent.grade, subject: "", day_of_week: 0, start_date: "", end_date: "" });
+      setShowRecurring(false);
+      fetchEvents();
+    }
+  };
+
   const deleteEvent = async (id: string) => {
     const { error } = await supabase.from("schedule_events").delete().eq("id", id);
     if (error) {
@@ -104,9 +192,14 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
         <h2 className="font-bold flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary" /> الجدول الدراسي
         </h2>
-        <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1">
-          <Plus className="w-3 h-3" /> إضافة حدث
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => { setShowRecurring(!showRecurring); setShowAdd(false); }} className="gap-1">
+            <Repeat className="w-3 h-3" /> حدث متكرر
+          </Button>
+          <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowRecurring(false); }} className="gap-1">
+            <Plus className="w-3 h-3" /> حدث واحد
+          </Button>
+        </div>
       </div>
 
       {/* Grade filter */}
@@ -124,63 +217,38 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
         ))}
       </div>
 
-      {/* Add form */}
+      {/* Single event form */}
       {showAdd && (
         <div className="bg-muted rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> إضافة حدث واحد</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">العنوان *</Label>
-              <Input
-                value={newEvent.title}
-                onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder="مثل: امتحان الفقه الشهري"
-              />
+              <Input value={newEvent.title} onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} placeholder="مثل: امتحان الفقه الشهري" />
             </div>
             <div>
               <Label className="text-xs">النوع</Label>
-              <select
-                value={newEvent.event_type}
-                onChange={e => setNewEvent({ ...newEvent, event_type: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                {eventTypes.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
+              <select value={newEvent.event_type} onChange={e => setNewEvent({ ...newEvent, event_type: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                {eventTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
               <Label className="text-xs">التاريخ *</Label>
-              <Input
-                type="date"
-                value={newEvent.event_date}
-                onChange={e => setNewEvent({ ...newEvent, event_date: e.target.value })}
-              />
+              <Input type="date" value={newEvent.event_date} onChange={e => setNewEvent({ ...newEvent, event_date: e.target.value })} />
             </div>
             <div>
               <Label className="text-xs">الوقت (اختياري)</Label>
-              <Input
-                type="time"
-                value={newEvent.event_time}
-                onChange={e => setNewEvent({ ...newEvent, event_time: e.target.value })}
-              />
+              <Input type="time" value={newEvent.event_time} onChange={e => setNewEvent({ ...newEvent, event_time: e.target.value })} />
             </div>
             <div>
               <Label className="text-xs">الصف *</Label>
-              <select
-                value={newEvent.grade}
-                onChange={e => setNewEvent({ ...newEvent, grade: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
+              <select value={newEvent.grade} onChange={e => setNewEvent({ ...newEvent, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                 {grades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
               <Label className="text-xs">المادة (اختياري)</Label>
-              <select
-                value={newEvent.subject}
-                onChange={e => setNewEvent({ ...newEvent, subject: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
+              <select value={newEvent.subject} onChange={e => setNewEvent({ ...newEvent, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                 <option value="">بدون مادة</option>
                 {subjects.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -188,16 +256,77 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
           </div>
           <div>
             <Label className="text-xs">ملاحظات (اختياري)</Label>
-            <textarea
-              value={newEvent.description}
-              onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-              placeholder="تفاصيل إضافية..."
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <textarea value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} placeholder="تفاصيل إضافية..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div className="flex gap-2">
             <Button onClick={addEvent} size="sm" className="flex-1">إضافة الحدث</Button>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Recurring event form */}
+      {showRecurring && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-bold flex items-center gap-1 text-primary"><Repeat className="w-4 h-4" /> إضافة حدث متكرر أسبوعياً</h3>
+          <p className="text-[11px] text-muted-foreground">سيتم إنشاء الحدث تلقائياً في كل يوم تختاره من تاريخ البداية لتاريخ النهاية</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">العنوان *</Label>
+              <Input value={recurringEvent.title} onChange={e => setRecurringEvent({ ...recurringEvent, title: e.target.value })} placeholder="مثل: حصة الفقه" />
+            </div>
+            <div>
+              <Label className="text-xs">النوع</Label>
+              <select value={recurringEvent.event_type} onChange={e => setRecurringEvent({ ...recurringEvent, event_type: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                {eventTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">اليوم من الأسبوع *</Label>
+              <select value={recurringEvent.day_of_week} onChange={e => setRecurringEvent({ ...recurringEvent, day_of_week: parseInt(e.target.value) })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                {dayOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">الوقت (اختياري)</Label>
+              <Input type="time" value={recurringEvent.event_time} onChange={e => setRecurringEvent({ ...recurringEvent, event_time: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">من تاريخ *</Label>
+              <Input type="date" value={recurringEvent.start_date} onChange={e => setRecurringEvent({ ...recurringEvent, start_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">إلى تاريخ *</Label>
+              <Input type="date" value={recurringEvent.end_date} onChange={e => setRecurringEvent({ ...recurringEvent, end_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">الصف *</Label>
+              <select value={recurringEvent.grade} onChange={e => setRecurringEvent({ ...recurringEvent, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">المادة (اختياري)</Label>
+              <select value={recurringEvent.subject} onChange={e => setRecurringEvent({ ...recurringEvent, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="">بدون مادة</option>
+                {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">ملاحظات (اختياري)</Label>
+            <textarea value={recurringEvent.description} onChange={e => setRecurringEvent({ ...recurringEvent, description: e.target.value })} placeholder="تفاصيل إضافية..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring" />
+          </div>
+          {recurringEvent.start_date && recurringEvent.end_date && !isBefore(parseISO(recurringEvent.end_date), parseISO(recurringEvent.start_date)) && (
+            <div className="bg-background rounded-lg p-2 text-xs text-muted-foreground text-center">
+              سيتم إنشاء حدث كل <span className="font-bold text-foreground">{dayOptions.find(d => d.value === recurringEvent.day_of_week)?.label}</span> من <span className="font-bold text-foreground">{recurringEvent.start_date}</span> إلى <span className="font-bold text-foreground">{recurringEvent.end_date}</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={addRecurringEvents} size="sm" className="flex-1 gap-1" disabled={addingRecurring}>
+              {addingRecurring ? <><RefreshCw className="w-3 h-3 animate-spin" /> جاري الإضافة...</> : <><Repeat className="w-3 h-3" /> إضافة الأحداث المتكررة</>}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowRecurring(false)}>إلغاء</Button>
           </div>
         </div>
       )}
