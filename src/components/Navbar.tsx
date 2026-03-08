@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { BookOpen, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,6 +47,7 @@ const Navbar = () => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle className={!scrolled ? "text-primary-foreground hover:bg-primary-foreground/10" : ""} />
           <Link to="/auth/login">
             <Button variant={scrolled ? "outline" : "ghost"} size="sm" className={!scrolled ? "text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10" : ""}>
               تسجيل الدخول
@@ -73,7 +75,8 @@ const Navbar = () => {
           <Link to="/" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>الرئيسية</Link>
           <a href="/#about" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>من نحن</a>
           <a href="/#join" className="block text-sm py-2 text-foreground" onClick={() => setMenuOpen(false)}>انضم إلينا</a>
-          <div className="flex gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2">
+            <ThemeToggle />
             <Link to="/auth/login" className="flex-1" onClick={() => setMenuOpen(false)}>
               <Button variant="outline" size="sm" className="w-full">تسجيل الدخول</Button>
             </Link>
