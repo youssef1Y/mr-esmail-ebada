@@ -186,6 +186,32 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
     }
   };
 
+  const deleteSimilarEvents = async (event: ScheduleEvent) => {
+    let query = supabase.from("schedule_events").delete()
+      .eq("title", event.title)
+      .eq("event_type", event.event_type)
+      .eq("grade", event.grade);
+    
+    if (event.event_time) {
+      query = query.eq("event_time", event.event_time);
+    }
+    if (event.subject) {
+      query = query.eq("subject", event.subject);
+    }
+
+    const { error } = await query;
+    if (error) {
+      toast({ title: "خطأ", description: "فشل الحذف", variant: "destructive" });
+    } else {
+      const remaining = events.filter(e => 
+        !(e.title === event.title && e.event_type === event.event_type && e.grade === event.grade && e.event_time === event.event_time && e.subject === event.subject)
+      );
+      setEvents(remaining);
+      const deletedCount = events.length - remaining.length;
+      toast({ title: `تم حذف ${deletedCount} حدث متشابه ✅` });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
