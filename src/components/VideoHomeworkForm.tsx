@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 interface MCQQuestion {
   question: string;
   options: string[];
-  correct: number;
+  correct?: number; // May not be present if hidden from client
 }
 
 interface VideoHomeworkFormProps {
@@ -25,6 +25,7 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
+  const [gradedAnswers, setGradedAnswers] = useState<{ questionIndex: number; selectedOption: number; isCorrect: boolean }[]>([]);
 
   const handleSelectAnswer = (qIndex: number, optIndex: number) => {
     if (result) return; // Don't allow changes after submission
@@ -66,35 +67,43 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
         if (!error) uploadedUrls.push(path);
       }
 
-      // Calculate score
-      let score = 0;
-      const total = questions.length;
-      const answersArray = questions.map((q, i) => {
-        const isCorrect = answers[i] === q.correct;
-        if (isCorrect) score++;
-        return {
-          questionIndex: i,
-          selectedOption: answers[i] ?? -1,
-          isCorrect,
-        };
-      });
+      // Submit via server-side grading function (prevents score injection)
+      const answersArray = questions.map((q, i) => ({
+        questionIndex: i,
+        selectedOption: answers[i] ?? -1,
+      }));
 
-      const { error } = await supabase.from("video_homework_submissions").insert({
-        homework_id: homeworkId,
-        user_id: userId,
-        answers: answersArray,
-        image_urls: uploadedUrls,
-        score: total > 0 ? score : null,
-        total: total > 0 ? total : null,
-      } as any);
+      const { data: gradeResult, error } = await supabase.rpc("submit_video_homework", {
+        p_homework_id: homeworkId,
+        p_user_id: userId,
+        p_answers: answersArray,
+        p_image_urls: uploadedUrls,
+      });
 
       if (error) {
         console.error("Submit error:", error);
-        toast({ title: "خطأ", description: "حدث خطأ أثناء إرسال الواجب", variant: "destructive" });
+        toast({ title: "خطأ", description: error.message || "حدث خطأ أثناء إرسال الواجب", variant: "destructive" });
       } else {
-        if (total > 0) {
+        const serverResult = gradeResult as any;
+        const score = serverResult?.score;
+        const total = serverResult?.total;
+        const submissionId = serverResult?.id;
+        
+        // Fetch graded answers from server
+        if (submissionId) {
+          const { data: submission } = await supabase
+            .from("video_homework_submissions")
+            .select("answers")
+            .eq("id", submissionId)
+            .single();
+          if (submission?.answers) {
+            setGradedAnswers(submission.answers as any);
+          }
+        }
+        
+        if (score !== null && total !== null && total > 0) {
           setResult({ score, total });
-          const points = Math.max(5, Math.min(15, Math.round((score / total) * 15)));
+          const points = Math.max(2, Math.min(8, Math.round((score / total) * 8)));
           toast({ title: `تم إرسال الواجب! النتيجة: ${score}/${total} 🎉`, description: `حصلت على ${points} نقطة` });
         } else {
           toast({ title: "تم إرسال الواجب بنجاح! ✅" });
@@ -132,7 +141,7 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
             نسبة النجاح: {Math.round((result.score / result.total) * 100)}%
           </p>
           <p className="text-xs font-medium text-emerald-600">
-            +{Math.max(5, Math.min(15, Math.round((result.score / result.total) * 15)))} نقطة 🎉
+            +{Math.max(2, Math.min(8, Math.round((result.score / result.total) * 8)))} نقطة 🎉
           </p>
         </div>
       )}
