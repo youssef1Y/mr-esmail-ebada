@@ -409,6 +409,7 @@ const AdminScheduleTab = ({ toast }: { toast: any }) => {
                   <Trash className="w-3.5 h-3.5" />
                 </Button>
               </div>
+            </div>
           ))}
         </div>
       )}
