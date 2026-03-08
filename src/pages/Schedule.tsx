@@ -51,6 +51,10 @@ const Schedule = () => {
       if (!profile) return;
       setGrade(profile.grade);
 
+      // Check if admin
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
+      if (roles && roles.length > 0) setIsAdmin(true);
+
       setLoading(true);
       const allEvents: ScheduleEvent[] = [];
 
