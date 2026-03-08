@@ -307,7 +307,10 @@ const SubjectVideos = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          <p className="text-xs text-muted-foreground">جاري تحميل المحتوى...</p>
+        </div>
       </div>
     );
   }
@@ -316,10 +319,10 @@ const SubjectVideos = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border sticky top-0 z-50">
+      <header className="bg-card/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
               <BookOpen className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-bold text-sm">منصة الأستاذ إسماعيل</span>
@@ -346,7 +349,7 @@ const SubjectVideos = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="ابحث في الفيديوهات..."
-            className="pr-10"
+            className="pr-10 h-11 rounded-xl"
           />
         </div>
 
@@ -381,7 +384,7 @@ const SubjectVideos = () => {
 
               return (
               <StaggerItem key={v.id}>
-                <div className={`bg-card rounded-xl border border-border overflow-hidden ${locked ? "opacity-70" : ""}`}>
+                <div className={`bg-card rounded-2xl border border-border overflow-hidden transition-all hover:shadow-lg hover:border-primary/20 ${locked ? "opacity-70" : ""}`}>
                 {locked ? (
                   <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3 p-4">
                     <div className="w-14 h-14 rounded-full bg-muted-foreground/10 flex items-center justify-center">

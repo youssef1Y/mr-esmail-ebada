@@ -106,16 +106,16 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border">
+      <header className="bg-card/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
               <BookOpen className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-sm">منصة الأستاذ إسماعيل</span>
+            <span className="font-bold text-sm">الملف الشخصي</span>
           </div>
           <Link to="/dashboard">
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1 rounded-xl">
               العودة للوحة التحكم
               <ArrowRight className="w-3 h-3" />
             </Button>
