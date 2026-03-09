@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { BookOpen, Users, GraduationCap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import IslamicParticles from "@/components/IslamicParticles";
 const teacherImg = new URL("@/assets/teacher.jpg", import.meta.url).href;
 const islamicPattern = new URL("@/assets/islamic-pattern.jpg", import.meta.url).href;
 
@@ -21,6 +22,9 @@ const HeroSection = () => {
           mixBlendMode: 'soft-light',
         }}
       />
+
+      {/* Islamic particle effects */}
+      <IslamicParticles />
 
       {/* Glow effects */}
       <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gold/10 rounded-full blur-[100px]" />

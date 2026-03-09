@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import ScrollToTop from "@/components/ScrollToTop";
 
 // Lazy load below-fold sections
 const AboutSection = lazy(() => import("@/components/AboutSection"));
@@ -118,6 +119,7 @@ const Index = () => {
         <Footer />
         <InstallPWABanner />
       </Suspense>
+      <ScrollToTop />
     </div>
   );
 };
