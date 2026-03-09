@@ -492,6 +492,69 @@ const AdminPromoteTab = ({ toast }: { toast: any }) => {
   );
 };
 
+// Admin Parent Reports Tab
+const AdminParentReportsTab = ({ toast }: { toast: any }) => {
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent?: number; total?: number; errors?: string[] } | null>(null);
+
+  const sendReports = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("send-weekly-report", {
+        body: {},
+      });
+      if (error) {
+        toast({ title: "خطأ", description: "فشل إرسال التقارير", variant: "destructive" });
+      } else {
+        setResult(data);
+        toast({ title: "تم الإرسال", description: `تم إرسال ${data.sent} تقرير من أصل ${data.total}` });
+      }
+    } catch {
+      toast({ title: "خطأ", description: "حدث خطأ", variant: "destructive" });
+    }
+    setSending(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2"><Send className="w-4 h-4" /> تقارير أولياء الأمور الأسبوعية</h3>
+      <div className="bg-muted rounded-xl p-4 space-y-3">
+        <p className="text-sm text-muted-foreground">إرسال تقرير أداء أسبوعي لكل ولي أمر مسجل عبر رسالة SMS. يتضمن التقرير:</p>
+        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+          <li>عدد الفيديوهات المشاهدة هذا الأسبوع</li>
+          <li>الواجبات المسلّمة ومتوسط الدرجات</li>
+          <li>الامتحانات المحلولة ومتوسط النتائج</li>
+          <li>النقاط الكلية والترتيب</li>
+          <li>عدد الواجبات المتأخرة</li>
+        </ul>
+        <Button onClick={sendReports} disabled={sending} className="w-full gap-2">
+          {sending ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" /> جاري الإرسال...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" /> إرسال التقارير الآن
+            </>
+          )}
+        </Button>
+      </div>
+      {result && (
+        <div className="bg-primary/10 rounded-xl p-4 text-sm">
+          <p className="font-bold">✅ تم الإرسال</p>
+          <p>تم إرسال {result.sent} تقرير من أصل {result.total} ولي أمر</p>
+          {result.errors && result.errors.length > 0 && (
+            <p className="text-destructive text-xs mt-2">فشل الإرسال لـ: {result.errors.join(", ")}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const AdminStudentReportTab = () => {
   const [reportGrade, setReportGrade] = useState("");
@@ -978,7 +1041,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1784,6 +1847,7 @@ const Dashboard = () => {
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
                 { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
+                { key: "parent-reports" as const, label: "تقارير أولياء الأمور", icon: Send },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
                   <t.icon className="w-4 h-4" />
@@ -2463,6 +2527,11 @@ const Dashboard = () => {
               {/* Grade Promotion */}
               {adminTab === "promote" && (
                 <AdminPromoteTab toast={toast} />
+              )}
+
+              {/* Parent Reports */}
+              {adminTab === "parent-reports" && (
+                <AdminParentReportsTab toast={toast} />
               )}
 
               {/* Messages Tab */}
