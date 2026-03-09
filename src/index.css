@@ -1,3 +1,4 @@
+/* Fonts loaded via preload in index.html for better performance */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800;900&family=Amiri:wght@400;700&display=swap');
 
 @tailwind base;
