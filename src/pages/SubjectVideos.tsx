@@ -255,7 +255,7 @@ const SubjectVideos = () => {
     !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
   );
 
-  const isVideoLocked = (videoId: string): boolean => {
+  const isVideoLocked = useCallback((videoId: string): boolean => {
     if (isAdmin) return false;
     const videoIndex = videos.findIndex(v => v.id === videoId);
     if (videoIndex <= 0) return false;
@@ -265,7 +265,7 @@ const SubjectVideos = () => {
       if (hw && !submittedHomework.has(hw.id)) return true;
     }
     return false;
-  };
+  }, [isAdmin, videos, videoHomework, submittedHomework]);
 
   const getBlockingVideo = (videoId: string): VideoItem | null => {
     const videoIndex = videos.findIndex(v => v.id === videoId);
