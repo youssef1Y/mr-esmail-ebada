@@ -1784,6 +1784,7 @@ const Dashboard = () => {
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
                 { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
+                { key: "parent-reports" as const, label: "تقارير أولياء الأمور", icon: Send },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
                   <t.icon className="w-4 h-4" />
