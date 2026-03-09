@@ -67,6 +67,31 @@ serve(async (req) => {
       }
     }
 
+    // 3) Fetch exam questions linked to this grade/subject
+    const { data: exams } = await sb
+      .from("exams")
+      .select("id")
+      .eq("grade", g)
+      .eq("subject", randomSubject);
+
+    const examQuestionsList: { question: string; correctAnswer: string }[] = [];
+    if (exams && exams.length > 0) {
+      const examIds = exams.map((e: any) => e.id);
+      const { data: eqs } = await sb
+        .from("exam_questions")
+        .select("question_text, correct_answer")
+        .eq("question_type", "mcq")
+        .in("exam_id", examIds)
+        .limit(30);
+      if (eqs) {
+        for (const q of eqs as any[]) {
+          if (q.question_text && q.correct_answer) {
+            examQuestionsList.push({ question: q.question_text, correctAnswer: q.correct_answer });
+          }
+        }
+      }
+    }
+
     // Build rich content context from ACTUAL questions (not just titles)
     let contentContext = "";
 
