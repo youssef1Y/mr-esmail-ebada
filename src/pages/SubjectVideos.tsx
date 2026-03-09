@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
-import VideoHomeworkForm from "@/components/VideoHomeworkForm";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,16 +52,15 @@ const SubjectVideos = () => {
   const [submittedHomework, setSubmittedHomework] = useState<Set<string>>(new Set());
 
   const videosRef = useRef<VideoItem[]>([]);
+  const playerSectionRef = useRef<HTMLDivElement>(null);
   const SIGNED_URL_TTL_SECONDS = 60 * 60;
   const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
   const getStoragePathFromVideoUrl = useCallback((videoUrl: string) => {
     if (!videoUrl) return null;
-
     if (!videoUrl.includes("://")) {
       return decodeURIComponent(videoUrl.replace(/^\/+/, ""));
     }
-
     try {
       const url = new URL(videoUrl);
       const markers = [
@@ -70,14 +68,12 @@ const SubjectVideos = () => {
         "/storage/v1/object/public/videos/",
         "/storage/v1/object/videos/",
       ];
-
       for (const marker of markers) {
         if (url.pathname.includes(marker)) {
           const rawPath = url.pathname.split(marker)[1] || "";
           return decodeURIComponent(rawPath.replace(/^\/+/, ""));
         }
       }
-
       return null;
     } catch {
       return null;
@@ -89,32 +85,15 @@ const SubjectVideos = () => {
       items.map(async (item) => {
         const filePath = getStoragePathFromVideoUrl(item.video_url);
         if (!filePath) return item;
-
         const { data, error } = await supabase.storage
           .from("videos")
           .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
-
         if (error || !data?.signedUrl) return item;
         return { ...item, video_url: data.signedUrl };
       })
     );
-
     return resolved;
   }, [getStoragePathFromVideoUrl]);
-
-  const refreshSingleVideoUrl = useCallback(async (videoId: string) => {
-    const targetVideo = videosRef.current.find((video) => video.id === videoId);
-    if (!targetVideo) return false;
-
-    const [refreshedVideo] = await resolvePlayableVideoUrls([targetVideo]);
-    if (!refreshedVideo || refreshedVideo.video_url === targetVideo.video_url) return false;
-
-    setVideos((prev) =>
-      prev.map((video) => (video.id === videoId ? { ...video, video_url: refreshedVideo.video_url } : video))
-    );
-
-    return true;
-  }, [resolvePlayableVideoUrls]);
 
   useEffect(() => {
     const init = async () => {
@@ -132,7 +111,6 @@ const SubjectVideos = () => {
         .single();
       if (profile) setIsSubscribed(profile.is_subscribed);
       const studentMadhab = profile?.madhab || "";
-
       const isAdminUser = roles && roles.length > 0;
 
       if (subject && grade) {
@@ -148,15 +126,12 @@ const SubjectVideos = () => {
             ? data
             : data.filter(v => v.access_type === "all");
 
-          // Filter فقه videos by student's madhab (unless admin)
           if (decodeURIComponent(subject || "") === "الفقه" && !isAdminUser && studentMadhab) {
             filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
           }
 
-          // Store videos without pre-resolving URLs (lazy resolution on play)
           setVideos(filtered as VideoItem[]);
 
-          // Fetch homework for these videos
           const videoIds = filtered.map(v => v.id);
           if (videoIds.length > 0) {
             const { data: hwData } = await supabase
@@ -171,7 +146,6 @@ const SubjectVideos = () => {
               }
               setVideoHomework(hwMap);
 
-              // Check which homework the student already submitted
               const hwIds = (hwData as any[]).map((hw: any) => hw.id);
               const { data: subs } = await supabase
                 .from("video_homework_submissions" as any)
@@ -185,7 +159,6 @@ const SubjectVideos = () => {
             }
           }
 
-          // Track views
           for (const v of filtered) {
             supabase.from("video_views").insert({ video_id: v.id, user_id: session.user.id }).then(() => {});
           }
@@ -200,13 +173,12 @@ const SubjectVideos = () => {
     videosRef.current = videos;
   }, [videos]);
 
-  // Lazy resolve a single video URL when user clicks play
   const resolveAndPlay = useCallback(async (videoId: string) => {
     if (isVideoLocked(videoId)) return;
     
-    // If already resolved and not expired, just play
     if (resolvedUrls[videoId]) {
       setPlayingId(videoId);
+      setTimeout(() => playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
       return;
     }
 
@@ -217,15 +189,14 @@ const SubjectVideos = () => {
     if (resolved) {
       setResolvedUrls(prev => ({ ...prev, [videoId]: resolved.video_url }));
       setPlayingId(videoId);
+      setTimeout(() => playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     }
   }, [videos, resolvedUrls, resolvePlayableVideoUrls]);
 
   // Refresh URL for currently playing video periodically
   useEffect(() => {
     if (!playingId) return;
-
     const refreshIntervalMs = Math.max(60_000, (SIGNED_URL_TTL_SECONDS * 1000) - REFRESH_BUFFER_MS);
-
     const interval = setInterval(async () => {
       const video = videosRef.current.find(v => v.id === playingId);
       if (!video) return;
@@ -234,7 +205,6 @@ const SubjectVideos = () => {
         setResolvedUrls(prev => ({ ...prev, [playingId]: refreshed.video_url }));
       }
     }, refreshIntervalMs);
-
     return () => clearInterval(interval);
   }, [playingId, resolvePlayableVideoUrls]);
 
@@ -285,26 +255,18 @@ const SubjectVideos = () => {
     !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
   );
 
-  // Check if a video is locked: ANY previous video with homework must have its homework submitted
   const isVideoLocked = (videoId: string): boolean => {
     if (isAdmin) return false;
-    
-    // Find this video's index in the FULL ordered videos array
     const videoIndex = videos.findIndex(v => v.id === videoId);
-    if (videoIndex <= 0) return false; // First video always unlocked
-    
-    // Check ALL previous videos - if any has unsubmitted homework, lock this video
+    if (videoIndex <= 0) return false;
     for (let i = 0; i < videoIndex; i++) {
       const prevVideo = videos[i];
       const hw = videoHomework[prevVideo.id];
-      if (hw && !submittedHomework.has(hw.id)) {
-        return true; // Locked - a previous video's homework is not submitted
-      }
+      if (hw && !submittedHomework.has(hw.id)) return true;
     }
     return false;
   };
 
-  // Find the first previous video with unsubmitted homework (for the lock button)
   const getBlockingVideo = (videoId: string): VideoItem | null => {
     const videoIndex = videos.findIndex(v => v.id === videoId);
     if (videoIndex <= 0) return null;
@@ -319,6 +281,18 @@ const SubjectVideos = () => {
   const handleHomeworkSubmitted = (homeworkId: string) => {
     setSubmittedHomework(prev => new Set([...prev, homeworkId]));
   };
+
+  const playingVideo = playingId ? videos.find(v => v.id === playingId) : null;
+  const playingVideoIndex = playingId ? videos.findIndex(v => v.id === playingId) : -1;
+
+  // Get next playable video
+  const getNextVideo = useCallback(() => {
+    if (playingVideoIndex < 0) return null;
+    for (let i = playingVideoIndex + 1; i < videos.length; i++) {
+      if (!isVideoLocked(videos[i].id)) return videos[i];
+    }
+    return null;
+  }, [playingVideoIndex, videos]);
 
   if (loading) {
     return (
@@ -352,14 +326,138 @@ const SubjectVideos = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="text-center mb-6">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
+        <div className="text-center mb-5">
           <h1 className="text-2xl font-bold font-amiri mb-1">{decodedSubject}</h1>
           <p className="text-sm text-muted-foreground">{grade}</p>
         </div>
 
+        {/* Currently Playing Video - Sticky Section */}
+        {playingVideo && resolvedUrls[playingVideo.id] && (
+          <div ref={playerSectionRef} className="mb-6 sticky top-14 z-40">
+            <div className="bg-card rounded-2xl border border-primary/20 overflow-hidden shadow-xl">
+              <VideoPlayer
+                src={resolvedUrls[playingVideo.id]}
+                title={playingVideo.title}
+                onRefreshSource={async () => {
+                  const [refreshed] = await resolvePlayableVideoUrls([playingVideo]);
+                  if (refreshed) {
+                    setResolvedUrls(prev => ({ ...prev, [playingVideo.id]: refreshed.video_url }));
+                    return true;
+                  }
+                  return false;
+                }}
+              />
+              <div className="p-3 flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-sm truncate">
+                    <span className="text-muted-foreground ml-1">{playingVideoIndex + 1}.</span>
+                    {playingVideo.title}
+                  </h3>
+                  {playingVideo.description && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">{playingVideo.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Next video button */}
+                  {getNextVideo() && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => {
+                        const next = getNextVideo();
+                        if (next) resolveAndPlay(next.id);
+                      }}
+                    >
+                      التالي
+                      <ChevronRight className="w-3 h-3" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setPlayingId(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Comments for playing video */}
+              {(() => {
+                const hw = videoHomework[playingVideo.id];
+                const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
+                return (
+                  <>
+                    <div className="border-t border-border px-3 pb-2 pt-1.5 flex items-center gap-3">
+                      <button
+                        onClick={() => toggleComments(playingVideo.id)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        {showComments === playingVideo.id ? "إخفاء التعليقات" : "التعليقات"}
+                        {comments[playingVideo.id]?.length ? (
+                          <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px]">{comments[playingVideo.id].length}</span>
+                        ) : null}
+                      </button>
+                      {hw && (
+                        <Link to={`/video-homework/${playingVideo.id}`} className="mr-auto">
+                          <Button variant={hwSubmitted ? "ghost" : "default"} size="sm" className="text-xs h-7 gap-1">
+                            <ClipboardList className="w-3.5 h-3.5" />
+                            {hwSubmitted ? "عرض النتيجة" : "حل الواجب"}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+
+                    {showComments === playingVideo.id && (
+                      <div className="border-t border-border p-3 space-y-3">
+                        {comments[playingVideo.id]?.map(c => (
+                          <div key={c.id} className="bg-muted rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-bold text-xs">{c.user_name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-muted-foreground">
+                                  {new Date(c.created_at).toLocaleDateString("ar-EG")}
+                                </span>
+                                {(c.user_id === userId || isAdmin) && (
+                                  <button onClick={() => deleteComment(c.id, playingVideo.id)} className="text-destructive hover:text-destructive/80">
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-xs">{c.content}</p>
+                          </div>
+                        ))}
+                        {comments[playingVideo.id]?.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-2">لا توجد تعليقات بعد</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Input
+                            value={newComment}
+                            onChange={e => setNewComment(e.target.value)}
+                            placeholder="اكتب تعليق أو سؤال..."
+                            className="text-xs h-9"
+                            onKeyDown={e => e.key === "Enter" && addComment(playingVideo.id)}
+                          />
+                          <Button size="sm" onClick={() => addComment(playingVideo.id)} className="h-9 px-3" disabled={!newComment.trim()}>
+                            <Send className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* Search */}
-        <div className="relative mb-6">
+        <div className="relative mb-5">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={searchQuery}
@@ -368,6 +466,16 @@ const SubjectVideos = () => {
             className="pr-10 h-11 rounded-xl"
           />
         </div>
+
+        {/* Video count */}
+        {filteredVideos.length > 0 && (isSubscribed || isAdmin) && (
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-muted-foreground">
+              {filteredVideos.length} فيديو
+              {playingId && ` · يتم تشغيل ${playingVideoIndex + 1}`}
+            </p>
+          </div>
+        )}
 
         {!isSubscribed && !isAdmin ? (
           <div className="bg-card rounded-2xl border border-border p-10 text-center space-y-4">
@@ -392,170 +500,142 @@ const SubjectVideos = () => {
             </p>
           </div>
         ) : (
-          <StaggerContainer className="space-y-4" staggerDelay={0.1}>
+          <StaggerContainer className="space-y-3" staggerDelay={0.08}>
             {filteredVideos.map((v, i) => {
               const locked = isVideoLocked(v.id);
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
+              const isCurrentlyPlaying = playingId === v.id;
+              const globalIndex = videos.findIndex(vid => vid.id === v.id);
 
               return (
-              <StaggerItem key={v.id}>
-                <div className={`bg-card rounded-2xl border border-border overflow-hidden transition-all hover:shadow-lg hover:border-primary/20 ${locked ? "opacity-70" : ""}`}>
-                {locked ? (
-                  <div className="w-full aspect-video bg-muted flex flex-col items-center justify-center gap-3 p-4">
-                    <div className="w-14 h-14 rounded-full bg-muted-foreground/10 flex items-center justify-center">
-                      <Lock className="w-7 h-7 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm font-bold text-muted-foreground text-center">
-                      هذا الفيديو مغلق
-                    </p>
-                    <p className="text-xs text-muted-foreground text-center">
-                      يجب حل واجب الفيديو السابق أولاً لفتح هذا الفيديو
-                    </p>
-                    {(() => {
-                      const blockingVideo = getBlockingVideo(v.id);
-                      if (!blockingVideo) return null;
-                      return (
-                        <Link to={`/video-homework/${blockingVideo.id}`}>
-                          <Button size="sm" className="gap-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-                            <ClipboardList className="w-4 h-4" />
-                            حل واجب الفيديو السابق
-                          </Button>
-                        </Link>
-                      );
-                    })()}
-                  </div>
-                ) : playingId === v.id && resolvedUrls[v.id] ? (
-                  <VideoPlayer
-                    src={resolvedUrls[v.id]}
-                    title={v.title}
-                    onRefreshSource={async () => {
-                      const [refreshed] = await resolvePlayableVideoUrls([v]);
-                      if (refreshed) {
-                        setResolvedUrls(prev => ({ ...prev, [v.id]: refreshed.video_url }));
-                        return true;
-                      }
-                      return false;
-                    }}
-                  />
-                ) : (
-                  <button
-                    onClick={() => resolveAndPlay(v.id)}
-                    className="w-full aspect-video bg-muted flex items-center justify-center relative group"
+                <StaggerItem key={v.id}>
+                  <div
+                    className={`bg-card rounded-xl border overflow-hidden transition-all ${
+                      isCurrentlyPlaying
+                        ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                        : locked
+                        ? "opacity-60 border-border"
+                        : "border-border hover:shadow-md hover:border-primary/20"
+                    }`}
                   >
-                    <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:bg-primary transition-colors">
-                      <Play className="w-8 h-8 text-primary-foreground ml-1" />
-                    </div>
-                  </button>
-                )}
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold text-sm">
-                      <span className="text-muted-foreground ml-2">{i + 1}.</span>
-                      {v.title}
-                    </h3>
-                    {hw && (
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                        hwSubmitted
-                          ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
-                          : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
-                      }`}>
-                        {hwSubmitted ? "✓ تم التسليم" : "واجب مطلوب"}
-                      </span>
-                    )}
-                    {v.madhab && (
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                        v.madhab === "شافعي" ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" :
-                        v.madhab === "حنفي" ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" :
-                        v.madhab === "مالكي" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" :
-                        v.madhab === "حنبلي" ? "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" :
-                        "bg-muted text-muted-foreground border-border"
-                      }`}>
-                        {v.madhab}
-                      </span>
-                    )}
-                  </div>
-                  {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
-
-                  {!locked && (
                     <button
-                      onClick={() => toggleComments(v.id)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-2 transition-colors"
+                      onClick={() => {
+                        if (locked) return;
+                        if (isCurrentlyPlaying) {
+                          playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          return;
+                        }
+                        resolveAndPlay(v.id);
+                      }}
+                      disabled={locked}
+                      className="w-full flex items-center gap-3 p-3 text-right"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      {showComments === v.id ? "إخفاء التعليقات" : "التعليقات والأسئلة"}
-                      {comments[v.id] && comments[v.id].length > 0 && (
-                        <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px]">{comments[v.id].length}</span>
+                      {/* Thumbnail / Play indicator */}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isCurrentlyPlaying
+                          ? "bg-primary text-primary-foreground"
+                          : locked
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary/10 text-primary group-hover:bg-primary/20"
+                      }`}>
+                        {locked ? (
+                          <Lock className="w-5 h-5" />
+                        ) : isCurrentlyPlaying ? (
+                          <div className="flex items-center gap-0.5">
+                            <div className="w-1 h-4 bg-primary-foreground rounded-full animate-pulse" />
+                            <div className="w-1 h-3 bg-primary-foreground rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
+                            <div className="w-1 h-5 bg-primary-foreground rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+                          </div>
+                        ) : (
+                          <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[11px] text-muted-foreground font-mono">{globalIndex + 1}</span>
+                          <h3 className="font-semibold text-sm truncate">{v.title}</h3>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {v.description && (
+                            <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">{v.description}</p>
+                          )}
+                          {hw && (
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold border ${
+                              hwSubmitted
+                                ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                                : "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
+                            }`}>
+                              {hwSubmitted ? "✓ تم" : "واجب"}
+                            </span>
+                          )}
+                          {v.madhab && (
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold border ${
+                              v.madhab === "شافعي" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" :
+                              v.madhab === "حنفي" ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" :
+                              v.madhab === "مالكي" ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" :
+                              v.madhab === "حنبلي" ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" :
+                              "bg-muted text-muted-foreground border-border"
+                            }`}>
+                              {v.madhab}
+                            </span>
+                          )}
+                          {isCurrentlyPlaying && (
+                            <span className="text-[9px] text-primary font-semibold">قيد التشغيل ▲</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Arrow / Lock */}
+                      {!locked && !isCurrentlyPlaying && (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       )}
                     </button>
-                  )}
-                </div>
 
-                {/* Homework link - show icon to open separate page */}
-                {!locked && hw && (
-                  <div className="border-t border-border p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className={`w-4 h-4 ${hwSubmitted ? "text-emerald-600" : "text-primary"}`} />
-                      <span className={`text-xs font-medium ${hwSubmitted ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"}`}>
-                        {hwSubmitted ? "تم تسليم الواجب" : "واجب مطلوب"}
-                      </span>
-                    </div>
-                    <Link to={`/video-homework/${v.id}`}>
-                      <Button variant={hwSubmitted ? "ghost" : "default"} size="sm" className="text-xs h-7 gap-1">
-                        {hwSubmitted ? "عرض النتيجة" : "حل الواجب"}
-                        <ChevronRight className="w-3 h-3" />
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-
-                {/* Comments Section */}
-                {showComments === v.id && (
-                  <div className="border-t border-border p-4 space-y-3">
-                    {comments[v.id]?.map(c => (
-                      <div key={c.id} className="bg-muted rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-xs">{c.user_name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(c.created_at).toLocaleDateString("ar-EG")}
-                            </span>
-                            {(c.user_id === userId || isAdmin) && (
-                              <button onClick={() => deleteComment(c.id, v.id)} className="text-destructive hover:text-destructive/80">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-xs">{c.content}</p>
+                    {/* Lock message */}
+                    {locked && (
+                      <div className="border-t border-border px-3 py-2 flex items-center justify-between">
+                        <p className="text-[11px] text-muted-foreground">يجب حل واجب الفيديو السابق</p>
+                        {(() => {
+                          const blockingVideo = getBlockingVideo(v.id);
+                          if (!blockingVideo) return null;
+                          return (
+                            <Link to={`/video-homework/${blockingVideo.id}`}>
+                              <Button size="sm" variant="outline" className="text-[10px] h-6 gap-1">
+                                <ClipboardList className="w-3 h-3" />
+                                حل الواجب
+                              </Button>
+                            </Link>
+                          );
+                        })()}
                       </div>
-                    ))}
-
-                    {comments[v.id]?.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-2">لا توجد تعليقات بعد</p>
                     )}
 
-                    <div className="flex gap-2">
-                      <Input
-                        value={newComment}
-                        onChange={e => setNewComment(e.target.value)}
-                        placeholder="اكتب تعليق أو سؤال..."
-                        className="text-xs h-9"
-                        onKeyDown={e => e.key === "Enter" && addComment(v.id)}
-                      />
-                      <Button size="sm" onClick={() => addComment(v.id)} className="h-9 px-3" disabled={!newComment.trim()}>
-                        <Send className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                    {/* Homework link for non-playing videos */}
+                    {!locked && !isCurrentlyPlaying && hw && (
+                      <div className="border-t border-border px-3 py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <ClipboardList className={`w-3.5 h-3.5 ${hwSubmitted ? "text-emerald-600" : "text-primary"}`} />
+                          <span className={`text-[11px] font-medium ${hwSubmitted ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"}`}>
+                            {hwSubmitted ? "تم تسليم الواجب" : "واجب مطلوب"}
+                          </span>
+                        </div>
+                        <Link to={`/video-homework/${v.id}`}>
+                          <Button variant={hwSubmitted ? "ghost" : "default"} size="sm" className="text-[10px] h-6 gap-1">
+                            {hwSubmitted ? "عرض" : "حل"}
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                )}
-                </div>
-              </StaggerItem>
+                </StaggerItem>
               );
             })}
           </StaggerContainer>
         )}
-
       </main>
     </div>
   );
