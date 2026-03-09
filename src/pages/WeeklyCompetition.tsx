@@ -196,10 +196,12 @@ const WeeklyCompetition = () => {
             </motion.div>
 
             {referralCode && (
-              <div className="bg-muted rounded-xl p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">كود الدعوة الخاص بك</p>
-                <p className="font-mono font-bold text-lg tracking-widest">{referralCode}</p>
-              </div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-5 text-center">
+                <p className="text-xs text-muted-foreground mb-2">كود الدعوة الخاص بك</p>
+                <p className="font-mono font-bold text-2xl tracking-[0.3em] text-amber-600 dark:text-amber-400">{referralCode}</p>
+                <p className="text-xs text-muted-foreground mt-2">شارك هذا الكود مع أصدقائك</p>
+              </motion.div>
             )}
           </div>
         )}
