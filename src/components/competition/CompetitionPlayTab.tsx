@@ -311,7 +311,7 @@ const CompetitionPlayTab = ({
   }
 
   // Subject selection view
-  const isDisabled = todayPlayed || keysCount <= 0 || noActiveComp;
+  const isDisabled = todayPlayed || keysCount <= 0;
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
@@ -320,12 +320,7 @@ const CompetitionPlayTab = ({
         <p className="text-muted-foreground text-sm">اختر الباب</p>
       </motion.div>
 
-      {noActiveComp ? (
-        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-500/20 p-4 text-center mb-6">
-          <p className="font-bold text-sm">لا توجد مسابقة نشطة حالياً</p>
-          <p className="text-xs text-muted-foreground">ترقب المسابقة القادمة! 🌟</p>
-        </motion.div>
-      ) : todayPlayed ? (
+      {todayPlayed ? (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border p-5 text-center mb-6">
           <CheckCircle className="w-10 h-10 text-primary mx-auto mb-2" />
           <p className="font-bold">لقد شاركت اليوم بالفعل!</p>
