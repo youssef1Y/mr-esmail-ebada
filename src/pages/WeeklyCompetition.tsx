@@ -22,6 +22,7 @@ const WeeklyCompetition = () => {
   const [pastWinners, setPastWinners] = useState<any[]>([]);
   const [myEntries, setMyEntries] = useState<any[]>([]);
   const [grade, setGrade] = useState("");
+  const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
   useEffect(() => {
     init();
@@ -70,6 +71,7 @@ const WeeklyCompetition = () => {
     setLoading(false);
   };
 
+
   const startQuestion = async () => {
     if (keysCount <= 0) {
       toast({ title: "لا توجد مفاتيح", description: "شارك رابط المنصة للحصول على مفاتيح!", variant: "destructive" });
@@ -84,14 +86,36 @@ const WeeklyCompetition = () => {
     }
 
     setKeysCount(k => k - 1);
+    setGeneratingQuestion(true);
 
-    // Get a random question from question_bank or exam_questions
+    try {
+      // Try AI-generated question first
+      const { data: aiQuestion, error: aiError } = await supabase.functions.invoke("generate-competition-question", {
+        body: { grade, subjects: ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"] },
+      });
+
+      if (!aiError && aiQuestion && !aiQuestion.error && aiQuestion.question_text) {
+        setQuestion({
+          question_text: aiQuestion.question_text,
+          options: aiQuestion.options,
+          correct_answer: aiQuestion.correct_answer,
+          subject: aiQuestion.subject,
+        });
+        setSelectedAnswer("");
+        setShowResult(false);
+        setGeneratingQuestion(false);
+        return;
+      }
+    } catch (e) {
+      console.error("AI question generation failed, falling back to question bank:", e);
+    }
+
+    // Fallback to question_bank
     const { data: questions } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"][Math.floor(Math.random() * 5)] });
     
     if (!questions || (questions as any[]).length === 0) {
-      // Refund key
-      toast({ title: "لا توجد أسئلة متاحة حالياً", description: "تم إرجاع المفتاح" });
-      // Give back key via direct update won't work due to RLS, so we accept the loss for now
+      toast({ title: "لا توجد أسئلة متاحة حالياً", description: "جرب مرة أخرى لاحقاً" });
+      setGeneratingQuestion(false);
       return;
     }
 
@@ -99,6 +123,7 @@ const WeeklyCompetition = () => {
     setQuestion(randomQ);
     setSelectedAnswer("");
     setShowResult(false);
+    setGeneratingQuestion(false);
   };
 
   const submitAnswer = async () => {
@@ -222,6 +247,12 @@ const WeeklyCompetition = () => {
                 <CheckCircle className="w-8 h-8 text-primary mx-auto mb-2" />
                 <p className="text-sm font-bold">لقد شاركت اليوم بالفعل!</p>
                 <p className="text-xs text-muted-foreground">عُد غداً لسؤال جديد 🌟</p>
+              </div>
+            ) : generatingQuestion ? (
+              <div className="text-center py-6">
+                <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+                <p className="font-bold text-sm">جاري إنشاء سؤال فريد لك...</p>
+                <p className="text-xs text-muted-foreground mt-1">يتم استخدام الذكاء الاصطناعي لإنشاء سؤال صعب 🧠</p>
               </div>
             ) : question ? (
               <AnimatePresence mode="wait">
