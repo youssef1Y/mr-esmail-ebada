@@ -31,12 +31,9 @@ const VideoHomeworkPage = () => {
       const { data: video } = await supabase.from("videos").select("title").eq("id", videoId!).single();
       if (video) setVideoTitle(video.title);
 
-      // Fetch homework
+      // Fetch homework via secure RPC (strips correct answers)
       const { data: hw } = await supabase
-        .from("video_homework" as any)
-        .select("*")
-        .eq("video_id", videoId!)
-        .single();
+        .rpc("get_video_homework_for_student", { p_video_id: videoId! });
 
       if (hw) {
         const hwData = hw as any;
