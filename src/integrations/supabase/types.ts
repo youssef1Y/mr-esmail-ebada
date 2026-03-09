@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      competition_entries: {
+        Row: {
+          competition_id: string
+          correct_answer: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          is_correct: boolean
+          options: Json | null
+          question_text: string
+          selected_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          competition_id: string
+          correct_answer?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          is_correct?: boolean
+          options?: Json | null
+          question_text: string
+          selected_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          competition_id?: string
+          correct_answer?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          is_correct?: boolean
+          options?: Json | null
+          question_text?: string
+          selected_answer?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_entries_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_answers: {
         Row: {
           answer: string | null
@@ -537,6 +584,48 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_completions: {
+        Row: {
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       schedule_events: {
         Row: {
           created_at: string
@@ -570,6 +659,30 @@ export type Database = {
           id?: string
           subject?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      student_keys: {
+        Row: {
+          created_at: string
+          first_key_given: boolean
+          id: string
+          keys_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_key_given?: boolean
+          id?: string
+          keys_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_key_given?: boolean
+          id?: string
+          keys_count?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -873,11 +986,51 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_competitions: {
+        Row: {
+          created_at: string
+          id: string
+          prize_description: string | null
+          status: string
+          title: string
+          week_end: string
+          week_start: string
+          winner_id: string | null
+          winner_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prize_description?: string | null
+          status?: string
+          title: string
+          week_end: string
+          week_start: string
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prize_description?: string | null
+          status?: string
+          title?: string
+          week_end?: string
+          week_start?: string
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      complete_referral: {
+        Args: { p_new_user_id: string; p_referral_code: string }
+        Returns: undefined
+      }
       expire_subscriptions: { Args: never; Returns: undefined }
       get_exam_questions: {
         Args: { p_exam_id: string }
@@ -888,6 +1041,10 @@ export type Database = {
           question_type: string
           sort_order: number
         }[]
+      }
+      get_or_create_referral_code: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       get_practice_questions: {
         Args: { p_grade: string; p_subject: string }
@@ -909,6 +1066,11 @@ export type Database = {
           total_students: number
         }[]
       }
+      get_today_competition_entry: {
+        Args: { p_competition_id: string; p_user_id: string }
+        Returns: number
+      }
+      give_first_key: { Args: { p_user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -925,6 +1087,7 @@ export type Database = {
         }
         Returns: Json
       }
+      use_key: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

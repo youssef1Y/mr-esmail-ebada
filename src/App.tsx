@@ -20,6 +20,7 @@ import MyResults from "./pages/MyResults";
 import Homework from "./pages/Homework";
 import Leaderboard from "./pages/Leaderboard";
 import QuestionBank from "./pages/QuestionBank";
+import WeeklyCompetition from "./pages/WeeklyCompetition";
 import StudentReport from "./pages/StudentReport";
 import Contact from "./pages/Contact";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -57,6 +58,7 @@ const AnimatedRoutes = () => {
         <Route path="/homework" element={<PageTransition><Homework /></PageTransition>} />
         <Route path="/leaderboard" element={<PageTransition><Leaderboard /></PageTransition>} />
         <Route path="/question-bank" element={<PageTransition><QuestionBank /></PageTransition>} />
+        <Route path="/weekly-competition" element={<PageTransition><WeeklyCompetition /></PageTransition>} />
         <Route path="/report" element={<PageTransition><StudentReport /></PageTransition>} />
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/student-notifications" element={<PageTransition><StudentNotifications /></PageTransition>} />

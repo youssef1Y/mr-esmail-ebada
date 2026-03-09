@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BookOpen, UserPlus, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ const madhabs = ["الفقه الشافعي", "الفقه المالكي", "ال
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref") || "";
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -69,6 +71,15 @@ const Register = () => {
     if (error) {
       toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
     } else {
+      // Complete referral if ref code exists
+      if (refCode) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.rpc("complete_referral", { p_referral_code: refCode, p_new_user_id: session.user.id });
+          }
+        } catch (e) { console.error("Referral error:", e); }
+      }
       try {
         await supabase.functions.invoke("notify-registration", {
           body: {

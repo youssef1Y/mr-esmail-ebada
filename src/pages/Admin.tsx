@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download, Trophy } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
+import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,7 +216,7 @@ const AdminNewsTab = ({ toast }: { toast: any }) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -831,6 +832,7 @@ const Admin = () => {
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
             { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
+            { key: "competition" as const, label: "المسابقات", icon: Trophy },
           ].map(t => (
             <Button
               key={t.key}
@@ -1762,6 +1764,10 @@ const Admin = () => {
 
         {tab === "schedule" && (
           <AdminScheduleTab toast={toast} />
+        )}
+
+        {tab === "competition" && (
+          <AdminCompetitionTab toast={toast} />
         )}
       </main>
     </div>

@@ -2784,6 +2784,11 @@ const Dashboard = () => {
                 <CalendarDays className="w-4 h-4" /> الجدول الدراسي
               </Button>
             </Link>
+            <Link to="/weekly-competition">
+              <Button variant="outline" size="sm" className="gap-1 border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10">
+                <Trophy className="w-4 h-4" /> المسابقة الأسبوعية
+              </Button>
+            </Link>
             <Link to="/certificates">
               <Button variant="outline" size="sm" className="gap-1">
                 <Trophy className="w-4 h-4" /> شهاداتي
