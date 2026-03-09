@@ -158,14 +158,8 @@ const CompetitionPlayTab = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
-  const noActiveComp = !activeComp;
-
   const handleSubjectSelect = async (subjectName: string) => {
     if (todayPlayed) return;
-    if (noActiveComp) {
-      toast({ title: "لا توجد مسابقة", description: "لا توجد مسابقة نشطة حالياً", variant: "destructive" });
-      return;
-    }
     if (keysCount <= 0) {
       toast({ title: "لا توجد مفاتيح", description: "شارك رابط المنصة للحصول على مفاتيح!", variant: "destructive" });
       return;
