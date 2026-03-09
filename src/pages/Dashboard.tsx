@@ -492,6 +492,69 @@ const AdminPromoteTab = ({ toast }: { toast: any }) => {
   );
 };
 
+// Admin Parent Reports Tab
+const AdminParentReportsTab = ({ toast }: { toast: any }) => {
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent?: number; total?: number; errors?: string[] } | null>(null);
+
+  const sendReports = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("send-weekly-report", {
+        body: {},
+      });
+      if (error) {
+        toast({ title: "خطأ", description: "فشل إرسال التقارير", variant: "destructive" });
+      } else {
+        setResult(data);
+        toast({ title: "تم الإرسال", description: `تم إرسال ${data.sent} تقرير من أصل ${data.total}` });
+      }
+    } catch {
+      toast({ title: "خطأ", description: "حدث خطأ", variant: "destructive" });
+    }
+    setSending(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2"><Send className="w-4 h-4" /> تقارير أولياء الأمور الأسبوعية</h3>
+      <div className="bg-muted rounded-xl p-4 space-y-3">
+        <p className="text-sm text-muted-foreground">إرسال تقرير أداء أسبوعي لكل ولي أمر مسجل عبر رسالة SMS. يتضمن التقرير:</p>
+        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+          <li>عدد الفيديوهات المشاهدة هذا الأسبوع</li>
+          <li>الواجبات المسلّمة ومتوسط الدرجات</li>
+          <li>الامتحانات المحلولة ومتوسط النتائج</li>
+          <li>النقاط الكلية والترتيب</li>
+          <li>عدد الواجبات المتأخرة</li>
+        </ul>
+        <Button onClick={sendReports} disabled={sending} className="w-full gap-2">
+          {sending ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" /> جاري الإرسال...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" /> إرسال التقارير الآن
+            </>
+          )}
+        </Button>
+      </div>
+      {result && (
+        <div className="bg-primary/10 rounded-xl p-4 text-sm">
+          <p className="font-bold">✅ تم الإرسال</p>
+          <p>تم إرسال {result.sent} تقرير من أصل {result.total} ولي أمر</p>
+          {result.errors && result.errors.length > 0 && (
+            <p className="text-destructive text-xs mt-2">فشل الإرسال لـ: {result.errors.join(", ")}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const AdminStudentReportTab = () => {
   const [reportGrade, setReportGrade] = useState("");
