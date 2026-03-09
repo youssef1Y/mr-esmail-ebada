@@ -2535,6 +2535,11 @@ const Dashboard = () => {
                 <AdminParentReportsTab toast={toast} />
               )}
 
+              {/* Keys Management */}
+              {adminTab === "keys" && (
+                <AdminKeysTab toast={toast} />
+              )}
+
               {/* Messages Tab */}
               {adminTab === "messages" && (
                 <div className="space-y-4">
