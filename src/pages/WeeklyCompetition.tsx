@@ -22,6 +22,7 @@ const WeeklyCompetition = () => {
   const [pastWinners, setPastWinners] = useState<any[]>([]);
   const [myEntries, setMyEntries] = useState<any[]>([]);
   const [grade, setGrade] = useState("");
+  const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
   useEffect(() => {
     init();
