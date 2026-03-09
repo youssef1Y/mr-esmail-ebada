@@ -191,7 +191,7 @@ const SubjectVideos = () => {
       setPlayingId(videoId);
       setTimeout(() => playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     }
-  }, [videos, resolvedUrls, resolvePlayableVideoUrls]);
+  }, [videos, resolvedUrls, resolvePlayableVideoUrls, isVideoLocked]);
 
   // Refresh URL for currently playing video periodically
   useEffect(() => {
