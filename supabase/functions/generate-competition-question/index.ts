@@ -116,6 +116,14 @@ serve(async (req) => {
       }
     }
 
+    if (examQuestionsList.length > 0) {
+      const shuffled = examQuestionsList.sort(() => Math.random() - 0.5).slice(0, 10);
+      contentContext += "\n\nأسئلة من امتحانات الفيديوهات (استلهم منها لكن لا تكررها):\n";
+      for (const q of shuffled) {
+        contentContext += `- السؤال: ${q.question} | الإجابة: ${q.correctAnswer}\n`;
+      }
+    }
+
     if (!contentContext) {
       return new Response(JSON.stringify({ error: "no_content" }), {
         status: 404,
