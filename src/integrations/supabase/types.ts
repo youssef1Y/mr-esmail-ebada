@@ -1078,6 +1078,10 @@ export type Database = {
         Args: { p_competition_id: string; p_user_id: string }
         Returns: number
       }
+      get_video_homework_for_student: {
+        Args: { p_video_id: string }
+        Returns: Json
+      }
       give_first_key: { Args: { p_user_id: string }; Returns: undefined }
       has_role: {
         Args: {
