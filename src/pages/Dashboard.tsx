@@ -2807,6 +2807,9 @@ const Dashboard = () => {
         {/* Push Notification Banner */}
         {!adminUnlocked && <PushNotificationBanner />}
 
+        {/* Daily Challenges */}
+        {!adminUnlocked && user && profile && <DailyChallenges userId={user.id} grade={displayGrade} />}
+
         {/* Student Progress Tracker */}
         {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
 
