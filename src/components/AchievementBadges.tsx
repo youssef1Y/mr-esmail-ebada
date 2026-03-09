@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Trophy, Video, ClipboardList, FileText, Star, Flame, Target, Award, Crown, Zap, BookOpen, Medal, Gem, Rocket, Shield, Sparkles } from "lucide-react";
+import { Trophy, Video, ClipboardList, FileText, Star, Flame, Target, Award, Crown, BookOpen } from "lucide-react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Badge {
@@ -13,17 +14,15 @@ interface Badge {
   color: string;
 }
 
-// Generate infinite tiers of badges based on actual progress
 function generateBadges(views: number, hw: number, perfectHw: number, exams: number, perfectExams: number, points: number, comments: number): Badge[] {
   const all: Badge[] = [];
   let tier = 0;
 
-  // Each tier generates 10 badges with increasing thresholds
   while (true) {
     const mult = tier + 1;
     const tierBadges: Badge[] = [
       { id: `videos_${mult}`, title: tier === 0 ? "أول خطوة 🎬" : `مشاهد محترف ×${mult} 🎬`, description: `شاهد ${mult * 10} فيديو`, icon: Video, earned: views >= mult * 10, progress: Math.min(views, mult * 10), target: mult * 10, color: "text-blue-500" },
-      { id: `hw_${mult}`, title: tier === 0 ? "مجتهد ✏️" : `بطل الواجبات ×${mult} ✏️`, description: `سلّم ${mult * 5} واجب`, icon: ClipboardList, earned: hw >= mult * 5, progress: Math.min(hw, mult * 5), target: mult * 5, color: "text-green-500" },
+      { id: `hw_${mult}`, title: tier === 0 ? "مجتهد ✏️" : `بطل الواجبات ×${mult} ✏️`, description: `سلّم ${mult * 5} واجب`, icon: ClipboardList, earned: hw >= mult * 5, progress: Math.min(hw, mult * 5), target: mult * 5, color: "text-emerald-500" },
       { id: `exams_${mult}`, title: tier === 0 ? "محارب الامتحانات ⚔️" : `خبير امتحانات ×${mult} ⚔️`, description: `ادخل ${mult * 5} امتحان`, icon: FileText, earned: exams >= mult * 5, progress: Math.min(exams, mult * 5), target: mult * 5, color: "text-purple-500" },
       { id: `perfect_hw_${mult}`, title: tier === 0 ? "الدرجة الكاملة 💯" : `درجات كاملة ×${mult} 💯`, description: `${mult} واجب 10/10`, icon: Award, earned: perfectHw >= mult, progress: Math.min(perfectHw, mult), target: mult, color: "text-amber-500" },
       { id: `perfect_exam_${mult}`, title: tier === 0 ? "عبقري 🧠" : `عبقري ×${mult} 🧠`, description: `${mult} امتحان درجة كاملة`, icon: Trophy, earned: perfectExams >= mult, progress: Math.min(perfectExams, mult), target: mult, color: "text-amber-600" },
@@ -35,8 +34,6 @@ function generateBadges(views: number, hw: number, perfectHw: number, exams: num
     ];
 
     all.push(...tierBadges);
-
-    // If this tier is NOT fully earned, stop generating more
     const allEarned = tierBadges.every(b => b.earned);
     if (!allEarned) break;
     tier++;
@@ -82,7 +79,6 @@ export const AchievementBadges = ({ userId }: { userId: string }) => {
 
   if (loading) return null;
 
-  // Show only the last 10 (current active tier)
   const visibleBadges = badges.slice(badges.length - 10);
   const earnedInTier = visibleBadges.filter(b => b.earned).length;
 
@@ -90,34 +86,60 @@ export const AchievementBadges = ({ userId }: { userId: string }) => {
     <div className="mb-8">
       <h2 className="text-xl font-bold font-amiri text-center mb-1">🏅 شاراتي</h2>
       <p className="text-center text-sm text-muted-foreground mb-4">
-        المستوى {currentTier + 1} — {earnedInTier}/10 شارة
+        المستوى {currentTier + 1} — <span className="font-bold text-foreground">{earnedInTier}</span>/10 شارة
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-2xl mx-auto">
-        {visibleBadges.map(badge => {
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-w-2xl mx-auto">
+        {visibleBadges.map((badge, i) => {
           const Icon = badge.icon;
+          const progressPercent = badge.target > 0 ? (badge.progress / badge.target) * 100 : 0;
           return (
-            <div
+            <motion.div
               key={badge.id}
-              className={`bg-card rounded-xl border p-3 text-center transition-all ${
-                badge.earned ? "border-primary/40 shadow-sm scale-[1.02]" : "border-border opacity-50 grayscale"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.05 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              className={`bg-card rounded-xl border p-3 text-center transition-all cursor-default ${
+                badge.earned
+                  ? "border-primary/40 shadow-md shadow-primary/10"
+                  : "border-border opacity-60 grayscale"
               }`}
             >
-              <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${
-                badge.earned ? "bg-primary/10" : "bg-muted"
-              }`}>
+              <motion.div
+                className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${
+                  badge.earned ? "bg-primary/10" : "bg-muted"
+                }`}
+                animate={badge.earned ? { rotate: [0, 5, -5, 0] } : {}}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+              >
                 <Icon className={`w-5 h-5 ${badge.earned ? badge.color : "text-muted-foreground"}`} />
-              </div>
+              </motion.div>
               <h4 className="font-bold text-xs leading-tight mb-0.5">{badge.title}</h4>
               <p className="text-[10px] text-muted-foreground">{badge.description}</p>
               {!badge.earned && (
                 <div className="mt-1.5">
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <div className="bg-primary/40 h-1.5 rounded-full transition-all" style={{ width: `${(badge.progress / badge.target) * 100}%` }} />
+                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.8, delay: i * 0.05 }}
+                      className="bg-primary/40 h-1.5 rounded-full"
+                    />
                   </div>
                   <span className="text-[9px] text-muted-foreground">{badge.progress}/{badge.target}</span>
                 </div>
               )}
-            </div>
+              {badge.earned && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.05 + 0.3, type: "spring" }}
+                  className="text-[10px] text-primary font-bold mt-1"
+                >
+                  ✓ مكتمل
+                </motion.div>
+              )}
+            </motion.div>
           );
         })}
       </div>
