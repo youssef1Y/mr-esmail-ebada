@@ -23,6 +23,9 @@ const HeroSection = () => {
         }}
       />
 
+      {/* Islamic particle effects */}
+      <IslamicParticles />
+
       {/* Glow effects */}
       <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gold/10 rounded-full blur-[100px]" />
       <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-primary-foreground/5 rounded-full blur-[120px]" />
