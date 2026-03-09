@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
-  Volume2, VolumeX, Volume1, Settings, Loader2, SkipForward
+  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -50,6 +50,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const [hoverPosition, setHoverPosition] = useState(0);
   const [tapCount, setTapCount] = useState(0);
   const [tapSide, setTapSide] = useState<"left" | "right" | null>(null);
+  const [isPiP, setIsPiP] = useState(false);
 
   // ── Source refresh ──
   const refreshSource = useCallback(async () => {
@@ -91,6 +92,18 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       } else {
         await document.exitFullscreen();
         try { screen.orientation?.unlock?.(); } catch {}
+      }
+    } catch {}
+  }, []);
+
+  const togglePiP = useCallback(async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await v.requestPictureInPicture();
       }
     } catch {}
   }, []);
@@ -138,7 +151,6 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const handleProgressMouseDown = useCallback((e: React.MouseEvent) => {
     setSeeking(true);
     handleProgressInteraction(e.clientX, true);
-
     const onMove = (ev: MouseEvent) => handleProgressInteraction(ev.clientX, true);
     const onUp = () => {
       setSeeking(false);
@@ -212,7 +224,6 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
 
     const onTimeUpdate = () => {
       if (!seeking) setCurrentTime(v.currentTime);
-      // Update buffered
       if (v.buffered.length > 0) {
         setBuffered(v.buffered.end(v.buffered.length - 1));
       }
@@ -232,6 +243,9 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         setBuffered(v.buffered.end(v.buffered.length - 1));
       }
     };
+
+    const onEnterPiP = () => setIsPiP(true);
+    const onLeavePiP = () => setIsPiP(false);
 
     let retryCount = 0;
     const MAX_RETRIES = 3;
@@ -271,6 +285,8 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     v.addEventListener("progress", onProgress);
     v.addEventListener("error", onError);
     v.addEventListener("stalled", onStalled);
+    v.addEventListener("enterpictureinpicture", onEnterPiP);
+    v.addEventListener("leavepictureinpicture", onLeavePiP);
 
     v.load();
 
@@ -286,6 +302,8 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       v.removeEventListener("progress", onProgress);
       v.removeEventListener("error", onError);
       v.removeEventListener("stalled", onStalled);
+      v.removeEventListener("enterpictureinpicture", onEnterPiP);
+      v.removeEventListener("leavepictureinpicture", onLeavePiP);
     };
   }, [src, seeking, refreshSource]);
 
@@ -312,11 +330,12 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         case "ArrowDown": e.preventDefault(); handleVolumeChange(Math.max(0, volume - 0.1)); break;
         case "f": e.preventDefault(); toggleFullscreen(); break;
         case "m": e.preventDefault(); toggleMute(); break;
+        case "p": e.preventDefault(); togglePiP(); break;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [togglePlay, skip, toggleFullscreen, toggleMute, handleVolumeChange, volume]);
+  }, [togglePlay, skip, toggleFullscreen, toggleMute, handleVolumeChange, volume, togglePiP]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedProgress = duration > 0 ? (buffered / duration) * 100 : 0;
@@ -326,9 +345,10 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   return (
     <div
       ref={containerRef}
-      className="relative bg-black w-full aspect-video group select-none overflow-hidden"
+      className="relative bg-black w-full aspect-video group select-none overflow-hidden rounded-t-2xl"
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
+      onContextMenu={(e) => e.preventDefault()}
       tabIndex={0}
       style={{ outline: "none" }}
     >
@@ -338,13 +358,14 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         className="w-full h-full object-contain"
         playsInline
         preload="auto"
+        onContextMenu={(e) => e.preventDefault()}
       />
 
       {/* Buffering Spinner */}
       {isBuffering && playing && !error && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-          <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center">
+            <Loader2 className="w-9 h-9 text-white animate-spin" />
           </div>
         </div>
       )}
@@ -374,13 +395,13 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       {/* Skip Indicator (YouTube-style ripple) */}
       {skipIndicator && (
         <div className={`absolute top-0 bottom-0 ${skipIndicator.side === "forward" ? "right-0" : "left-0"} w-2/5 flex items-center justify-center pointer-events-none z-30`}>
-          <div className="flex flex-col items-center gap-1 animate-fade-in">
-            <div className="bg-black/50 backdrop-blur-sm rounded-full p-4">
+          <div className="flex flex-col items-center gap-1.5 animate-fade-in">
+            <div className="bg-black/50 backdrop-blur-md rounded-full p-5">
               {skipIndicator.side === "forward"
-                ? <RotateCw className="w-7 h-7 text-white" />
-                : <RotateCcw className="w-7 h-7 text-white" />}
+                ? <RotateCw className="w-8 h-8 text-white" />
+                : <RotateCcw className="w-8 h-8 text-white" />}
             </div>
-            <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+            <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-md rounded-full px-3 py-1">
               {skipIndicator.amount} ثانية
             </span>
           </div>
@@ -391,10 +412,10 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       {!playing && !error && !isBuffering && (
         <button
           onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/40 z-10 transition-opacity"
+          className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 transition-opacity"
         >
-          <div className="w-[72px] h-[72px] rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-all hover:scale-105">
-            <Play className="w-9 h-9 text-white ml-1" fill="white" />
+          <div className="w-20 h-20 rounded-full bg-primary/80 backdrop-blur-md flex items-center justify-center hover:bg-primary transition-all hover:scale-110 shadow-2xl">
+            <Play className="w-10 h-10 text-primary-foreground ml-1" fill="currentColor" />
           </div>
         </button>
       )}
@@ -406,10 +427,10 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
 
       {/* Title bar (top) */}
       {title && (
-        <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent pt-3 pb-8 px-4 transition-opacity duration-300 z-20 ${
+        <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent pt-3 pb-10 px-4 transition-opacity duration-300 z-20 ${
           showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}>
-          <p className="text-white text-sm font-medium truncate text-right">{title}</p>
+          <p className="text-white text-sm font-semibold truncate text-right drop-shadow-lg">{title}</p>
         </div>
       )}
 
@@ -421,13 +442,13 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
 
-        <div className="relative px-3 pb-2 pt-8">
+        <div className="relative px-3 pb-2.5 pt-10">
           {/* Progress Bar */}
           <div
             ref={progressBarRef}
-            className="group/progress relative h-5 flex items-center cursor-pointer mb-1"
+            className="group/progress relative h-6 flex items-center cursor-pointer mb-1.5"
             onMouseDown={handleProgressMouseDown}
             onTouchStart={handleProgressTouchStart}
             onTouchMove={handleProgressTouchMove}
@@ -444,7 +465,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
             {/* Hover time tooltip */}
             {hoverTime !== null && (
               <div
-                className="absolute -top-8 transform -translate-x-1/2 bg-black/90 text-white text-[10px] font-mono px-2 py-1 rounded pointer-events-none whitespace-nowrap"
+                className="absolute -top-9 transform -translate-x-1/2 bg-black/95 text-white text-[10px] font-mono px-2.5 py-1 rounded-md pointer-events-none whitespace-nowrap shadow-lg border border-white/10"
                 style={{ left: `${hoverPosition}%` }}
               >
                 {formatTime(hoverTime)}
@@ -455,12 +476,12 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
             <div className="absolute left-0 right-0 h-[3px] group-hover/progress:h-[5px] transition-all rounded-full bg-white/20">
               {/* Buffered */}
               <div
-                className="absolute inset-y-0 left-0 bg-white/30 rounded-full"
+                className="absolute inset-y-0 left-0 bg-white/30 rounded-full transition-all"
                 style={{ width: `${bufferedProgress}%` }}
               />
               {/* Played */}
               <div
-                className="absolute inset-y-0 left-0 rounded-full"
+                className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
                 style={{
                   width: `${progress}%`,
                   background: "hsl(var(--primary))",
@@ -470,7 +491,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
 
             {/* Thumb */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none shadow-lg"
+              className="absolute top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none shadow-lg ring-2 ring-white/20"
               style={{
                 left: `${progress}%`,
                 transform: `translate(-50%, -50%)`,
@@ -480,7 +501,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
           </div>
 
           {/* Controls Row */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {/* Play/Pause */}
             <button onClick={togglePlay} className="text-white p-1.5 hover:bg-white/10 rounded-full transition-colors">
               {playing ? <Pause className="w-5 h-5" fill="white" /> : <Play className="w-5 h-5 ml-0.5" fill="white" />}
@@ -527,7 +548,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
             {/* Time */}
             <span className="text-white/90 text-[11px] font-mono tabular-nums mx-1 select-none">
               {formatTime(currentTime)}
-              <span className="text-white/50 mx-0.5">/</span>
+              <span className="text-white/40 mx-0.5">/</span>
               {formatTime(duration)}
             </span>
 
@@ -542,23 +563,34 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
                 {playbackRate === 1 ? <Settings className="w-[18px] h-[18px]" /> : `${playbackRate}x`}
               </button>
               {showSpeedMenu && (
-                <div className="absolute bottom-full right-0 mb-2 bg-black/95 backdrop-blur-md rounded-lg border border-white/10 py-1 min-w-[100px] shadow-2xl">
-                  <p className="text-white/50 text-[10px] px-3 py-1 font-medium">سرعة التشغيل</p>
+                <div className="absolute bottom-full right-0 mb-2 bg-black/95 backdrop-blur-xl rounded-xl border border-white/10 py-1.5 min-w-[110px] shadow-2xl">
+                  <p className="text-white/40 text-[10px] px-3 py-1 font-medium">سرعة التشغيل</p>
                   {PLAYBACK_RATES.map(rate => (
                     <button
                       key={rate}
                       onClick={() => changePlaybackRate(rate)}
-                      className={`w-full text-right px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                      className={`w-full text-right px-3 py-2 text-xs transition-colors flex items-center justify-between ${
                         rate === playbackRate ? "text-primary bg-white/10" : "text-white hover:bg-white/10"
                       }`}
                     >
                       <span>{rate === 1 ? "عادي" : `${rate}x`}</span>
-                      {rate === playbackRate && <span className="text-primary">●</span>}
+                      {rate === playbackRate && <span className="text-primary text-[8px]">●</span>}
                     </button>
                   ))}
                 </div>
               )}
             </div>
+
+            {/* PiP */}
+            {'pictureInPictureEnabled' in document && (
+              <button
+                onClick={togglePiP}
+                className={`text-white p-1.5 hover:bg-white/10 rounded-full transition-colors ${isPiP ? 'text-primary' : ''}`}
+                title="صورة داخل صورة"
+              >
+                <PictureInPicture2 className="w-[18px] h-[18px]" />
+              </button>
+            )}
 
             {/* Fullscreen */}
             <button onClick={toggleFullscreen} className="text-white p-1.5 hover:bg-white/10 rounded-full transition-colors">
