@@ -819,7 +819,7 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-thin flex-wrap" style={{ WebkitOverflowScrolling: 'touch' }}>
           {[
             { key: "subscribers" as const, label: "المشتركين", icon: Users },
             { key: "requests" as const, label: "طلبات الاشتراك", icon: ClipboardList },

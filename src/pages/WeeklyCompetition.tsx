@@ -88,13 +88,15 @@ const WeeklyCompetition = () => {
     setKeysCount(k => k - 1);
     setGeneratingQuestion(true);
 
+    // Primary: AI-generated question
     try {
-      // Try AI-generated question first
       const { data: aiQuestion, error: aiError } = await supabase.functions.invoke("generate-competition-question", {
-        body: { grade, subjects: ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"] },
+        body: { grade: grade || "الصف الأول الإعدادي", subjects: ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"] },
       });
 
-      if (!aiError && aiQuestion && !aiQuestion.error && aiQuestion.question_text) {
+      console.log("AI response:", aiQuestion, "Error:", aiError);
+
+      if (!aiError && aiQuestion && !aiQuestion.error && aiQuestion.question_text && aiQuestion.options) {
         setQuestion({
           question_text: aiQuestion.question_text,
           options: aiQuestion.options,
@@ -106,23 +108,30 @@ const WeeklyCompetition = () => {
         setGeneratingQuestion(false);
         return;
       }
+      console.warn("AI question invalid, trying question bank. Data:", aiQuestion, "Error:", aiError);
     } catch (e) {
-      console.error("AI question generation failed, falling back to question bank:", e);
+      console.error("AI question generation failed:", e);
     }
 
-    // Fallback to question_bank
-    const { data: questions } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"][Math.floor(Math.random() * 5)] });
-    
-    if (!questions || (questions as any[]).length === 0) {
-      toast({ title: "لا توجد أسئلة متاحة حالياً", description: "جرب مرة أخرى لاحقاً" });
-      setGeneratingQuestion(false);
-      return;
+    // Fallback: question_bank
+    try {
+      const randomSubject = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"][Math.floor(Math.random() * 5)];
+      const { data: questions } = await supabase.rpc("get_practice_questions", { p_grade: grade || "الصف الأول الإعدادي", p_subject: randomSubject });
+      
+      if (questions && (questions as any[]).length > 0) {
+        const randomQ = (questions as any[])[Math.floor(Math.random() * (questions as any[]).length)];
+        setQuestion(randomQ);
+        setSelectedAnswer("");
+        setShowResult(false);
+        setGeneratingQuestion(false);
+        return;
+      }
+    } catch (e) {
+      console.error("Question bank fallback failed:", e);
     }
 
-    const randomQ = (questions as any[])[Math.floor(Math.random() * (questions as any[]).length)];
-    setQuestion(randomQ);
-    setSelectedAnswer("");
-    setShowResult(false);
+    // Both failed - show error
+    toast({ title: "حدث خطأ", description: "جاري المحاولة مرة أخرى، يرجى الانتظار", variant: "destructive" });
     setGeneratingQuestion(false);
   };
 
