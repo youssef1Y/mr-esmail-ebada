@@ -1027,6 +1027,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_referral: {
+        Args: { p_new_user_id: string; p_referral_code: string }
+        Returns: undefined
+      }
       expire_subscriptions: { Args: never; Returns: undefined }
       get_exam_questions: {
         Args: { p_exam_id: string }
@@ -1037,6 +1041,10 @@ export type Database = {
           question_type: string
           sort_order: number
         }[]
+      }
+      get_or_create_referral_code: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       get_practice_questions: {
         Args: { p_grade: string; p_subject: string }
@@ -1058,6 +1066,11 @@ export type Database = {
           total_students: number
         }[]
       }
+      get_today_competition_entry: {
+        Args: { p_competition_id: string; p_user_id: string }
+        Returns: number
+      }
+      give_first_key: { Args: { p_user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1074,6 +1087,7 @@ export type Database = {
         }
         Returns: Json
       }
+      use_key: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
