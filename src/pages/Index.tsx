@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
-import WhyUsSection from "@/components/WhyUsSection";
 import HeroSection from "@/components/HeroSection";
-import AboutSection from "@/components/AboutSection";
-import SubjectsSection from "@/components/SubjectsSection";
-import StatsSection from "@/components/StatsSection";
-import FeaturesSection from "@/components/FeaturesSection";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import FAQSection from "@/components/FAQSection";
-import CTASection from "@/components/CTASection";
-import ParentSection from "@/components/ParentSection";
-import Footer from "@/components/Footer";
-import { InstallPWABanner } from "@/components/InstallPWA";
+
+// Lazy load below-fold sections
+const AboutSection = lazy(() => import("@/components/AboutSection"));
+const SubjectsSection = lazy(() => import("@/components/SubjectsSection"));
+const StatsSection = lazy(() => import("@/components/StatsSection"));
+const FeaturesSection = lazy(() => import("@/components/FeaturesSection"));
+const WhyUsSection = lazy(() => import("@/components/WhyUsSection"));
+const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
+const FAQSection = lazy(() => import("@/components/FAQSection"));
+const CTASection = lazy(() => import("@/components/CTASection"));
+const ParentSection = lazy(() => import("@/components/ParentSection"));
+const Footer = lazy(() => import("@/components/Footer"));
+const InstallPWABanner = lazy(() => import("@/components/InstallPWA").then(m => ({ default: m.InstallPWABanner })));
 
 const Index = () => {
   const navigate = useNavigate();
@@ -103,17 +105,19 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <AboutSection />
-      <SubjectsSection />
-      <StatsSection />
-      <FeaturesSection />
-      <WhyUsSection />
-      <TestimonialsSection />
-      <FAQSection />
-      <ParentSection />
-      <CTASection />
-      <Footer />
-      <InstallPWABanner />
+      <Suspense fallback={<div className="min-h-[200px]" />}>
+        <AboutSection />
+        <SubjectsSection />
+        <StatsSection />
+        <FeaturesSection />
+        <WhyUsSection />
+        <TestimonialsSection />
+        <FAQSection />
+        <ParentSection />
+        <CTASection />
+        <Footer />
+        <InstallPWABanner />
+      </Suspense>
     </div>
   );
 };
