@@ -188,17 +188,19 @@ const CompetitionPlayTab = ({
   };
 
   const submitAnswer = async () => {
-    if (!question || !activeComp) return;
+    if (!question) return;
     const correct = selectedAnswer === question.correct_answer;
     setIsCorrect(correct);
     setShowResult(true);
     onTodayPlayed();
 
-    await supabase.from("competition_entries" as any).insert({
-      user_id: userId, competition_id: activeComp.id, question_text: question.question_text,
-      options: question.options, correct_answer: question.correct_answer,
-      selected_answer: selectedAnswer, is_correct: correct, entry_date: new Date().toISOString().split("T")[0],
-    } as any);
+    if (activeComp) {
+      await supabase.from("competition_entries" as any).insert({
+        user_id: userId, competition_id: activeComp.id, question_text: question.question_text,
+        options: question.options, correct_answer: question.correct_answer,
+        selected_answer: selectedAnswer, is_correct: correct, entry_date: new Date().toISOString().split("T")[0],
+      } as any);
+    }
   };
 
   const resetToSubjects = () => {
