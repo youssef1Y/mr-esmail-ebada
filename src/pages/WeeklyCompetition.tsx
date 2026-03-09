@@ -248,6 +248,12 @@ const WeeklyCompetition = () => {
                 <p className="text-sm font-bold">لقد شاركت اليوم بالفعل!</p>
                 <p className="text-xs text-muted-foreground">عُد غداً لسؤال جديد 🌟</p>
               </div>
+            ) : generatingQuestion ? (
+              <div className="text-center py-6">
+                <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+                <p className="font-bold text-sm">جاري إنشاء سؤال فريد لك...</p>
+                <p className="text-xs text-muted-foreground mt-1">يتم استخدام الذكاء الاصطناعي لإنشاء سؤال صعب 🧠</p>
+              </div>
             ) : question ? (
               <AnimatePresence mode="wait">
                 <motion.div
