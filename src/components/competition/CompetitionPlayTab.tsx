@@ -65,37 +65,41 @@ const ArchSvg = ({ shape, gradient, isHovered }: { shape: string; gradient: stri
   );
 };
 
-// Fetch questions from multiple sources
+// Fetch questions: prioritize teacher-created content over AI
 const fetchQuestion = async (subjectName: string, grade: string): Promise<any | null> => {
-  const sources: (() => Promise<any | null>)[] = [];
-
-  // Source 1: AI-generated question
-  sources.push(async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-competition-question", {
-        body: { grade: grade || "الصف الأول الإعدادي", subjects: [subjectName] },
-      });
-      if (!error && data?.question_text && data?.options) {
-        return { question_text: data.question_text, options: data.options, correct_answer: data.correct_answer, subject: subjectName };
-      }
-    } catch (e) { console.error("AI source failed:", e); }
-    return null;
-  });
-
-  // Source 2: Question bank (practice questions)
-  sources.push(async () => {
+  // Source 1: Question bank (teacher-added questions) - PRIORITY
+  const fromQuestionBank = async () => {
     try {
       const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade || "الصف الأول الإعدادي", p_subject: subjectName });
       if (data && (data as any[]).length > 0) {
         const q = (data as any[])[Math.floor(Math.random() * (data as any[]).length)];
-        return { question_text: q.question_text, options: q.options, correct_answer: q.correct_answer, subject: subjectName };
+        if (q.options && q.question_text) {
+          const opts = typeof q.options === "string" ? JSON.parse(q.options) : q.options;
+          const correctAnswer = typeof opts === "object" && !Array.isArray(opts) 
+            ? opts[String(Object.entries(opts).find(([_, v]) => v === true)?.[0] || "0")]
+            : Array.isArray(opts) ? (q.correct_answer || opts[0]) : q.correct_answer;
+          
+          // Handle different option formats
+          let optionsList: string[];
+          if (Array.isArray(opts)) {
+            optionsList = opts;
+          } else if (typeof opts === "object") {
+            optionsList = Object.values(opts).filter(v => typeof v === "string") as string[];
+          } else {
+            return null;
+          }
+          
+          if (optionsList.length >= 2) {
+            return { question_text: q.question_text, options: optionsList, correct_answer: correctAnswer || optionsList[0], subject: subjectName };
+          }
+        }
       }
     } catch (e) { console.error("Question bank failed:", e); }
     return null;
-  });
+  };
 
-  // Source 3: Video homework questions
-  sources.push(async () => {
+  // Source 2: Video homework questions - SECONDARY
+  const fromVideoHomework = async () => {
     try {
       const { data: vids } = await supabase.from("videos").select("id").eq("grade", grade || "الصف الأول الإعدادي").eq("subject", subjectName);
       if (!vids || vids.length === 0) return null;
@@ -122,13 +126,24 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
       };
     } catch (e) { console.error("Video homework failed:", e); }
     return null;
-  });
+  };
 
-  // Shuffle sources for variety, but try AI first
-  const shuffledFallbacks = sources.slice(1).sort(() => Math.random() - 0.5);
-  const ordered = [sources[0], ...shuffledFallbacks];
+  // Source 3: AI-generated question - LAST RESORT
+  const fromAI = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-competition-question", {
+        body: { grade: grade || "الصف الأول الإعدادي", subjects: [subjectName] },
+      });
+      if (!error && data?.question_text && data?.options) {
+        return { question_text: data.question_text, options: data.options, correct_answer: data.correct_answer, subject: subjectName };
+      }
+    } catch (e) { console.error("AI source failed:", e); }
+    return null;
+  };
 
-  for (const source of ordered) {
+  // Try in order: Question Bank → Video Homework → AI
+  const sources = [fromQuestionBank, fromVideoHomework, fromAI];
+  for (const source of sources) {
     const result = await source();
     if (result) return result;
   }
