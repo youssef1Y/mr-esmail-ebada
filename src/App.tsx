@@ -20,6 +20,7 @@ import MyResults from "./pages/MyResults";
 import Homework from "./pages/Homework";
 import Leaderboard from "./pages/Leaderboard";
 import QuestionBank from "./pages/QuestionBank";
+import WeeklyCompetition from "./pages/WeeklyCompetition";
 import StudentReport from "./pages/StudentReport";
 import Contact from "./pages/Contact";
 import ForgotPassword from "./pages/ForgotPassword";
