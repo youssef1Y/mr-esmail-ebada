@@ -119,6 +119,7 @@ const Index = () => {
         <Footer />
         <InstallPWABanner />
       </Suspense>
+      <ScrollToTop />
     </div>
   );
 };
