@@ -126,17 +126,7 @@ const CompetitionPlayTab = ({
     setSelectedAnswer("");
   };
 
-  if (!activeComp) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <Lock className="w-7 h-7 text-muted-foreground" />
-        </div>
-        <p className="font-bold text-lg mb-1">لا توجد مسابقة نشطة حالياً</p>
-        <p className="text-sm text-muted-foreground">ترقب المسابقة القادمة!</p>
-      </div>
-    );
-  }
+  const noActiveComp = !activeComp;
 
   // Show question flow
   if (selectedSubject && (generatingQuestion || question)) {

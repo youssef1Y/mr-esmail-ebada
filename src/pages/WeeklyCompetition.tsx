@@ -35,7 +35,7 @@ const WeeklyCompetition = () => {
     await supabase.rpc("give_first_key", { p_user_id: uid });
 
     const { data: keysData } = await supabase.from("student_keys" as any).select("keys_count").eq("user_id", uid).single();
-    if (keysData) setKeysCount(Math.min((keysData as any).keys_count || 0, 2));
+    if (keysData) setKeysCount((keysData as any).keys_count || 0);
 
     const { data: refCode } = await supabase.rpc("get_or_create_referral_code", { p_user_id: uid });
     if (refCode) setReferralCode(refCode as string);

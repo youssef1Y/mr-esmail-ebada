@@ -20,7 +20,7 @@ const CompetitionWinnersTab = ({ pastWinners }: WinnersTabProps) => {
     if (filter === "all") return true;
     const end = new Date(w.week_end);
     const days = (now.getTime() - end.getTime()) / (1000 * 60 * 60 * 24);
-    return days <= parseInt(filter);
+    return days <= (filter === "week" ? 7 : 30);
   });
 
   return (
