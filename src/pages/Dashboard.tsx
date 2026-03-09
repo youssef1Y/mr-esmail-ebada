@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StudentLevelBadge } from "@/components/StudentLevel";
@@ -555,6 +555,127 @@ const AdminParentReportsTab = ({ toast }: { toast: any }) => {
   );
 };
 
+// Admin Keys Management Tab
+const AdminKeysTab = ({ toast }: { toast: any }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [students, setStudents] = useState<{ user_id: string; full_name: string; grade: string; keys_count: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingAll, setAddingAll] = useState(false);
+  const [keysToAdd, setKeysToAdd] = useState("1");
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, grade").order("full_name");
+    if (!profiles) { setLoading(false); return; }
+
+    const userIds = profiles.map(p => p.user_id);
+    const { data: keys } = await supabase.from("student_keys" as any).select("user_id, keys_count").in("user_id", userIds);
+    const keysMap = new Map((keys || []).map((k: any) => [k.user_id, k.keys_count]));
+
+    setStudents(profiles.map(p => ({
+      user_id: p.user_id,
+      full_name: p.full_name,
+      grade: p.grade,
+      keys_count: keysMap.get(p.user_id) || 0,
+    })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchStudents(); }, []);
+
+  const addKeysToStudent = async (userId: string) => {
+    const amount = parseInt(keysToAdd) || 1;
+    const { data: existing } = await supabase.from("student_keys" as any).select("id, keys_count").eq("user_id", userId).single();
+    if (existing) {
+      await supabase.from("student_keys" as any).update({ keys_count: (existing as any).keys_count + amount }).eq("user_id", userId);
+    } else {
+      await supabase.from("student_keys" as any).insert({ user_id: userId, keys_count: amount, first_key_given: true });
+    }
+    toast({ title: "تم إضافة المفاتيح", description: `تمت إضافة ${amount} مفتاح` });
+    fetchStudents();
+  };
+
+  const addKeysToAll = async () => {
+    setAddingAll(true);
+    const amount = parseInt(keysToAdd) || 1;
+    const { data: profiles } = await supabase.from("profiles").select("user_id");
+    if (!profiles) { setAddingAll(false); return; }
+
+    for (const p of profiles) {
+      const { data: existing } = await supabase.from("student_keys" as any).select("id, keys_count").eq("user_id", p.user_id).single();
+      if (existing) {
+        await supabase.from("student_keys" as any).update({ keys_count: (existing as any).keys_count + amount }).eq("user_id", p.user_id);
+      } else {
+        await supabase.from("student_keys" as any).insert({ user_id: p.user_id, keys_count: amount, first_key_given: true });
+      }
+    }
+    toast({ title: "تم إضافة المفاتيح لجميع الطلاب", description: `تمت إضافة ${amount} مفتاح لـ ${profiles.length} طالب` });
+    setAddingAll(false);
+    fetchStudents();
+  };
+
+  const filtered = searchQuery
+    ? students.filter(s => s.full_name.includes(searchQuery) || s.grade.includes(searchQuery))
+    : students;
+
+  if (loading) return <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-bold text-sm flex items-center gap-2"><Key className="w-4 h-4 text-amber-500" /> إدارة مفاتيح الطلاب</h3>
+
+      {/* Controls */}
+      <div className="bg-muted rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium whitespace-nowrap">عدد المفاتيح:</label>
+          <select value={keysToAdd} onChange={e => setKeysToAdd(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm flex-1">
+            {[1, 2, 3, 5, 10].map(n => <option key={n} value={String(n)}>{n} مفتاح</option>)}
+          </select>
+        </div>
+        <Button onClick={addKeysToAll} disabled={addingAll} variant="outline" className="w-full gap-2">
+          {addingAll ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          {addingAll ? "جاري الإضافة..." : `إضافة ${keysToAdd} مفتاح لجميع الطلاب`}
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="ابحث بالاسم أو الصف..."
+          className="pr-9"
+        />
+      </div>
+
+      {/* Students List */}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-6">لا يوجد نتائج</p>
+        ) : filtered.map(s => (
+          <div key={s.user_id} className="bg-background rounded-xl border border-border p-3 flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-sm truncate">{s.full_name}</h4>
+              <p className="text-xs text-muted-foreground">{s.grade}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-lg">
+                <Key className="w-3 h-3" />
+                <span className="text-xs font-bold">{s.keys_count}</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => addKeysToStudent(s.user_id)} className="h-8 gap-1">
+                <Plus className="w-3 h-3" /> +{keysToAdd}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground text-center">إجمالي الطلاب: {students.length}</p>
+    </div>
+  );
+};
+
 
 const AdminStudentReportTab = () => {
   const [reportGrade, setReportGrade] = useState("");
@@ -1041,7 +1162,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports" | "keys">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1848,6 +1969,7 @@ const Dashboard = () => {
                 { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
                 { key: "parent-reports" as const, label: "تقارير أولياء الأمور", icon: Send },
+                { key: "keys" as const, label: "المفاتيح", icon: Lock },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
                   <t.icon className="w-4 h-4" />
@@ -2532,6 +2654,11 @@ const Dashboard = () => {
               {/* Parent Reports */}
               {adminTab === "parent-reports" && (
                 <AdminParentReportsTab toast={toast} />
+              )}
+
+              {/* Keys Management */}
+              {adminTab === "keys" && (
+                <AdminKeysTab toast={toast} />
               )}
 
               {/* Messages Tab */}
