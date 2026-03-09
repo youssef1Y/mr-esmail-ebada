@@ -136,7 +136,7 @@ const SubjectVideos = () => {
           if (videoIds.length > 0) {
             const { data: hwData } = await supabase
               .from("video_homework" as any)
-              .select("*")
+              .select("id, video_id, description")
               .in("video_id", videoIds);
 
             if (hwData && (hwData as any[]).length > 0) {
