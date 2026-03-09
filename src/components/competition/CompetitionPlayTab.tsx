@@ -192,6 +192,24 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
     return null;
   };
 
+  const fromVideoExams = async () => {
+    try {
+      const { data: exams } = await supabase.from("exams").select("id").eq("grade", g).eq("subject", subjectName);
+      if (!exams || exams.length === 0) return null;
+      const examIds = exams.map((e: any) => e.id);
+      const { data: questions } = await supabase.from("exam_questions" as any).select("question_text, options, correct_answer").eq("question_type", "mcq").in("exam_id", examIds);
+      if (!questions || (questions as any[]).length === 0) return null;
+      const valid = (questions as any[]).filter((q: any) => q.question_text && q.options && q.correct_answer);
+      if (valid.length === 0) return null;
+      const randomQ = valid[Math.floor(Math.random() * valid.length)];
+      const opts = typeof randomQ.options === "string" ? JSON.parse(randomQ.options) : randomQ.options;
+      const optionsList = Array.isArray(opts) ? opts : Object.values(opts).filter(v => typeof v === "string");
+      if (optionsList.length < 2) return null;
+      return { question_text: randomQ.question_text, options: optionsList as string[], correct_answer: randomQ.correct_answer, subject: subjectName };
+    } catch (e) { console.error("Video exams failed:", e); }
+    return null;
+  };
+
   const fromAI = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-competition-question", {
@@ -204,7 +222,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
     return null;
   };
 
-  const sources = [fromQuestionBank, fromVideoHomework, fromAI];
+  const sources = [fromQuestionBank, fromVideoHomework, fromVideoExams, fromAI];
   for (const source of sources) {
     const result = await source();
     if (result) return result;
