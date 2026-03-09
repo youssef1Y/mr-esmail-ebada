@@ -100,9 +100,6 @@ const Footer = () => {
               <p className="text-primary-foreground/40 text-xs">
                 © {new Date().getFullYear()} جميع الحقوق محفوظة — منصة الأستاذ إسماعيل أحمد عباده
               </p>
-              <p className="text-primary-foreground/30 text-[10px] flex items-center gap-1">
-                صُنع بـ <Heart className="w-3 h-3 text-destructive/70 fill-destructive/70" /> للعلوم الشرعية
-              </p>
             </div>
           </div>
         </div>
