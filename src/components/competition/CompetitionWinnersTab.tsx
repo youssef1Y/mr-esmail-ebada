@@ -7,12 +7,12 @@ interface WinnersTabProps {
 }
 
 const CompetitionWinnersTab = ({ pastWinners }: WinnersTabProps) => {
-  const [filter, setFilter] = useState<"all" | "7" | "30">("all");
+  const [filter, setFilter] = useState<"all" | "week" | "month">("all");
 
   const filters = [
     { id: "all" as const, label: "كل الأوقات" },
-    { id: "7" as const, label: "آخر ٧ أيام" },
-    { id: "30" as const, label: "آخر ٣٠ يومًا" },
+    { id: "week" as const, label: "آخر أسبوع" },
+    { id: "month" as const, label: "آخر شهر" },
   ];
 
   const now = new Date();
