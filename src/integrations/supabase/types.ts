@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      competition_entries: {
+        Row: {
+          competition_id: string
+          correct_answer: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          is_correct: boolean
+          options: Json | null
+          question_text: string
+          selected_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          competition_id: string
+          correct_answer?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          is_correct?: boolean
+          options?: Json | null
+          question_text: string
+          selected_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          competition_id?: string
+          correct_answer?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          is_correct?: boolean
+          options?: Json | null
+          question_text?: string
+          selected_answer?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_entries_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_answers: {
         Row: {
           answer: string | null
@@ -537,6 +584,48 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_completions: {
+        Row: {
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       schedule_events: {
         Row: {
           created_at: string
@@ -570,6 +659,30 @@ export type Database = {
           id?: string
           subject?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      student_keys: {
+        Row: {
+          created_at: string
+          first_key_given: boolean
+          id: string
+          keys_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_key_given?: boolean
+          id?: string
+          keys_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_key_given?: boolean
+          id?: string
+          keys_count?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -870,6 +983,42 @@ export type Database = {
           subject?: string
           title?: string
           video_url?: string
+        }
+        Relationships: []
+      }
+      weekly_competitions: {
+        Row: {
+          created_at: string
+          id: string
+          prize_description: string | null
+          status: string
+          title: string
+          week_end: string
+          week_start: string
+          winner_id: string | null
+          winner_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prize_description?: string | null
+          status?: string
+          title: string
+          week_end: string
+          week_start: string
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prize_description?: string | null
+          status?: string
+          title?: string
+          week_end?: string
+          week_start?: string
+          winner_id?: string | null
+          winner_name?: string | null
         }
         Relationships: []
       }
