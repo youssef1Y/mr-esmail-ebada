@@ -138,7 +138,7 @@ const WeeklyCompetition = () => {
                 <Key className="w-8 h-8 text-amber-500" />
                 <span className="text-5xl font-bold text-amber-600 dark:text-amber-400">{keysCount}</span>
               </div>
-              <p className="text-muted-foreground text-sm">مفاتيح متاحة (الحد الأقصى ٢)</p>
+              <p className="text-muted-foreground text-sm">مفاتيح متاحة</p>
             </motion.div>
 
             <div className="space-y-3">
