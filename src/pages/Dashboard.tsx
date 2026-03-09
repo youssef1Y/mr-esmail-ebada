@@ -2466,6 +2466,11 @@ const Dashboard = () => {
                 <AdminPromoteTab toast={toast} />
               )}
 
+              {/* Parent Reports */}
+              {adminTab === "parent-reports" && (
+                <AdminParentReportsTab toast={toast} />
+              )}
+
               {/* Messages Tab */}
               {adminTab === "messages" && (
                 <div className="space-y-4">
