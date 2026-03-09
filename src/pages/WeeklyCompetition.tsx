@@ -35,7 +35,7 @@ const WeeklyCompetition = () => {
     await supabase.rpc("give_first_key", { p_user_id: uid });
 
     const { data: keysData } = await supabase.from("student_keys" as any).select("keys_count").eq("user_id", uid).single();
-    if (keysData) setKeysCount(Math.min((keysData as any).keys_count || 0, 2));
+    if (keysData) setKeysCount((keysData as any).keys_count || 0);
 
     const { data: refCode } = await supabase.rpc("get_or_create_referral_code", { p_user_id: uid });
     if (refCode) setReferralCode(refCode as string);
@@ -138,7 +138,7 @@ const WeeklyCompetition = () => {
                 <Key className="w-8 h-8 text-amber-500" />
                 <span className="text-5xl font-bold text-amber-600 dark:text-amber-400">{keysCount}</span>
               </div>
-              <p className="text-muted-foreground text-sm">مفاتيح متاحة (الحد الأقصى ٢)</p>
+              <p className="text-muted-foreground text-sm">مفاتيح متاحة</p>
             </motion.div>
 
             <div className="space-y-3">
@@ -196,10 +196,12 @@ const WeeklyCompetition = () => {
             </motion.div>
 
             {referralCode && (
-              <div className="bg-muted rounded-xl p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">كود الدعوة الخاص بك</p>
-                <p className="font-mono font-bold text-lg tracking-widest">{referralCode}</p>
-              </div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-5 text-center">
+                <p className="text-xs text-muted-foreground mb-2">كود الدعوة الخاص بك</p>
+                <p className="font-mono font-bold text-2xl tracking-[0.3em] text-amber-600 dark:text-amber-400">{referralCode}</p>
+                <p className="text-xs text-muted-foreground mt-2">شارك هذا الكود مع أصدقائك</p>
+              </motion.div>
             )}
           </div>
         )}

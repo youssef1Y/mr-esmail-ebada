@@ -58,6 +58,10 @@ const CompetitionPlayTab = ({
 
   const handleSubjectSelect = async (subjectName: string) => {
     if (todayPlayed) return;
+    if (noActiveComp) {
+      toast({ title: "لا توجد مسابقة", description: "لا توجد مسابقة نشطة حالياً", variant: "destructive" });
+      return;
+    }
     if (keysCount <= 0) {
       toast({ title: "لا توجد مفاتيح", description: "شارك رابط المنصة للحصول على مفاتيح!", variant: "destructive" });
       return;
@@ -126,17 +130,7 @@ const CompetitionPlayTab = ({
     setSelectedAnswer("");
   };
 
-  if (!activeComp) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <Lock className="w-7 h-7 text-muted-foreground" />
-        </div>
-        <p className="font-bold text-lg mb-1">لا توجد مسابقة نشطة حالياً</p>
-        <p className="text-sm text-muted-foreground">ترقب المسابقة القادمة!</p>
-      </div>
-    );
-  }
+  const noActiveComp = !activeComp;
 
   // Show question flow
   if (selectedSubject && (generatingQuestion || question)) {
@@ -216,7 +210,12 @@ const CompetitionPlayTab = ({
         <p className="text-muted-foreground text-sm">اختر الباب</p>
       </div>
 
-      {todayPlayed ? (
+      {noActiveComp ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-500/20 p-4 text-center mb-6">
+          <p className="font-bold text-sm">لا توجد مسابقة نشطة حالياً</p>
+          <p className="text-xs text-muted-foreground">ترقب المسابقة القادمة! 🌟</p>
+        </motion.div>
+      ) : todayPlayed ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-2xl border border-border p-6 text-center mb-6">
           <CheckCircle className="w-10 h-10 text-primary mx-auto mb-2" />
           <p className="font-bold">لقد شاركت اليوم بالفعل!</p>
@@ -238,9 +237,9 @@ const CompetitionPlayTab = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
             onClick={() => handleSubjectSelect(subject.name)}
-            disabled={todayPlayed || keysCount <= 0}
+            disabled={todayPlayed || keysCount <= 0 || noActiveComp}
             className={`bg-card rounded-2xl p-4 pt-6 pb-5 flex flex-col items-center gap-3 border border-border shadow-sm transition-all ${
-              todayPlayed || keysCount <= 0 ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
+              todayPlayed || keysCount <= 0 || noActiveComp ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
             } ${subjects.length % 2 !== 0 && i === subjects.length - 1 ? "col-span-2 max-w-[50%] mx-auto" : ""}`}
           >
             <ArchSvg shape={subject.shape} color={subject.color} />
@@ -250,11 +249,13 @@ const CompetitionPlayTab = ({
       </div>
 
       {/* Competition info */}
-      <div className="mt-6 bg-card/50 rounded-2xl border border-border p-4 text-center">
-        <p className="text-xs text-muted-foreground">
-          🎁 {activeComp.prize_description} • من {new Date(activeComp.week_start).toLocaleDateString("ar-EG")} إلى {new Date(activeComp.week_end).toLocaleDateString("ar-EG")}
-        </p>
-      </div>
+      {activeComp && (
+        <div className="mt-6 bg-card/50 rounded-2xl border border-border p-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            🎁 {activeComp.prize_description} • من {new Date(activeComp.week_start).toLocaleDateString("ar-EG")} إلى {new Date(activeComp.week_end).toLocaleDateString("ar-EG")}
+          </p>
+        </div>
+      )}
 
       {/* My entries */}
       {myEntries.length > 0 && (
