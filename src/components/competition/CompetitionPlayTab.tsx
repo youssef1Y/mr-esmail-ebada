@@ -210,7 +210,12 @@ const CompetitionPlayTab = ({
         <p className="text-muted-foreground text-sm">اختر الباب</p>
       </div>
 
-      {todayPlayed ? (
+      {noActiveComp ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-500/20 p-4 text-center mb-6">
+          <p className="font-bold text-sm">لا توجد مسابقة نشطة حالياً</p>
+          <p className="text-xs text-muted-foreground">ترقب المسابقة القادمة! 🌟</p>
+        </motion.div>
+      ) : todayPlayed ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-2xl border border-border p-6 text-center mb-6">
           <CheckCircle className="w-10 h-10 text-primary mx-auto mb-2" />
           <p className="font-bold">لقد شاركت اليوم بالفعل!</p>
@@ -244,11 +249,13 @@ const CompetitionPlayTab = ({
       </div>
 
       {/* Competition info */}
-      <div className="mt-6 bg-card/50 rounded-2xl border border-border p-4 text-center">
-        <p className="text-xs text-muted-foreground">
-          🎁 {activeComp.prize_description} • من {new Date(activeComp.week_start).toLocaleDateString("ar-EG")} إلى {new Date(activeComp.week_end).toLocaleDateString("ar-EG")}
-        </p>
-      </div>
+      {activeComp && (
+        <div className="mt-6 bg-card/50 rounded-2xl border border-border p-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            🎁 {activeComp.prize_description} • من {new Date(activeComp.week_start).toLocaleDateString("ar-EG")} إلى {new Date(activeComp.week_end).toLocaleDateString("ar-EG")}
+          </p>
+        </div>
+      )}
 
       {/* My entries */}
       {myEntries.length > 0 && (
