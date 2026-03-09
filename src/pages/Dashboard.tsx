@@ -8,6 +8,7 @@ import { InstallPWABanner, InstallPWAButton } from "@/components/InstallPWA";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
+import { DailyChallenges } from "@/components/DailyChallenges";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
@@ -2805,6 +2806,9 @@ const Dashboard = () => {
 
         {/* Push Notification Banner */}
         {!adminUnlocked && <PushNotificationBanner />}
+
+        {/* Daily Challenges */}
+        {!adminUnlocked && user && profile && <DailyChallenges userId={user.id} grade={displayGrade} />}
 
         {/* Student Progress Tracker */}
         {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
