@@ -24,6 +24,8 @@ const madhabs = ["الفقه الشافعي", "الفقه المالكي", "ال
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref") || "";
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
