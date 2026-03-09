@@ -832,6 +832,7 @@ const Admin = () => {
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
             { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
+            { key: "competition" as const, label: "المسابقات", icon: Trophy },
           ].map(t => (
             <Button
               key={t.key}
