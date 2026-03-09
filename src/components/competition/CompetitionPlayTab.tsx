@@ -232,9 +232,9 @@ const CompetitionPlayTab = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
             onClick={() => handleSubjectSelect(subject.name)}
-            disabled={todayPlayed || keysCount <= 0}
+            disabled={todayPlayed || keysCount <= 0 || noActiveComp}
             className={`bg-card rounded-2xl p-4 pt-6 pb-5 flex flex-col items-center gap-3 border border-border shadow-sm transition-all ${
-              todayPlayed || keysCount <= 0 ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
+              todayPlayed || keysCount <= 0 || noActiveComp ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
             } ${subjects.length % 2 !== 0 && i === subjects.length - 1 ? "col-span-2 max-w-[50%] mx-auto" : ""}`}
           >
             <ArchSvg shape={subject.shape} color={subject.color} />
