@@ -158,14 +158,8 @@ const CompetitionPlayTab = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
-  const noActiveComp = !activeComp;
-
   const handleSubjectSelect = async (subjectName: string) => {
     if (todayPlayed) return;
-    if (noActiveComp) {
-      toast({ title: "لا توجد مسابقة", description: "لا توجد مسابقة نشطة حالياً", variant: "destructive" });
-      return;
-    }
     if (keysCount <= 0) {
       toast({ title: "لا توجد مفاتيح", description: "شارك رابط المنصة للحصول على مفاتيح!", variant: "destructive" });
       return;
@@ -194,17 +188,19 @@ const CompetitionPlayTab = ({
   };
 
   const submitAnswer = async () => {
-    if (!question || !activeComp) return;
+    if (!question) return;
     const correct = selectedAnswer === question.correct_answer;
     setIsCorrect(correct);
     setShowResult(true);
     onTodayPlayed();
 
-    await supabase.from("competition_entries" as any).insert({
-      user_id: userId, competition_id: activeComp.id, question_text: question.question_text,
-      options: question.options, correct_answer: question.correct_answer,
-      selected_answer: selectedAnswer, is_correct: correct, entry_date: new Date().toISOString().split("T")[0],
-    } as any);
+    if (activeComp) {
+      await supabase.from("competition_entries" as any).insert({
+        user_id: userId, competition_id: activeComp.id, question_text: question.question_text,
+        options: question.options, correct_answer: question.correct_answer,
+        selected_answer: selectedAnswer, is_correct: correct, entry_date: new Date().toISOString().split("T")[0],
+      } as any);
+    }
   };
 
   const resetToSubjects = () => {
@@ -315,7 +311,7 @@ const CompetitionPlayTab = ({
   }
 
   // Subject selection view
-  const isDisabled = todayPlayed || keysCount <= 0 || noActiveComp;
+  const isDisabled = todayPlayed || keysCount <= 0;
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
@@ -324,12 +320,7 @@ const CompetitionPlayTab = ({
         <p className="text-muted-foreground text-sm">اختر الباب</p>
       </motion.div>
 
-      {noActiveComp ? (
-        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-500/20 p-4 text-center mb-6">
-          <p className="font-bold text-sm">لا توجد مسابقة نشطة حالياً</p>
-          <p className="text-xs text-muted-foreground">ترقب المسابقة القادمة! 🌟</p>
-        </motion.div>
-      ) : todayPlayed ? (
+      {todayPlayed ? (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border p-5 text-center mb-6">
           <CheckCircle className="w-10 h-10 text-primary mx-auto mb-2" />
           <p className="font-bold">لقد شاركت اليوم بالفعل!</p>
