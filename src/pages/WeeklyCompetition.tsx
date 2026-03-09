@@ -71,7 +71,6 @@ const WeeklyCompetition = () => {
     setLoading(false);
   };
 
-  const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
   const startQuestion = async () => {
     if (keysCount <= 0) {
