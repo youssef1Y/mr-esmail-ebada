@@ -58,6 +58,7 @@ const AnimatedRoutes = () => {
         <Route path="/homework" element={<PageTransition><Homework /></PageTransition>} />
         <Route path="/leaderboard" element={<PageTransition><Leaderboard /></PageTransition>} />
         <Route path="/question-bank" element={<PageTransition><QuestionBank /></PageTransition>} />
+        <Route path="/weekly-competition" element={<PageTransition><WeeklyCompetition /></PageTransition>} />
         <Route path="/report" element={<PageTransition><StudentReport /></PageTransition>} />
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/student-notifications" element={<PageTransition><StudentNotifications /></PageTransition>} />
