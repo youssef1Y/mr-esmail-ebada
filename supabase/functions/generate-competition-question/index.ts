@@ -24,52 +24,71 @@ serve(async (req) => {
     const randomSubject = subjectsList[Math.floor(Math.random() * subjectsList.length)];
     const g = grade || "الصف الأول الإعدادي";
 
-    // Fetch video titles and descriptions for context
-    const { data: videos } = await sb
-      .from("videos")
-      .select("title, description")
+    // 1) Fetch existing question bank questions as content reference
+    const { data: bankQuestions } = await sb
+      .from("question_bank")
+      .select("question_text, options, correct_answer, lesson")
       .eq("grade", g)
       .eq("subject", randomSubject)
+      .eq("question_type", "mcq")
       .limit(30);
 
-    // Fetch video homework questions for context
+    // 2) Fetch video homework questions as content reference
     const { data: vids } = await sb
       .from("videos")
-      .select("id")
+      .select("id, title")
       .eq("grade", g)
       .eq("subject", randomSubject);
 
-    let homeworkContext: string[] = [];
+    const homeworkQuestions: { question: string; options: string[]; correctAnswer: string; videoTitle: string }[] = [];
     if (vids && vids.length > 0) {
+      const videoMap = new Map(vids.map((v: any) => [v.id, v.title]));
       const videoIds = vids.map((v: any) => v.id);
       const { data: homeworks } = await sb
         .from("video_homework")
-        .select("questions")
+        .select("questions, video_id")
         .in("video_id", videoIds);
 
       if (homeworks) {
         for (const hw of homeworks) {
           if (hw.questions && Array.isArray(hw.questions)) {
             for (const q of hw.questions as any[]) {
-              if (q.question) homeworkContext.push(q.question);
+              if (q.question && q.options && q.options.length >= 2 && typeof q.correct === "number") {
+                homeworkQuestions.push({
+                  question: q.question,
+                  options: q.options,
+                  correctAnswer: q.options[q.correct],
+                  videoTitle: videoMap.get(hw.video_id) || "",
+                });
+              }
             }
           }
         }
       }
     }
 
-    const videoTitles = videos?.map((v: any) => v.title).filter(Boolean) || [];
-    const videoDescriptions = videos?.map((v: any) => v.description).filter(Boolean) || [];
-
+    // Build rich content context from ACTUAL questions (not just titles)
     let contentContext = "";
-    if (videoTitles.length > 0) {
-      contentContext += `\n\nعناوين الدروس المتاحة للطلاب في هذه المادة:\n${videoTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
+
+    if (bankQuestions && bankQuestions.length > 0) {
+      // Shuffle and pick up to 15
+      const shuffled = bankQuestions.sort(() => Math.random() - 0.5).slice(0, 15);
+      contentContext += "\n\nأسئلة موجودة في بنك الأسئلة لهذه المادة (استلهم منها مواضيع مشابهة لكن لا تكررها أبداً):\n";
+      for (const q of shuffled) {
+        contentContext += `- السؤال: ${q.question_text}`;
+        if (q.lesson) contentContext += ` (درس: ${q.lesson})`;
+        contentContext += ` | الإجابة الصحيحة: ${q.correct_answer}\n`;
+      }
     }
-    if (videoDescriptions.length > 0) {
-      contentContext += `\n\nوصف بعض الدروس:\n${videoDescriptions.slice(0, 10).join("\n")}`;
-    }
-    if (homeworkContext.length > 0) {
-      contentContext += `\n\nأمثلة على أسئلة سابقة في هذه المادة (لا تكررها بل استلهم منها):\n${homeworkContext.slice(0, 15).join("\n")}`;
+
+    if (homeworkQuestions.length > 0) {
+      const shuffled = homeworkQuestions.sort(() => Math.random() - 0.5).slice(0, 15);
+      contentContext += "\n\nأسئلة من واجبات الفيديوهات (استلهم من نفس المواضيع والدروس لكن بأسئلة جديدة مختلفة):\n";
+      for (const q of shuffled) {
+        contentContext += `- السؤال: ${q.question}`;
+        if (q.videoTitle) contentContext += ` (من درس: ${q.videoTitle})`;
+        contentContext += ` | الإجابة: ${q.correctAnswer}\n`;
+      }
     }
 
     if (!contentContext) {
@@ -79,22 +98,23 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `أنت معلم تربية دينية إسلامية خبير. مهمتك إنشاء سؤال اختيار من متعدد بناءً على محتوى الدروس الفعلية التي درسها الطلاب.
+    const systemPrompt = `أنت معلم تربية دينية إسلامية خبير. مهمتك إنشاء سؤال اختيار من متعدد جديد بناءً على نفس المواضيع والدروس التي درسها الطلاب فعلاً.
 
-القواعد:
-- السؤال يجب أن يكون مبنياً على محتوى الدروس والفيديوهات المتاحة فقط
-- لا تسأل عن مواضيع لم يدرسها الطالب
-- الخيارات يجب أن تكون 4 خيارات
+القواعد المهمة:
+- ستحصل على أسئلة موجودة فعلاً من بنك الأسئلة وواجبات الفيديوهات
+- أنشئ سؤالاً جديداً تماماً لكن في نفس المواضيع والدروس
+- لا تكرر أي سؤال من الأسئلة الموجودة
+- اسأل عن نفس المفاهيم لكن من زاوية مختلفة
+- الخيارات يجب أن تكون 4 خيارات واقعية
 - السؤال يكون باللغة العربية الفصحى
-- اجعل السؤال يختبر الفهم وليس الحفظ فقط
-- كل مرة أنشئ سؤالاً مختلفاً`;
+- لا تسأل عن مواضيع غير موجودة في الأسئلة المرجعية`;
 
-    const userPrompt = `أنشئ سؤال اختيار من متعدد في مادة "${randomSubject}" لطالب في "${g}".
+    const userPrompt = `أنشئ سؤال اختيار من متعدد جديد في مادة "${randomSubject}" لطالب في "${g}".
 
-السؤال يجب أن يكون مبنياً على المحتوى التالي الذي درسه الطالب:
+هذه هي الأسئلة والمواضيع التي درسها الطالب فعلاً - أنشئ سؤالاً جديداً في نفس المواضيع:
 ${contentContext}
 
-أنشئ سؤالاً جديداً مستوحى من هذه الدروس والمواضيع.`;
+مهم جداً: السؤال الجديد يجب أن يكون مختلف عن كل الأسئلة أعلاه لكن في نفس الدروس والمواضيع.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
