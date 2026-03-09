@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { BookOpen, Users, GraduationCap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import teacherImg from "@/assets/teacher.jpg";
-import islamicPattern from "@/assets/islamic-pattern.jpg";
+const teacherImg = new URL("@/assets/teacher.jpg", import.meta.url).href;
+const islamicPattern = new URL("@/assets/islamic-pattern.jpg", import.meta.url).href;
 
 const HeroSection = () => {
   return (
