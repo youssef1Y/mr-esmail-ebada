@@ -144,25 +144,24 @@ const ArchSvg = ({ shape, gradient, isHovered }: { shape: string; gradient: stri
 
 // Fetch questions: prioritize teacher-created content over AI
 const fetchQuestion = async (subjectName: string, grade: string): Promise<any | null> => {
+  const g = grade || "الصف الأول الإعدادي";
+
   const fromQuestionBank = async () => {
     try {
-      const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade || "الصف الأول الإعدادي", p_subject: subjectName });
+      const { data } = await supabase.rpc("get_competition_question", { p_grade: g, p_subject: subjectName });
       if (data && (data as any[]).length > 0) {
-        const q = (data as any[])[Math.floor(Math.random() * (data as any[]).length)];
-        if (q.options && q.question_text) {
-          const opts = typeof q.options === "string" ? JSON.parse(q.options) : q.options;
-          let optionsList: string[];
-          if (Array.isArray(opts)) {
-            optionsList = opts;
-          } else if (typeof opts === "object") {
-            optionsList = Object.values(opts).filter(v => typeof v === "string") as string[];
-          } else {
-            return null;
-          }
-          const correctAnswer = Array.isArray(opts) ? (q.correct_answer || opts[0]) : q.correct_answer;
-          if (optionsList.length >= 2) {
-            return { question_text: q.question_text, options: optionsList, correct_answer: correctAnswer || optionsList[0], subject: subjectName };
-          }
+        const q = (data as any[])[0];
+        const opts = typeof q.options === "string" ? JSON.parse(q.options) : q.options;
+        let optionsList: string[];
+        if (Array.isArray(opts)) {
+          optionsList = opts;
+        } else if (typeof opts === "object") {
+          optionsList = Object.values(opts).filter(v => typeof v === "string") as string[];
+        } else {
+          return null;
+        }
+        if (optionsList.length >= 2 && q.correct_answer) {
+          return { question_text: q.question_text, options: optionsList, correct_answer: q.correct_answer, subject: subjectName };
         }
       }
     } catch (e) { console.error("Question bank failed:", e); }
@@ -171,7 +170,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
 
   const fromVideoHomework = async () => {
     try {
-      const { data: vids } = await supabase.from("videos").select("id").eq("grade", grade || "الصف الأول الإعدادي").eq("subject", subjectName);
+      const { data: vids } = await supabase.from("videos").select("id").eq("grade", g).eq("subject", subjectName);
       if (!vids || vids.length === 0) return null;
       const videoIds = vids.map((v: any) => v.id);
       const { data: homeworks } = await supabase.from("video_homework").select("questions").in("video_id", videoIds);
@@ -180,7 +179,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
       for (const hw of homeworks) {
         if (hw.questions && Array.isArray(hw.questions)) {
           for (const q of hw.questions as any[]) {
-            if (q.text && q.options && q.options.length >= 2 && typeof q.correct === "number") {
+            if (q.question && q.options && q.options.length >= 2 && typeof q.correct === "number") {
               allQuestions.push(q);
             }
           }
@@ -188,7 +187,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
       }
       if (allQuestions.length === 0) return null;
       const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-      return { question_text: randomQ.text, options: randomQ.options, correct_answer: randomQ.options[randomQ.correct], subject: subjectName };
+      return { question_text: randomQ.question, options: randomQ.options, correct_answer: randomQ.options[randomQ.correct], subject: subjectName };
     } catch (e) { console.error("Video homework failed:", e); }
     return null;
   };
@@ -196,7 +195,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
   const fromAI = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-competition-question", {
-        body: { grade: grade || "الصف الأول الإعدادي", subjects: [subjectName] },
+        body: { grade: g, subjects: [subjectName] },
       });
       if (!error && data?.question_text && data?.options) {
         return { question_text: data.question_text, options: data.options, correct_answer: data.correct_answer, subject: subjectName };
