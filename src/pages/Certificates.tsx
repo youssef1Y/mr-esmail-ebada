@@ -12,7 +12,7 @@ interface CertificateData {
   subject: string;
   submitted_at: string;
   student_name: string;
-  type: "homework" | "exam";
+  type: "homework" | "exam" | "subject_completion";
   score?: string;
 }
 
@@ -86,6 +86,59 @@ const Certificates = () => {
         }
       }
 
+      // Subject completion certificates (watched all videos in a subject)
+      const grade = profile?.grade || "";
+      if (grade) {
+        const { data: allVideos } = await supabase
+          .from("videos")
+          .select("id, subject, created_at")
+          .eq("grade", grade);
+
+        const { data: viewedVideos } = await supabase
+          .from("video_views")
+          .select("video_id, viewed_at")
+          .eq("user_id", session.user.id);
+
+        if (allVideos && allVideos.length > 0 && viewedVideos) {
+          const viewedSet = new Set(viewedVideos.map(v => v.video_id));
+          // Get latest view date per video
+          const viewDateMap = new Map<string, string>();
+          viewedVideos.forEach(v => {
+            const existing = viewDateMap.get(v.video_id);
+            if (!existing || v.viewed_at > existing) viewDateMap.set(v.video_id, v.viewed_at);
+          });
+
+          // Group videos by subject
+          const subjectVideos = new Map<string, string[]>();
+          allVideos.forEach(v => {
+            const list = subjectVideos.get(v.subject) || [];
+            list.push(v.id);
+            subjectVideos.set(v.subject, list);
+          });
+
+          // Check each subject
+          subjectVideos.forEach((videoIds, subject) => {
+            if (videoIds.length > 0 && videoIds.every(id => viewedSet.has(id))) {
+              // Find the latest view date as completion date
+              let latestDate = "";
+              videoIds.forEach(id => {
+                const d = viewDateMap.get(id);
+                if (d && d > latestDate) latestDate = d;
+              });
+
+              allCerts.push({
+                title: `إتمام جميع دروس ${subject}`,
+                subject,
+                submitted_at: latestDate || new Date().toISOString(),
+                student_name: studentName,
+                type: "subject_completion",
+                score: `${videoIds.length}/${videoIds.length} درس`,
+              });
+            }
+          });
+        }
+      }
+
       allCerts.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       setCertificates(allCerts);
       setLoading(false);
@@ -94,8 +147,11 @@ const Certificates = () => {
   }, [navigate]);
 
   const getShareText = (cert: CertificateData) => {
-    const typeText = cert.type === "homework" ? "واجب" : "امتحان";
-    return `🏆 حصلت على الدرجة الكاملة (${cert.score}) في ${typeText} "${cert.title}" - مادة ${cert.subject}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
+    const typeText = cert.type === "homework" ? "واجب" : cert.type === "exam" ? "امتحان" : "مادة";
+    const achievementText = cert.type === "subject_completion"
+      ? `🎓 أتممت جميع دروس مادة ${cert.subject} (${cert.score})`
+      : `🏆 حصلت على الدرجة الكاملة (${cert.score}) في ${typeText} "${cert.title}" - مادة ${cert.subject}`;
+    return `${achievementText}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
   };
 
   const shareWhatsApp = (cert: CertificateData) => {
@@ -170,7 +226,9 @@ const Certificates = () => {
   const getCertInlineHtml = (cert: CertificateData) => {
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
-      : `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`;
+      : cert.type === "exam"
+      ? `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`
+      : `قد أتم/ت جميع دروس مادة`;
 
     return `
       <div class="certificate" style="width:800px;height:560px;background:white;position:relative;overflow:hidden;border:3px solid #1a5c35;box-shadow:0 0 0 8px #d4a843,0 0 0 11px #1a5c35;font-family:'Amiri',serif;direction:rtl;">
@@ -180,16 +238,16 @@ const Certificates = () => {
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;left:30px;border-right:none;border-top:none;"></div>
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;right:30px;border-left:none;border-top:none;"></div>
         <div style="position:relative;z-index:1;padding:50px 60px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:40px;margin-bottom:10px;">🏆</div>
-          <div style="font-size:32px;color:#1a5c35;font-weight:700;margin-bottom:5px;">شهادة تفوق ودرجة كاملة</div>
+          <div style="font-size:40px;margin-bottom:10px;">${cert.type === "subject_completion" ? "🎓" : "🏆"}</div>
+          <div style="font-size:32px;color:#1a5c35;font-weight:700;margin-bottom:5px;">${cert.type === "subject_completion" ? "شهادة إتمام مادة" : "شهادة تفوق ودرجة كاملة"}</div>
           <div style="font-size:14px;color:#666;margin-bottom:20px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
           <div style="font-size:16px;color:#333;">يُشهد بأن الطالب/ة</div>
           <div style="font-size:28px;color:#d4a843;font-weight:700;margin:15px 0;padding:8px 40px;border-bottom:2px solid #d4a843;display:inline-block;">${cert.student_name}</div>
-          <div style="font-size:14px;color:#333;margin:10px 0;line-height:1.8;">
-            ${achievementText}
-            <span style="font-weight:700;color:#1a5c35;">"${cert.title}"</span>
-            - مادة ${cert.subject}
-          </div>
+           <div style="font-size:14px;color:#333;margin:10px 0;line-height:1.8;">
+             ${achievementText}
+             <span style="font-weight:700;color:#1a5c35;">"${cert.type === "subject_completion" ? cert.subject : cert.title}"</span>
+             ${cert.type !== "subject_completion" ? `- مادة ${cert.subject}` : `<br/><span style="font-size:12px;color:#666;">(${cert.score})</span>`}
+           </div>
           <div style="font-size:12px;color:#888;margin-top:15px;">بتاريخ: ${new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
           <div style="font-size:16px;color:#1a5c35;margin-top:10px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
         </div>
@@ -199,7 +257,9 @@ const Certificates = () => {
   const getCertHtml = (cert: CertificateData, forPrint = false) => {
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
-      : `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`;
+      : cert.type === "exam"
+      ? `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`
+      : `قد أتم/ت جميع دروس مادة`;
 
     return `
       <!DOCTYPE html>
@@ -238,15 +298,15 @@ const Certificates = () => {
           <div class="corner corner-bl"></div>
           <div class="corner corner-br"></div>
           <div class="content">
-            <div class="badge">🏆</div>
-            <div class="title">شهادة تفوق ودرجة كاملة</div>
+            <div class="badge">${cert.type === "subject_completion" ? "🎓" : "🏆"}</div>
+            <div class="title">${cert.type === "subject_completion" ? "شهادة إتمام مادة" : "شهادة تفوق ودرجة كاملة"}</div>
             <div class="subtitle">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
             <div>يُشهد بأن الطالب/ة</div>
             <div class="name">${cert.student_name}</div>
             <div class="reason">
               ${achievementText}
-              <span class="hw-name">"${cert.title}"</span>
-              - مادة ${cert.subject}
+              <span class="hw-name">"${cert.type === "subject_completion" ? cert.subject : cert.title}"</span>
+              ${cert.type !== "subject_completion" ? `- مادة ${cert.subject}` : `<br/><span style="font-size:12px;color:#666;">(${cert.score})</span>`}
             </div>
             <div class="date">بتاريخ: ${new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
             <div class="footer">الأستاذ إسماعيل أحمد عبادة</div>
@@ -301,7 +361,7 @@ const Certificates = () => {
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-bold mb-1">لم تحصل على شهادات بعد</h3>
-            <p className="text-sm text-muted-foreground">احصل على الدرجة الكاملة في أي واجب (10/10) أو امتحان (الدرجة النهائية) لتحصل على شهادة تفوق!</p>
+            <p className="text-sm text-muted-foreground">احصل على الدرجة الكاملة في أي واجب (10/10) أو امتحان (الدرجة النهائية) أو أكمل جميع دروس مادة لتحصل على شهادة!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -309,10 +369,12 @@ const Certificates = () => {
               <div key={i} className="bg-card rounded-xl border border-border p-4">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    cert.type === "exam" ? "bg-primary/10" : "bg-accent/50"
+                    cert.type === "exam" ? "bg-primary/10" : cert.type === "subject_completion" ? "bg-green-500/10" : "bg-accent/50"
                   }`}>
                     {cert.type === "exam" 
                       ? <FileText className="w-6 h-6 text-primary" />
+                      : cert.type === "subject_completion"
+                      ? <BookOpen className="w-6 h-6 text-green-600" />
                       : <Award className="w-6 h-6 text-accent-foreground" />
                     }
                   </div>
@@ -320,9 +382,9 @@ const Certificates = () => {
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm truncate">{cert.title}</h3>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                        cert.type === "exam" ? "bg-primary/10 text-primary" : "bg-accent/50 text-accent-foreground"
+                        cert.type === "exam" ? "bg-primary/10 text-primary" : cert.type === "subject_completion" ? "bg-green-500/10 text-green-700" : "bg-accent/50 text-accent-foreground"
                       }`}>
-                        {cert.type === "exam" ? "امتحان" : "واجب"}
+                        {cert.type === "exam" ? "امتحان" : cert.type === "subject_completion" ? "إتمام مادة" : "واجب"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{cert.subject} • {cert.score}</p>
