@@ -147,8 +147,11 @@ const Certificates = () => {
   }, [navigate]);
 
   const getShareText = (cert: CertificateData) => {
-    const typeText = cert.type === "homework" ? "واجب" : "امتحان";
-    return `🏆 حصلت على الدرجة الكاملة (${cert.score}) في ${typeText} "${cert.title}" - مادة ${cert.subject}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
+    const typeText = cert.type === "homework" ? "واجب" : cert.type === "exam" ? "امتحان" : "مادة";
+    const achievementText = cert.type === "subject_completion"
+      ? `🎓 أتممت جميع دروس مادة ${cert.subject} (${cert.score})`
+      : `🏆 حصلت على الدرجة الكاملة (${cert.score}) في ${typeText} "${cert.title}" - مادة ${cert.subject}`;
+    return `${achievementText}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
   };
 
   const shareWhatsApp = (cert: CertificateData) => {
