@@ -361,7 +361,7 @@ const Certificates = () => {
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-bold mb-1">لم تحصل على شهادات بعد</h3>
-            <p className="text-sm text-muted-foreground">احصل على الدرجة الكاملة في أي واجب (10/10) أو امتحان (الدرجة النهائية) لتحصل على شهادة تفوق!</p>
+            <p className="text-sm text-muted-foreground">احصل على الدرجة الكاملة في أي واجب (10/10) أو امتحان (الدرجة النهائية) أو أكمل جميع دروس مادة لتحصل على شهادة!</p>
           </div>
         ) : (
           <div className="space-y-3">
