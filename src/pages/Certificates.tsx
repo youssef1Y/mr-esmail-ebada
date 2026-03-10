@@ -571,7 +571,7 @@ const Certificates = () => {
         <Dialog open={!!viewCert} onOpenChange={(o) => !o && setViewCert(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-[850px] p-2 sm:p-4">
             <DialogHeader>
-              <DialogTitle className="text-center font-amiri">شهادة تفوق</DialogTitle>
+              <DialogTitle className="text-center font-amiri">{viewCert?.type === "competition_winner" ? "شهادة الفائز 🥇" : "شهادة تفوق"}</DialogTitle>
             </DialogHeader>
             {viewCert && (
               <div className="overflow-auto">
