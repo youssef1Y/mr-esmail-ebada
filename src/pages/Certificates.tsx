@@ -226,7 +226,9 @@ const Certificates = () => {
   const getCertInlineHtml = (cert: CertificateData) => {
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
-      : `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`;
+      : cert.type === "exam"
+      ? `قد حصل/ت على الدرجة النهائية <strong>(${cert.score})</strong> في امتحان`
+      : `قد أتم/ت جميع دروس مادة`;
 
     return `
       <div class="certificate" style="width:800px;height:560px;background:white;position:relative;overflow:hidden;border:3px solid #1a5c35;box-shadow:0 0 0 8px #d4a843,0 0 0 11px #1a5c35;font-family:'Amiri',serif;direction:rtl;">
