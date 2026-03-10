@@ -10,6 +10,7 @@ import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { DailyChallenges } from "@/components/DailyChallenges";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
+import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { Button } from "@/components/ui/button";
@@ -1162,7 +1163,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports" | "keys">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports" | "keys" | "competition">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1804,7 +1805,12 @@ const Dashboard = () => {
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
-  }
+              }
+
+              {/* Competition */}
+              {adminTab === "competition" && (
+                <AdminCompetitionTab toast={toast} />
+              )}
 
   const displayGrade = isAdmin ? selectedGrade : (profile?.grade || "");
   const subjects = gradeSubjects[displayGrade] || [];
@@ -1966,10 +1972,11 @@ const Dashboard = () => {
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
-                { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
                 { key: "parent-reports" as const, label: "تقارير أولياء الأمور", icon: Send },
+                { key: "competition" as const, label: "المسابقات", icon: Trophy },
                 { key: "keys" as const, label: "المفاتيح", icon: Lock },
+                { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
               ].map(t => (
                 <Button key={t.key} variant={adminTab === t.key ? "default" : "outline"} size="sm" onClick={() => setAdminTab(t.key)} className={`gap-1 relative ${t.key === "messages" && unreadMsgCount > 0 && adminTab !== "messages" ? "border-destructive text-destructive" : ""}`}>
                   <t.icon className="w-4 h-4" />
