@@ -86,6 +86,59 @@ const Certificates = () => {
         }
       }
 
+      // Subject completion certificates (watched all videos in a subject)
+      const grade = profile?.grade || "";
+      if (grade) {
+        const { data: allVideos } = await supabase
+          .from("videos")
+          .select("id, subject, created_at")
+          .eq("grade", grade);
+
+        const { data: viewedVideos } = await supabase
+          .from("video_views")
+          .select("video_id, viewed_at")
+          .eq("user_id", session.user.id);
+
+        if (allVideos && allVideos.length > 0 && viewedVideos) {
+          const viewedSet = new Set(viewedVideos.map(v => v.video_id));
+          // Get latest view date per video
+          const viewDateMap = new Map<string, string>();
+          viewedVideos.forEach(v => {
+            const existing = viewDateMap.get(v.video_id);
+            if (!existing || v.viewed_at > existing) viewDateMap.set(v.video_id, v.viewed_at);
+          });
+
+          // Group videos by subject
+          const subjectVideos = new Map<string, string[]>();
+          allVideos.forEach(v => {
+            const list = subjectVideos.get(v.subject) || [];
+            list.push(v.id);
+            subjectVideos.set(v.subject, list);
+          });
+
+          // Check each subject
+          subjectVideos.forEach((videoIds, subject) => {
+            if (videoIds.length > 0 && videoIds.every(id => viewedSet.has(id))) {
+              // Find the latest view date as completion date
+              let latestDate = "";
+              videoIds.forEach(id => {
+                const d = viewDateMap.get(id);
+                if (d && d > latestDate) latestDate = d;
+              });
+
+              allCerts.push({
+                title: `إتمام جميع دروس ${subject}`,
+                subject,
+                submitted_at: latestDate || new Date().toISOString(),
+                student_name: studentName,
+                type: "subject_completion",
+                score: `${videoIds.length}/${videoIds.length} درس`,
+              });
+            }
+          });
+        }
+      }
+
       allCerts.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       setCertificates(allCerts);
       setLoading(false);
