@@ -989,6 +989,9 @@ export type Database = {
       weekly_competitions: {
         Row: {
           created_at: string
+          draw_date: string | null
+          draw_time: string | null
+          draw_type: string
           id: string
           prize_description: string | null
           status: string
@@ -1000,6 +1003,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          draw_date?: string | null
+          draw_time?: string | null
+          draw_type?: string
           id?: string
           prize_description?: string | null
           status?: string
@@ -1011,6 +1017,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          draw_date?: string | null
+          draw_time?: string | null
+          draw_type?: string
           id?: string
           prize_description?: string | null
           status?: string
