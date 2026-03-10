@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer, Share2, MessageCircle, Facebook, Twitter, Copy, Check, Image } from "lucide-react";
+import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer, Share2, MessageCircle, Facebook, Twitter, Copy, Check, Image, Trophy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
