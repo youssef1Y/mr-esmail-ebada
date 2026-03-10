@@ -243,11 +243,11 @@ const Certificates = () => {
           <div style="font-size:14px;color:#666;margin-bottom:20px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
           <div style="font-size:16px;color:#333;">يُشهد بأن الطالب/ة</div>
           <div style="font-size:28px;color:#d4a843;font-weight:700;margin:15px 0;padding:8px 40px;border-bottom:2px solid #d4a843;display:inline-block;">${cert.student_name}</div>
-          <div style="font-size:14px;color:#333;margin:10px 0;line-height:1.8;">
-            ${achievementText}
-            <span style="font-weight:700;color:#1a5c35;">"${cert.title}"</span>
-            - مادة ${cert.subject}
-          </div>
+           <div style="font-size:14px;color:#333;margin:10px 0;line-height:1.8;">
+             ${achievementText}
+             <span style="font-weight:700;color:#1a5c35;">"${cert.type === "subject_completion" ? cert.subject : cert.title}"</span>
+             ${cert.type !== "subject_completion" ? `- مادة ${cert.subject}` : `<br/><span style="font-size:12px;color:#666;">(${cert.score})</span>`}
+           </div>
           <div style="font-size:12px;color:#888;margin-top:15px;">بتاريخ: ${new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
           <div style="font-size:16px;color:#1a5c35;margin-top:10px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
         </div>
