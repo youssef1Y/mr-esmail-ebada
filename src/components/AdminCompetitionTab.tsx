@@ -88,8 +88,24 @@ const AdminCompetitionTab = ({ toast }: AdminCompetitionTabProps) => {
       return;
     }
 
-    // Random winner from correct answers
-    const winner = correctEntries[Math.floor(Math.random() * correctEntries.length)];
+    // Only subscribers can win - filter by subscription status
+    const subscriberIds = correctEntries.map((e: any) => e.user_id);
+    const { data: subscribedProfiles } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .in("user_id", subscriberIds)
+      .eq("is_subscribed", true);
+    
+    const subscribedUserIds = new Set((subscribedProfiles || []).map(p => p.user_id));
+    const eligibleEntries = correctEntries.filter((e: any) => subscribedUserIds.has(e.user_id));
+
+    if (eligibleEntries.length === 0) {
+      toast({ title: "لا يوجد مشتركون فازوا بالإجابة الصحيحة", description: "يجب أن يكون الفائز مشتركاً في المنصة", variant: "destructive" });
+      return;
+    }
+
+    // Random winner from correct answers of subscribed users
+    const winner = eligibleEntries[Math.floor(Math.random() * eligibleEntries.length)];
     setDrawResult(winner);
 
     // Update competition with winner
