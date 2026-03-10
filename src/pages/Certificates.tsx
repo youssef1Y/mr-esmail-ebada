@@ -298,15 +298,15 @@ const Certificates = () => {
           <div class="corner corner-bl"></div>
           <div class="corner corner-br"></div>
           <div class="content">
-            <div class="badge">🏆</div>
-            <div class="title">شهادة تفوق ودرجة كاملة</div>
+            <div class="badge">${cert.type === "subject_completion" ? "🎓" : "🏆"}</div>
+            <div class="title">${cert.type === "subject_completion" ? "شهادة إتمام مادة" : "شهادة تفوق ودرجة كاملة"}</div>
             <div class="subtitle">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
             <div>يُشهد بأن الطالب/ة</div>
             <div class="name">${cert.student_name}</div>
             <div class="reason">
               ${achievementText}
-              <span class="hw-name">"${cert.title}"</span>
-              - مادة ${cert.subject}
+              <span class="hw-name">"${cert.type === "subject_completion" ? cert.subject : cert.title}"</span>
+              ${cert.type !== "subject_completion" ? `- مادة ${cert.subject}` : `<br/><span style="font-size:12px;color:#666;">(${cert.score})</span>`}
             </div>
             <div class="date">بتاريخ: ${new Date(cert.submitted_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
             <div class="footer">الأستاذ إسماعيل أحمد عبادة</div>
