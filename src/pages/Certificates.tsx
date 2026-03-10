@@ -167,6 +167,9 @@ const Certificates = () => {
   }, [navigate]);
 
   const getShareText = (cert: CertificateData) => {
+    if (cert.type === "competition_winner") {
+      return `🥇 فزت في المسابقة الأسبوعية "${cert.title}"!\n🏆 الجائزة: ${cert.subject}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
+    }
     const typeText = cert.type === "homework" ? "واجب" : cert.type === "exam" ? "امتحان" : "مادة";
     const achievementText = cert.type === "subject_completion"
       ? `🎓 أتممت جميع دروس مادة ${cert.subject} (${cert.score})`
