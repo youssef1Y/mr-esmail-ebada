@@ -139,6 +139,26 @@ const Certificates = () => {
         }
       }
 
+      // Competition winner certificates
+      const { data: wonCompetitions } = await supabase
+        .from("weekly_competitions")
+        .select("id, title, week_start, week_end, prize_description, created_at")
+        .eq("winner_id", session.user.id)
+        .eq("status", "completed");
+
+      if (wonCompetitions && wonCompetitions.length > 0) {
+        wonCompetitions.forEach(comp => {
+          allCerts.push({
+            title: comp.title,
+            subject: comp.prize_description || "شهادة تقدير",
+            submitted_at: comp.created_at,
+            student_name: studentName,
+            type: "competition_winner",
+            score: `${new Date(comp.week_start).toLocaleDateString("ar-EG")} - ${new Date(comp.week_end).toLocaleDateString("ar-EG")}`,
+          });
+        });
+      }
+
       allCerts.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       setCertificates(allCerts);
       setLoading(false);
