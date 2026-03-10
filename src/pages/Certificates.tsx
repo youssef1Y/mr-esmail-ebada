@@ -12,7 +12,7 @@ interface CertificateData {
   subject: string;
   submitted_at: string;
   student_name: string;
-  type: "homework" | "exam" | "subject_completion";
+  type: "homework" | "exam" | "subject_completion" | "competition_winner";
   score?: string;
 }
 
