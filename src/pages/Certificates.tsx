@@ -306,7 +306,6 @@ const Certificates = () => {
         <div style="font-size:16px;color:#d4a843;margin-top:8px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
       </div>
     </div>`;
-  };
 
   const getCertHtml = (cert: CertificateData, forPrint = false) => {
     if (cert.type === "competition_winner") return getCompetitionCertHtml(cert, forPrint);
