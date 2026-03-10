@@ -234,6 +234,7 @@ const Certificates = () => {
       <div class="certificate" style="width:800px;height:560px;background:white;position:relative;overflow:hidden;border:3px solid #1a5c35;box-shadow:0 0 0 8px #d4a843,0 0 0 11px #1a5c35;font-family:'Amiri',serif;direction:rtl;">
         <div style="position:absolute;inset:20px;border:2px solid #d4a843;"></div>
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;top:30px;left:30px;border-right:none;border-bottom:none;"></div>
+          <div style="font-size:40px;margin-bottom:10px;">${cert.type === "subject_completion" ? "🎓" : "🏆"}</div>
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;top:30px;right:30px;border-left:none;border-bottom:none;"></div>
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;left:30px;border-right:none;border-top:none;"></div>
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;right:30px;border-left:none;border-top:none;"></div>
