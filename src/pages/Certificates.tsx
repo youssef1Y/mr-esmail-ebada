@@ -225,7 +225,7 @@ const Certificates = () => {
       const canvas = await html2canvas(container.querySelector(".certificate") as HTMLElement, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#fff",
+        backgroundColor: cert.type === "competition_winner" ? "#0d0500" : "#fff",
         width: 800,
         height: 560,
       });
