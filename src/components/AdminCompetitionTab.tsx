@@ -116,6 +116,21 @@ const AdminCompetitionTab = ({ toast }: AdminCompetitionTabProps) => {
       winner_name: winner.student_name,
     } as any).eq("id", selectedComp.id);
 
+    // Send in-app notification to winner
+    await supabase.from("student_notifications").insert({
+      user_id: winner.user_id,
+      title: "🏆 مبروك! فزت في المسابقة الأسبوعية",
+      body: `تهانينا! لقد فزت في "${selectedComp.title}" 🎉 يمكنك الآن تحميل شهادة الفوز من صفحة الشهادات.`,
+      type: "competition_winner",
+    });
+
+    // Send push notification to winner
+    sendPushToUsers(
+      "🏆 مبروك! فزت في المسابقة",
+      `تهانينا! فزت في "${selectedComp.title}" 🎉 حمّل شهادتك الذهبية الآن!`,
+      [winner.user_id]
+    );
+
     toast({ title: `🎉 الفائز: ${winner.student_name}!` });
     fetchCompetitions();
   };
