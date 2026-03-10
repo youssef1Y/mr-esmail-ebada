@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer, Share2, MessageCircle, Facebook, Twitter, Copy, Check, Image } from "lucide-react";
+import { Award, Download, ChevronRight, BookOpen, FileText, Eye, Printer, Share2, MessageCircle, Facebook, Twitter, Copy, Check, Image, Trophy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ interface CertificateData {
   subject: string;
   submitted_at: string;
   student_name: string;
-  type: "homework" | "exam" | "subject_completion";
+  type: "homework" | "exam" | "subject_completion" | "competition_winner";
   score?: string;
 }
 
@@ -139,6 +139,26 @@ const Certificates = () => {
         }
       }
 
+      // Competition winner certificates
+      const { data: wonCompetitions } = await supabase
+        .from("weekly_competitions")
+        .select("id, title, week_start, week_end, prize_description, created_at")
+        .eq("winner_id", session.user.id)
+        .eq("status", "completed");
+
+      if (wonCompetitions && wonCompetitions.length > 0) {
+        wonCompetitions.forEach(comp => {
+          allCerts.push({
+            title: comp.title,
+            subject: comp.prize_description || "شهادة تقدير",
+            submitted_at: comp.created_at,
+            student_name: studentName,
+            type: "competition_winner",
+            score: `${new Date(comp.week_start).toLocaleDateString("ar-EG")} - ${new Date(comp.week_end).toLocaleDateString("ar-EG")}`,
+          });
+        });
+      }
+
       allCerts.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       setCertificates(allCerts);
       setLoading(false);
@@ -147,6 +167,9 @@ const Certificates = () => {
   }, [navigate]);
 
   const getShareText = (cert: CertificateData) => {
+    if (cert.type === "competition_winner") {
+      return `🥇 فزت في المسابقة الأسبوعية "${cert.title}"!\n🏆 الجائزة: ${cert.subject}\n\n📚 منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية\n🔗 ${window.location.origin}`;
+    }
     const typeText = cert.type === "homework" ? "واجب" : cert.type === "exam" ? "امتحان" : "مادة";
     const achievementText = cert.type === "subject_completion"
       ? `🎓 أتممت جميع دروس مادة ${cert.subject} (${cert.score})`
@@ -202,7 +225,7 @@ const Certificates = () => {
       const canvas = await html2canvas(container.querySelector(".certificate") as HTMLElement, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#fff",
+        backgroundColor: cert.type === "competition_winner" ? "#0d0500" : "#fff",
         width: 800,
         height: 560,
       });
@@ -224,6 +247,8 @@ const Certificates = () => {
   };
 
   const getCertInlineHtml = (cert: CertificateData) => {
+    if (cert.type === "competition_winner") return getCompetitionCertInlineHtml(cert);
+
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
       : cert.type === "exam"
@@ -254,7 +279,37 @@ const Certificates = () => {
       </div>`;
   };
 
+  const getCompetitionCertInlineHtml = (cert: CertificateData) => `
+    <div class="certificate" style="width:800px;height:560px;background:linear-gradient(135deg,#1a0a00 0%,#2d1810 30%,#1a0a00 60%,#0d0500 100%);position:relative;overflow:hidden;border:4px solid #d4a843;box-shadow:0 0 0 6px #8B6914,0 0 0 10px #d4a843,0 0 40px rgba(212,168,67,0.3);font-family:'Amiri',serif;direction:rtl;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(212,168,67,0.08) 0%,transparent 70%);"></div>
+      <div style="position:absolute;inset:18px;border:2px solid rgba(212,168,67,0.6);"></div>
+      <div style="position:absolute;inset:22px;border:1px solid rgba(212,168,67,0.3);"></div>
+      <div style="position:absolute;width:80px;height:80px;border:3px solid #d4a843;top:28px;left:28px;border-right:none;border-bottom:none;"></div>
+      <div style="position:absolute;width:80px;height:80px;border:3px solid #d4a843;top:28px;right:28px;border-left:none;border-bottom:none;"></div>
+      <div style="position:absolute;width:80px;height:80px;border:3px solid #d4a843;bottom:28px;left:28px;border-right:none;border-top:none;"></div>
+      <div style="position:absolute;width:80px;height:80px;border:3px solid #d4a843;bottom:28px;right:28px;border-left:none;border-top:none;"></div>
+      <div style="position:absolute;top:28px;left:50%;transform:translateX(-50%);width:200px;height:3px;background:linear-gradient(90deg,transparent,#d4a843,transparent);"></div>
+      <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);width:200px;height:3px;background:linear-gradient(90deg,transparent,#d4a843,transparent);"></div>
+      <div style="position:relative;z-index:1;padding:45px 55px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-size:50px;margin-bottom:8px;filter:drop-shadow(0 0 10px rgba(212,168,67,0.5));">🥇</div>
+        <div style="font-size:34px;color:#d4a843;font-weight:700;margin-bottom:3px;text-shadow:0 0 20px rgba(212,168,67,0.3);">شهادة الفائز</div>
+        <div style="font-size:18px;color:#d4a843;margin-bottom:5px;opacity:0.8;">✦ المسابقة الأسبوعية ✦</div>
+        <div style="font-size:13px;color:rgba(212,168,67,0.6);margin-bottom:18px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
+        <div style="font-size:15px;color:rgba(255,255,255,0.8);">يُشهد بأن الطالب/ة</div>
+        <div style="font-size:30px;color:#d4a843;font-weight:700;margin:12px 0;padding:10px 50px;border-bottom:2px solid rgba(212,168,67,0.6);display:inline-block;text-shadow:0 0 15px rgba(212,168,67,0.4);">${cert.student_name}</div>
+        <div style="font-size:15px;color:rgba(255,255,255,0.85);margin:8px 0;line-height:1.8;">
+          قد فاز/ت في مسابقة
+          <span style="font-weight:700;color:#d4a843;">"${cert.title}"</span>
+        </div>
+        <div style="font-size:13px;color:rgba(212,168,67,0.7);margin-top:5px;">🏆 الجائزة: ${cert.subject}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:12px;">الفترة: ${cert.score}</div>
+        <div style="font-size:16px;color:#d4a843;margin-top:8px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
+      </div>
+    </div>`;
+
   const getCertHtml = (cert: CertificateData, forPrint = false) => {
+    if (cert.type === "competition_winner") return getCompetitionCertHtml(cert, forPrint);
+
     const achievementText = cert.type === "homework"
       ? `قد حصل/ت على الدرجة الكاملة <strong>(10/10)</strong> في واجب`
       : cert.type === "exam"
@@ -317,6 +372,62 @@ const Certificates = () => {
       </html>`;
   };
 
+  const getCompetitionCertHtml = (cert: CertificateData, forPrint = false) => `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>شهادة الفائز - المسابقة الأسبوعية</title>
+      <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${forPrint ? '#0d0500' : 'transparent'}; }
+        .certificate { width: 800px; height: 560px; background: linear-gradient(135deg,#1a0a00 0%,#2d1810 30%,#1a0a00 60%,#0d0500 100%); position: relative; overflow: hidden; border: 4px solid #d4a843; box-shadow: 0 0 0 6px #8B6914, 0 0 0 10px #d4a843, 0 0 40px rgba(212,168,67,0.3); }
+        .glow { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(212,168,67,0.08) 0%, transparent 70%); }
+        .inner-border { position: absolute; inset: 18px; border: 2px solid rgba(212,168,67,0.6); }
+        .inner-border-2 { position: absolute; inset: 22px; border: 1px solid rgba(212,168,67,0.3); }
+        .corner { position: absolute; width: 80px; height: 80px; border: 3px solid #d4a843; }
+        .corner-tl { top: 28px; left: 28px; border-right: none; border-bottom: none; }
+        .corner-tr { top: 28px; right: 28px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 28px; left: 28px; border-right: none; border-top: none; }
+        .corner-br { bottom: 28px; right: 28px; border-left: none; border-top: none; }
+        .line-top { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); width: 200px; height: 3px; background: linear-gradient(90deg,transparent,#d4a843,transparent); }
+        .line-bottom { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); width: 200px; height: 3px; background: linear-gradient(90deg,transparent,#d4a843,transparent); }
+        .content { position: relative; z-index: 1; padding: 45px 55px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; font-family: 'Amiri', serif; }
+        @media print { body { background: #0d0500; } .certificate { box-shadow: none; } }
+      </style>
+    </head>
+    <body>
+      <div class="certificate">
+        <div class="glow"></div>
+        <div class="inner-border"></div>
+        <div class="inner-border-2"></div>
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+        <div class="line-top"></div>
+        <div class="line-bottom"></div>
+        <div class="content">
+          <div style="font-size:50px;margin-bottom:8px;filter:drop-shadow(0 0 10px rgba(212,168,67,0.5));">🥇</div>
+          <div style="font-size:34px;color:#d4a843;font-weight:700;margin-bottom:3px;text-shadow:0 0 20px rgba(212,168,67,0.3);">شهادة الفائز</div>
+          <div style="font-size:18px;color:#d4a843;margin-bottom:5px;opacity:0.8;">✦ المسابقة الأسبوعية ✦</div>
+          <div style="font-family:'Noto Kufi Arabic',sans-serif;font-size:13px;color:rgba(212,168,67,0.6);margin-bottom:18px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
+          <div style="font-size:15px;color:rgba(255,255,255,0.8);">يُشهد بأن الطالب/ة</div>
+          <div style="font-size:30px;color:#d4a843;font-weight:700;margin:12px 0;padding:10px 50px;border-bottom:2px solid rgba(212,168,67,0.6);display:inline-block;text-shadow:0 0 15px rgba(212,168,67,0.4);">${cert.student_name}</div>
+          <div style="font-family:'Noto Kufi Arabic',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);margin:8px 0;line-height:1.8;">
+            قد فاز/ت في مسابقة
+            <span style="font-weight:700;color:#d4a843;">"${cert.title}"</span>
+          </div>
+          <div style="font-family:'Noto Kufi Arabic',sans-serif;font-size:13px;color:rgba(212,168,67,0.7);margin-top:5px;">🏆 الجائزة: ${cert.subject}</div>
+          <div style="font-family:'Noto Kufi Arabic',sans-serif;font-size:11px;color:rgba(255,255,255,0.4);margin-top:12px;">الفترة: ${cert.score}</div>
+          <div style="font-size:16px;color:#d4a843;margin-top:8px;font-weight:700;">الأستاذ إسماعيل أحمد عبادة</div>
+        </div>
+      </div>
+      ${forPrint ? '<script>window.onload = () => window.print();</script>' : ''}
+    </body>
+    </html>`;
+
   const openCertWindow = (cert: CertificateData, autoPrint: boolean) => {
     const w = window.open("", "_blank");
     if (!w) return;
@@ -366,12 +477,14 @@ const Certificates = () => {
         ) : (
           <div className="space-y-3">
             {certificates.map((cert, i) => (
-              <div key={i} className="bg-card rounded-xl border border-border p-4">
+              <div key={i} className={`rounded-xl border p-4 ${cert.type === "competition_winner" ? "bg-gradient-to-r from-amber-950/20 to-amber-900/10 border-amber-500/30" : "bg-card border-border"}`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    cert.type === "exam" ? "bg-primary/10" : cert.type === "subject_completion" ? "bg-green-500/10" : "bg-accent/50"
+                    cert.type === "competition_winner" ? "bg-amber-500/20" : cert.type === "exam" ? "bg-primary/10" : cert.type === "subject_completion" ? "bg-green-500/10" : "bg-accent/50"
                   }`}>
-                    {cert.type === "exam" 
+                    {cert.type === "competition_winner"
+                      ? <Trophy className="w-6 h-6 text-amber-500" />
+                      : cert.type === "exam" 
                       ? <FileText className="w-6 h-6 text-primary" />
                       : cert.type === "subject_completion"
                       ? <BookOpen className="w-6 h-6 text-green-600" />
@@ -382,9 +495,9 @@ const Certificates = () => {
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm truncate">{cert.title}</h3>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                        cert.type === "exam" ? "bg-primary/10 text-primary" : cert.type === "subject_completion" ? "bg-green-500/10 text-green-700" : "bg-accent/50 text-accent-foreground"
+                        cert.type === "competition_winner" ? "bg-amber-500/20 text-amber-600" : cert.type === "exam" ? "bg-primary/10 text-primary" : cert.type === "subject_completion" ? "bg-green-500/10 text-green-700" : "bg-accent/50 text-accent-foreground"
                       }`}>
-                        {cert.type === "exam" ? "امتحان" : cert.type === "subject_completion" ? "إتمام مادة" : "واجب"}
+                        {cert.type === "competition_winner" ? "🥇 فائز المسابقة" : cert.type === "exam" ? "امتحان" : cert.type === "subject_completion" ? "إتمام مادة" : "واجب"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{cert.subject} • {cert.score}</p>
@@ -457,7 +570,7 @@ const Certificates = () => {
         <Dialog open={!!viewCert} onOpenChange={(o) => !o && setViewCert(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-[850px] p-2 sm:p-4">
             <DialogHeader>
-              <DialogTitle className="text-center font-amiri">شهادة تفوق</DialogTitle>
+              <DialogTitle className="text-center font-amiri">{viewCert?.type === "competition_winner" ? "شهادة الفائز 🥇" : "شهادة تفوق"}</DialogTitle>
             </DialogHeader>
             {viewCert && (
               <div className="overflow-auto">
