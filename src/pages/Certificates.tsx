@@ -478,12 +478,14 @@ const Certificates = () => {
         ) : (
           <div className="space-y-3">
             {certificates.map((cert, i) => (
-              <div key={i} className="bg-card rounded-xl border border-border p-4">
+              <div key={i} className={`rounded-xl border p-4 ${cert.type === "competition_winner" ? "bg-gradient-to-r from-amber-950/20 to-amber-900/10 border-amber-500/30" : "bg-card border-border"}`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    cert.type === "exam" ? "bg-primary/10" : cert.type === "subject_completion" ? "bg-green-500/10" : "bg-accent/50"
+                    cert.type === "competition_winner" ? "bg-amber-500/20" : cert.type === "exam" ? "bg-primary/10" : cert.type === "subject_completion" ? "bg-green-500/10" : "bg-accent/50"
                   }`}>
-                    {cert.type === "exam" 
+                    {cert.type === "competition_winner"
+                      ? <Trophy className="w-6 h-6 text-amber-500" />
+                      : cert.type === "exam" 
                       ? <FileText className="w-6 h-6 text-primary" />
                       : cert.type === "subject_completion"
                       ? <BookOpen className="w-6 h-6 text-green-600" />
@@ -494,9 +496,9 @@ const Certificates = () => {
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm truncate">{cert.title}</h3>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                        cert.type === "exam" ? "bg-primary/10 text-primary" : cert.type === "subject_completion" ? "bg-green-500/10 text-green-700" : "bg-accent/50 text-accent-foreground"
+                        cert.type === "competition_winner" ? "bg-amber-500/20 text-amber-600" : cert.type === "exam" ? "bg-primary/10 text-primary" : cert.type === "subject_completion" ? "bg-green-500/10 text-green-700" : "bg-accent/50 text-accent-foreground"
                       }`}>
-                        {cert.type === "exam" ? "امتحان" : cert.type === "subject_completion" ? "إتمام مادة" : "واجب"}
+                        {cert.type === "competition_winner" ? "🥇 فائز المسابقة" : cert.type === "exam" ? "امتحان" : cert.type === "subject_completion" ? "إتمام مادة" : "واجب"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{cert.subject} • {cert.score}</p>
