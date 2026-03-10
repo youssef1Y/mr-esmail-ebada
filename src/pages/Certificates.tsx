@@ -239,7 +239,7 @@ const Certificates = () => {
         <div style="position:absolute;width:60px;height:60px;border:3px solid #d4a843;bottom:30px;right:30px;border-left:none;border-top:none;"></div>
         <div style="position:relative;z-index:1;padding:50px 60px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;">
           <div style="font-size:40px;margin-bottom:10px;">🏆</div>
-          <div style="font-size:32px;color:#1a5c35;font-weight:700;margin-bottom:5px;">شهادة تفوق ودرجة كاملة</div>
+          <div style="font-size:32px;color:#1a5c35;font-weight:700;margin-bottom:5px;">${cert.type === "subject_completion" ? "شهادة إتمام مادة" : "شهادة تفوق ودرجة كاملة"}</div>
           <div style="font-size:14px;color:#666;margin-bottom:20px;">منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية</div>
           <div style="font-size:16px;color:#333;">يُشهد بأن الطالب/ة</div>
           <div style="font-size:28px;color:#d4a843;font-weight:700;margin:15px 0;padding:8px 40px;border-bottom:2px solid #d4a843;display:inline-block;">${cert.student_name}</div>
