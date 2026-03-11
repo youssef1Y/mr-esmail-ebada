@@ -1627,10 +1627,19 @@ const Dashboard = () => {
     toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
 
-  const deleteProfile = async (id: string) => {
-    await supabase.from("profiles").delete().eq("id", id);
-    fetchProfiles();
-    toast({ title: "تم حذف الطالب" });
+  const deleteProfile = async (id: string, userId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: userId },
+      });
+      if (error || !data?.success) throw new Error(error?.message || "فشل الحذف");
+      fetchProfiles();
+      toast({ title: "تم حذف الطالب وجميع بياناته" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message || "فشل في حذف الطالب", variant: "destructive" });
+    }
   };
 
   const addVideo = async () => {
@@ -2042,7 +2051,7 @@ const Dashboard = () => {
                           <p>{p.student_phone}</p>
                         </div>
                         <div className="flex gap-2 mt-2">
-                          <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id)} className="text-destructive h-7 px-2">
+                          <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id, p.user_id)} className="text-destructive h-7 px-2">
                             <Trash2 className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant={p.is_subscribed ? "outline" : "default"} onClick={() => toggleSubscription(p)} className="gap-1 flex-1 h-7">
