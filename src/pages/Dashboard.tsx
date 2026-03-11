@@ -11,6 +11,7 @@ import { AchievementBadges } from "@/components/AchievementBadges";
 import { DailyChallenges } from "@/components/DailyChallenges";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
+import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { Button } from "@/components/ui/button";
