@@ -185,11 +185,11 @@ const ParentDashboard = () => {
                       <div className="flex-1 min-w-0">
                         <h2 className="font-bold text-lg">{student.profile?.full_name || "طالب"}</h2>
                         <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                          <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.grade}</span>
-                          {student.profile.school && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.school}</span>}
-                          {student.profile.governorate && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.governorate}</span>}
-                          <span className={`px-2 py-0.5 rounded-full ${student.profile.is_subscribed ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
-                            {student.profile.is_subscribed ? "مشترك ✅" : "غير مشترك"}
+                          <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile?.grade || ""}</span>
+                          {student.profile?.school && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.school}</span>}
+                          {student.profile?.governorate && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.governorate}</span>}
+                          <span className={`px-2 py-0.5 rounded-full ${student.profile?.is_subscribed ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                            {student.profile?.is_subscribed ? "مشترك ✅" : "غير مشترك"}
                           </span>
                         </div>
                       </div>
