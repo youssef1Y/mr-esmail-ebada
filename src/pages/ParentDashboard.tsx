@@ -107,7 +107,7 @@ const ParentDashboard = () => {
   };
 
   const session = JSON.parse(localStorage.getItem("parent_session") || "{}");
-  const student = students[selectedStudent];
+  const student = students[selectedStudent] || null;
 
   if (loading) {
     return (
@@ -130,7 +130,7 @@ const ParentDashboard = () => {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-bold text-sm">أهلاً {session.parent?.full_name || "ولي الأمر"}</h1>
+              <h1 className="font-bold text-sm">أهلاً {session.parent?.full_name || session.full_name || "ولي الأمر"}</h1>
               <p className="text-[11px] text-muted-foreground">لوحة متابعة الأبناء</p>
             </div>
           </div>
@@ -160,14 +160,14 @@ const ParentDashboard = () => {
               <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                 {students.map((s, i) => (
                   <Button
-                    key={s.profile.user_id}
+                    key={s.profile?.user_id || i}
                     variant={selectedStudent === i ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedStudent(i)}
                     className="whitespace-nowrap"
                   >
                     <GraduationCap className="w-4 h-4 ml-1" />
-                    {s.profile.full_name}
+                    {s.profile?.full_name || "طالب"}
                   </Button>
                 ))}
               </div>
@@ -183,13 +183,13 @@ const ParentDashboard = () => {
                         <GraduationCap className="w-7 h-7 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="font-bold text-lg">{student.profile.full_name}</h2>
+                        <h2 className="font-bold text-lg">{student.profile?.full_name || "طالب"}</h2>
                         <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                          <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.grade}</span>
-                          {student.profile.school && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.school}</span>}
-                          {student.profile.governorate && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.governorate}</span>}
-                          <span className={`px-2 py-0.5 rounded-full ${student.profile.is_subscribed ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
-                            {student.profile.is_subscribed ? "مشترك ✅" : "غير مشترك"}
+                          <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile?.grade || ""}</span>
+                          {student.profile?.school && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.school}</span>}
+                          {student.profile?.governorate && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.governorate}</span>}
+                          <span className={`px-2 py-0.5 rounded-full ${student.profile?.is_subscribed ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                            {student.profile?.is_subscribed ? "مشترك ✅" : "غير مشترك"}
                           </span>
                         </div>
                       </div>
