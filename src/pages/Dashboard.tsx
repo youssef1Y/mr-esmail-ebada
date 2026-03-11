@@ -2051,7 +2051,7 @@ const Dashboard = () => {
                           <p>{p.student_phone}</p>
                         </div>
                         <div className="flex gap-2 mt-2">
-                          <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id)} className="text-destructive h-7 px-2">
+                          <Button size="sm" variant="outline" onClick={() => deleteProfile(p.id, p.user_id)} className="text-destructive h-7 px-2">
                             <Trash2 className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant={p.is_subscribed ? "outline" : "default"} onClick={() => toggleSubscription(p)} className="gap-1 flex-1 h-7">
