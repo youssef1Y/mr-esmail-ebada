@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { hash as bcryptHash, compare as bcryptCompare } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import bcrypt from "npm:bcryptjs@2.4.3";
+
+const bcryptHash = async (password: string): Promise<string> => {
+  const salt = bcrypt.genSaltSync(10);
+  return bcrypt.hashSync(password, salt);
+};
+const bcryptCompare = async (password: string, hash: string): Promise<boolean> => {
+  return bcrypt.compareSync(password, hash);
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
