@@ -1627,10 +1627,19 @@ const Dashboard = () => {
     toast({ title: isActivating ? "تم تفعيل الاشتراك وإشعار الطالب" : "تم إلغاء الاشتراك وإشعار الطالب" });
   };
 
-  const deleteProfile = async (id: string) => {
-    await supabase.from("profiles").delete().eq("id", id);
-    fetchProfiles();
-    toast({ title: "تم حذف الطالب" });
+  const deleteProfile = async (id: string, userId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: userId },
+      });
+      if (error || !data?.success) throw new Error(error?.message || "فشل الحذف");
+      fetchProfiles();
+      toast({ title: "تم حذف الطالب وجميع بياناته" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message || "فشل في حذف الطالب", variant: "destructive" });
+    }
   };
 
   const addVideo = async () => {
