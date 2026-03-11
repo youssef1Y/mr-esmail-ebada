@@ -130,7 +130,7 @@ const ParentDashboard = () => {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-bold text-sm">أهلاً {session.parent?.full_name || "ولي الأمر"}</h1>
+              <h1 className="font-bold text-sm">أهلاً {session.parent?.full_name || session.full_name || "ولي الأمر"}</h1>
               <p className="text-[11px] text-muted-foreground">لوحة متابعة الأبناء</p>
             </div>
           </div>
