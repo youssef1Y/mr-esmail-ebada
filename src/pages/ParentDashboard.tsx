@@ -107,7 +107,7 @@ const ParentDashboard = () => {
   };
 
   const session = JSON.parse(localStorage.getItem("parent_session") || "{}");
-  const student = students[selectedStudent];
+  const student = students[selectedStudent] || null;
 
   if (loading) {
     return (
