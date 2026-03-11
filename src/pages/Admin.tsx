@@ -1771,6 +1771,10 @@ const Admin = () => {
         {tab === "competition" && (
           <AdminCompetitionTab toast={toast} />
         )}
+
+        {tab === "question_bank" && (
+          <AdminQuestionBankTab toast={toast} />
+        )}
       </main>
     </div>
   );
