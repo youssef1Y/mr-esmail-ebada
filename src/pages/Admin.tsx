@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download, Trophy } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
+import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -216,7 +217,7 @@ const AdminNewsTab = ({ toast }: { toast: any }) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition" | "question_bank">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -832,6 +833,7 @@ const Admin = () => {
             { key: "reports" as const, label: "التقارير", icon: BarChart3 },
             { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "competition" as const, label: "المسابقات", icon: Trophy },
+            { key: "question_bank" as const, label: "بنك الأسئلة", icon: ClipboardList },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
@@ -1768,6 +1770,10 @@ const Admin = () => {
 
         {tab === "competition" && (
           <AdminCompetitionTab toast={toast} />
+        )}
+
+        {tab === "question_bank" && (
+          <AdminQuestionBankTab toast={toast} />
         )}
       </main>
     </div>
