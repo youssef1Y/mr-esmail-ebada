@@ -6,15 +6,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 const gradesList = [
@@ -24,40 +17,36 @@ const gradesList = [
 const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
 
 interface Question {
-  id: string;
-  grade: string;
-  subject: string;
-  lesson: string | null;
-  question_text: string;
-  question_type: string;
-  options: string[] | null;
-  correct_answer: string | null;
-  created_at: string;
+  id: string; grade: string; subject: string; lesson: string | null;
+  question_text: string; question_type: string; options: string[] | null;
+  correct_answer: string | null; created_at: string;
 }
 
-interface AdminQuestionBankTabProps {
-  toast: any;
+interface DraftQuestion {
+  question_text: string; question_type: "mcq" | "essay";
+  options: string[]; correct_answer: string; lesson: string;
 }
 
-const emptyForm = {
-  grade: "",
-  subject: "",
-  lesson: "",
-  question_text: "",
-  question_type: "mcq" as "mcq" | "essay",
-  options: ["", "", "", ""],
-  correct_answer: "",
-};
+interface AdminQuestionBankTabProps { toast: any; }
+
+const emptyDraft = (): DraftQuestion => ({
+  question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "", lesson: "",
+});
 
 const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Bulk upload
+  // Multi-question add
+  const [addGrade, setAddGrade] = useState("");
+  const [addSubject, setAddSubject] = useState("");
+  const [addLesson, setAddLesson] = useState("");
+  const [drafts, setDrafts] = useState<DraftQuestion[]>([emptyDraft()]);
+
+  // Bulk Excel
   const [showBulk, setShowBulk] = useState(false);
   const [bulkGrade, setBulkGrade] = useState("");
   const [bulkSubject, setBulkSubject] = useState("");
@@ -82,65 +71,87 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
 
   useEffect(() => { fetchQuestions(); }, [filterGrade, filterSubject]);
 
-  const handleSave = async () => {
-    if (!form.grade || !form.subject || !form.question_text) {
-      toast({ title: "خطأ", description: "أكمل الحقول المطلوبة (الصف، المادة، نص السؤال)", variant: "destructive" });
+  const updateDraft = (idx: number, patch: Partial<DraftQuestion>) => {
+    setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, ...patch } : d));
+  };
+
+  const addNewDraft = () => setDrafts(prev => [...prev, emptyDraft()]);
+
+  const removeDraft = (idx: number) => {
+    if (drafts.length <= 1) return;
+    setDrafts(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSaveAll = async () => {
+    if (!addGrade || !addSubject) {
+      toast({ title: "خطأ", description: "اختر الصف والمادة أولاً", variant: "destructive" });
       return;
     }
 
-    if (form.question_type === "mcq") {
-      const filledOptions = form.options.filter(o => o.trim());
-      if (filledOptions.length < 2) {
-        toast({ title: "خطأ", description: "أضف على الأقل خيارين", variant: "destructive" });
+    // Validate drafts
+    for (let i = 0; i < drafts.length; i++) {
+      const d = drafts[i];
+      if (!d.question_text.trim()) {
+        toast({ title: "خطأ", description: `السؤال ${i + 1}: نص السؤال مطلوب`, variant: "destructive" });
         return;
       }
-      if (!form.correct_answer) {
-        toast({ title: "خطأ", description: "حدد الإجابة الصحيحة", variant: "destructive" });
-        return;
+      if (d.question_type === "mcq") {
+        const filled = d.options.filter(o => o.trim());
+        if (filled.length < 2) {
+          toast({ title: "خطأ", description: `السؤال ${i + 1}: أضف على الأقل خيارين`, variant: "destructive" });
+          return;
+        }
+        if (!d.correct_answer) {
+          toast({ title: "خطأ", description: `السؤال ${i + 1}: حدد الإجابة الصحيحة`, variant: "destructive" });
+          return;
+        }
       }
     }
 
     setSaving(true);
-    const cleanOptions = form.question_type === "mcq" ? form.options.filter(o => o.trim()) : null;
-    const record = {
-      grade: form.grade,
-      subject: form.subject,
-      lesson: form.lesson || null,
-      question_text: form.question_text,
-      question_type: form.question_type,
-      options: cleanOptions,
-      correct_answer: form.question_type === "mcq" ? form.correct_answer : null,
-    };
 
-    let error;
-    if (editingId) {
-      ({ error } = await supabase.from("question_bank").update(record).eq("id", editingId));
+    if (editingId && drafts.length === 1) {
+      const d = drafts[0];
+      const record = {
+        grade: addGrade, subject: addSubject, lesson: (d.lesson || addLesson) || null,
+        question_text: d.question_text, question_type: d.question_type,
+        options: d.question_type === "mcq" ? d.options.filter(o => o.trim()) : null,
+        correct_answer: d.question_type === "mcq" ? d.correct_answer : null,
+      };
+      const { error } = await supabase.from("question_bank").update(record).eq("id", editingId);
+      setSaving(false);
+      if (error) { toast({ title: "خطأ", description: "حدث خطأ أثناء الحفظ", variant: "destructive" }); return; }
+      toast({ title: "تم التعديل ✅" });
     } else {
-      ({ error } = await supabase.from("question_bank").insert(record));
+      const records = drafts.map(d => ({
+        grade: addGrade, subject: addSubject, lesson: (d.lesson || addLesson) || null,
+        question_text: d.question_text, question_type: d.question_type,
+        options: d.question_type === "mcq" ? d.options.filter(o => o.trim()) : null,
+        correct_answer: d.question_type === "mcq" ? d.correct_answer : null,
+      }));
+      const { error } = await supabase.from("question_bank").insert(records);
+      setSaving(false);
+      if (error) { toast({ title: "خطأ", description: "حدث خطأ أثناء الحفظ", variant: "destructive" }); return; }
+      toast({ title: `تم حفظ ${records.length} سؤال بنجاح ✅` });
     }
 
-    setSaving(false);
-    if (error) {
-      toast({ title: "خطأ", description: "حدث خطأ أثناء الحفظ", variant: "destructive" });
-    } else {
-      toast({ title: editingId ? "تم التعديل" : "تمت الإضافة" });
-      setForm({ ...emptyForm });
-      setShowAdd(false);
-      setEditingId(null);
-      fetchQuestions();
-    }
+    setDrafts([emptyDraft()]);
+    setShowAdd(false);
+    setEditingId(null);
+    fetchQuestions();
   };
 
   const startEdit = (q: Question) => {
-    setForm({
-      grade: q.grade,
-      subject: q.subject,
-      lesson: q.lesson || "",
+    setAddGrade(q.grade);
+    setAddSubject(q.subject);
+    setAddLesson(q.lesson || "");
+    setDrafts([{
       question_text: q.question_text,
       question_type: q.question_type as "mcq" | "essay",
       options: q.options ? [...q.options, "", "", "", ""].slice(0, 4) : ["", "", "", ""],
       correct_answer: q.correct_answer || "",
-    });
+      lesson: q.lesson || "",
+    }]);
     setEditingId(q.id);
     setShowAdd(true);
     setShowBulk(false);
@@ -152,13 +163,14 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
     fetchQuestions();
   };
 
-  const cancelEdit = () => {
-    setForm({ ...emptyForm });
+  const cancelAdd = () => {
+    setDrafts([emptyDraft()]);
     setEditingId(null);
     setShowAdd(false);
+    setAddGrade(""); setAddSubject(""); setAddLesson("");
   };
 
-  // ===== BULK: Excel Upload =====
+  // ===== Excel Upload =====
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,85 +180,39 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
         const wb = XLSX.read(evt.target?.result, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        
-        // Map Excel columns to question format
         const parsed = rows.map((row, idx) => {
-          const questionText = row["السؤال"] || row["نص السؤال"] || row["question"] || row["question_text"] || "";
-          const opt1 = row["الخيار 1"] || row["خيار1"] || row["option1"] || row["أ"] || "";
-          const opt2 = row["الخيار 2"] || row["خيار2"] || row["option2"] || row["ب"] || "";
-          const opt3 = row["الخيار 3"] || row["خيار3"] || row["option3"] || row["ج"] || "";
-          const opt4 = row["الخيار 4"] || row["خيار4"] || row["option4"] || row["د"] || "";
-          const correct = row["الإجابة الصحيحة"] || row["الإجابة"] || row["correct"] || row["correct_answer"] || "";
-          const type = row["النوع"] || row["type"] || "mcq";
-          const lesson = row["الدرس"] || row["lesson"] || "";
-
-          const options = [opt1, opt2, opt3, opt4].map(String).filter(o => o.trim());
-          const questionType = String(type).toLowerCase().includes("مقالي") || String(type).toLowerCase() === "essay" ? "essay" : "mcq";
-
-          return {
-            idx: idx + 1,
-            question_text: String(questionText).trim(),
-            options: questionType === "mcq" ? options : [],
-            correct_answer: questionType === "mcq" ? String(correct).trim() : "",
-            question_type: questionType,
-            lesson: String(lesson).trim(),
-            valid: !!String(questionText).trim(),
-          };
+          const questionText = row["السؤال"] || row["نص السؤال"] || row["question"] || "";
+          const opts = [row["الخيار 1"]||row["خيار1"]||row["أ"]||"", row["الخيار 2"]||row["خيار2"]||row["ب"]||"",
+                        row["الخيار 3"]||row["خيار3"]||row["ج"]||"", row["الخيار 4"]||row["خيار4"]||row["د"]||""]
+                        .map(String).filter(o => o.trim());
+          const correct = String(row["الإجابة الصحيحة"] || row["الإجابة"] || row["correct"] || "").trim();
+          const type = String(row["النوع"] || "").toLowerCase().includes("مقالي") ? "essay" : "mcq";
+          const lesson = String(row["الدرس"] || "").trim();
+          return { question_text: String(questionText).trim(), options: type === "mcq" ? opts : [], correct_answer: type === "mcq" ? correct : "", question_type: type, lesson, valid: !!String(questionText).trim() };
         }).filter(q => q.valid);
-
         setBulkQuestions(parsed);
-        if (parsed.length === 0) {
-          toast({ title: "تنبيه", description: "لم يتم العثور على أسئلة في الملف. تأكد من أن العمود الأول اسمه 'السؤال' أو 'نص السؤال'", variant: "destructive" });
-        } else {
-          toast({ title: `تم قراءة ${parsed.length} سؤال من الملف` });
-        }
-      } catch {
-        toast({ title: "خطأ", description: "حدث خطأ في قراءة الملف", variant: "destructive" });
-      }
+        toast({ title: parsed.length > 0 ? `تم قراءة ${parsed.length} سؤال` : "لم يتم العثور على أسئلة", variant: parsed.length > 0 ? undefined : "destructive" });
+      } catch { toast({ title: "خطأ في قراءة الملف", variant: "destructive" }); }
     };
     reader.readAsBinaryString(file);
     e.target.value = "";
   };
 
   const handleBulkSave = async () => {
-    if (!bulkGrade || !bulkSubject) {
-      toast({ title: "خطأ", description: "اختر الصف والمادة أولاً", variant: "destructive" });
-      return;
-    }
-    if (bulkQuestions.length === 0) {
-      toast({ title: "خطأ", description: "لا توجد أسئلة لحفظها", variant: "destructive" });
-      return;
-    }
-
+    if (!bulkGrade || !bulkSubject) { toast({ title: "خطأ", description: "اختر الصف والمادة", variant: "destructive" }); return; }
+    if (bulkQuestions.length === 0) return;
     setBulkSaving(true);
     const records = bulkQuestions.map(q => ({
-      grade: bulkGrade,
-      subject: bulkSubject,
-      lesson: bulkLesson || q.lesson || null,
-      question_text: q.question_text,
-      question_type: q.question_type,
+      grade: bulkGrade, subject: bulkSubject, lesson: bulkLesson || q.lesson || null,
+      question_text: q.question_text, question_type: q.question_type,
       options: q.question_type === "mcq" && q.options.length >= 2 ? q.options : null,
       correct_answer: q.question_type === "mcq" ? q.correct_answer || null : null,
     }));
-
     const { error } = await supabase.from("question_bank").insert(records);
     setBulkSaving(false);
-
-    if (error) {
-      toast({ title: "خطأ", description: "حدث خطأ أثناء حفظ الأسئلة: " + error.message, variant: "destructive" });
-    } else {
-      toast({ title: `تم حفظ ${records.length} سؤال بنجاح ✅` });
-      setBulkQuestions([]);
-      setBulkGrade("");
-      setBulkSubject("");
-      setBulkLesson("");
-      setShowBulk(false);
-      fetchQuestions();
-    }
-  };
-
-  const removeBulkQuestion = (idx: number) => {
-    setBulkQuestions(prev => prev.filter((_, i) => i !== idx));
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `تم حفظ ${records.length} سؤال ✅` });
+    setBulkQuestions([]); setShowBulk(false); fetchQuestions();
   };
 
   const filtered = questions.filter(q =>
@@ -255,24 +221,18 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="bg-card rounded-2xl border border-border p-6">
+        {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-bold font-amiri flex items-center gap-2">
             <Library className="w-5 h-5 text-primary" />
-            إدارة بنك الأسئلة
-            <span className="text-sm font-normal text-muted-foreground">({questions.length} سؤال)</span>
+            بنك الأسئلة
+            <span className="text-sm font-normal text-muted-foreground">({questions.length})</span>
           </h2>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={fetchQuestions} className="gap-1">
-              <RefreshCw className="w-3 h-3" /> تحديث
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); setEditingId(null); }} className="gap-1">
-              <Upload className="w-3 h-3" /> رفع أسئلة بالجملة
-            </Button>
-            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setEditingId(null); setForm({ ...emptyForm }); }} className="gap-1">
-              <Plus className="w-3 h-3" /> سؤال جديد
-            </Button>
+            <Button variant="outline" size="sm" onClick={fetchQuestions} className="gap-1"><RefreshCw className="w-3 h-3" /> تحديث</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
+            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
           </div>
         </div>
 
@@ -288,186 +248,150 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </select>
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="بحث في الأسئلة..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
+            <Input placeholder="بحث..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
           </div>
         </div>
 
-        {/* ===== BULK UPLOAD SECTION ===== */}
-        {showBulk && (
+        {/* ===== ADD MULTIPLE QUESTIONS ===== */}
+        {showAdd && (
           <div className="bg-muted rounded-xl p-4 mb-4 space-y-4">
-            <h3 className="font-bold text-sm flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-primary" />
-              رفع أسئلة بالجملة من ملف Excel
-            </h3>
-
-            <div className="bg-background/60 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-bold text-foreground">📋 تنسيق الملف المطلوب:</p>
-              <p>الأعمدة: <span className="font-bold">السؤال</span> | <span className="font-bold">الخيار 1</span> | <span className="font-bold">الخيار 2</span> | <span className="font-bold">الخيار 3</span> | <span className="font-bold">الخيار 4</span> | <span className="font-bold">الإجابة الصحيحة</span> | الدرس (اختياري) | النوع (اختياري)</p>
-              <p>• الإجابة الصحيحة يجب أن تكون نفس نص أحد الخيارات بالضبط</p>
-              <p>• النوع: اتركه فارغ لاختيار من متعدد، أو اكتب "مقالي" للأسئلة المقالية</p>
-            </div>
-
+            <h3 className="font-bold text-sm">{editingId ? "تعديل السؤال" : `إضافة أسئلة (${drafts.length} سؤال)`}</h3>
+            
+            {/* Shared grade/subject */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <Label className="text-xs">الصف *</Label>
-                <select value={bulkGrade} onChange={e => setBulkGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <select value={addGrade} onChange={e => setAddGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                   <option value="">اختر الصف</option>
                   {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-xs">المادة *</Label>
-                <select value={bulkSubject} onChange={e => setBulkSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <select value={addSubject} onChange={e => setAddSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                   <option value="">اختر المادة</option>
                   {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs">الدرس (اختياري - يطبق على الكل)</Label>
-                <Input value={bulkLesson} onChange={e => setBulkLesson(e.target.value)} placeholder="اسم الدرس" />
+                <Label className="text-xs">الدرس (اختياري - للكل)</Label>
+                <Input value={addLesson} onChange={e => setAddLesson(e.target.value)} placeholder="اسم الدرس" />
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs">اختر ملف Excel</Label>
-              <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="mt-1" />
-            </div>
-
-            {/* Preview parsed questions */}
-            {bulkQuestions.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-primary">معاينة: {bulkQuestions.length} سؤال</p>
-                <div className="max-h-[300px] overflow-y-auto space-y-1">
-                  {bulkQuestions.map((q, i) => (
-                    <div key={i} className="bg-background rounded-lg p-2 border border-border/50 flex items-start gap-2">
-                      <span className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5 mt-0.5 shrink-0">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs leading-relaxed">{q.question_text}</p>
-                        {q.question_type === "mcq" && q.options.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {q.options.map((opt: string, j: number) => (
-                              <span key={j} className={`text-[10px] rounded px-1.5 py-0.5 border ${opt === q.correct_answer ? "bg-primary/15 text-primary border-primary/30 font-bold" : "bg-muted border-border"}`}>
-                                {opt} {opt === q.correct_answer && "✓"}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+            {/* Each draft question */}
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {drafts.map((draft, idx) => (
+                <div key={idx} className="bg-background rounded-lg p-3 border border-border space-y-2 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-primary">سؤال {idx + 1}</span>
+                    <div className="flex items-center gap-1">
+                      <div className="flex gap-1">
+                        <Button variant={draft.question_type === "mcq" ? "default" : "outline"} size="sm" className="h-6 text-[10px] px-2" onClick={() => updateDraft(idx, { question_type: "mcq" })}>اختياري</Button>
+                        <Button variant={draft.question_type === "essay" ? "default" : "outline"} size="sm" className="h-6 text-[10px] px-2" onClick={() => updateDraft(idx, { question_type: "essay" })}>مقالي</Button>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-destructive" onClick={() => removeBulkQuestion(i)}>
-                        <X className="w-3 h-3" />
-                      </Button>
+                      {drafts.length > 1 && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeDraft(idx)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => { setShowBulk(false); setBulkQuestions([]); }} className="gap-1">
-                <X className="w-3 h-3" /> إلغاء
-              </Button>
-              <Button size="sm" onClick={handleBulkSave} disabled={bulkSaving || bulkQuestions.length === 0} className="gap-1">
-                <Save className="w-3 h-3" /> {bulkSaving ? "جاري الحفظ..." : `حفظ ${bulkQuestions.length} سؤال`}
-              </Button>
+                  <textarea
+                    value={draft.question_text}
+                    onChange={e => updateDraft(idx, { question_text: e.target.value })}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+                    placeholder="نص السؤال..."
+                  />
+
+                  {draft.question_type === "mcq" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {draft.options.map((opt, oi) => (
+                        <div key={oi} className="flex gap-1 items-center">
+                          <Input
+                            value={opt}
+                            onChange={e => {
+                              const newOpts = [...draft.options];
+                              newOpts[oi] = e.target.value;
+                              updateDraft(idx, { options: newOpts });
+                            }}
+                            placeholder={`خيار ${oi + 1}`}
+                            className="flex-1 h-8 text-xs"
+                          />
+                          <Button
+                            variant={draft.correct_answer === opt && opt.trim() ? "default" : "outline"}
+                            size="sm"
+                            className="h-8 text-[10px] px-2 shrink-0"
+                            disabled={!opt.trim()}
+                            onClick={() => opt.trim() && updateDraft(idx, { correct_answer: opt })}
+                          >
+                            {draft.correct_answer === opt && opt.trim() ? "✓" : "صحيح"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add more + Save */}
+            <div className="flex gap-2 justify-between items-center">
+              {!editingId && (
+                <Button variant="outline" size="sm" onClick={addNewDraft} className="gap-1">
+                  <Plus className="w-3 h-3" /> سؤال آخر
+                </Button>
+              )}
+              <div className="flex gap-2 mr-auto">
+                <Button variant="outline" size="sm" onClick={cancelAdd} className="gap-1"><X className="w-3 h-3" /> إلغاء</Button>
+                <Button size="sm" onClick={handleSaveAll} disabled={saving} className="gap-1">
+                  <Save className="w-3 h-3" /> {saving ? "جاري الحفظ..." : editingId ? "حفظ التعديل" : `حفظ ${drafts.length} سؤال`}
+                </Button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Add/Edit Single Form */}
-        {showAdd && (
+        {/* ===== BULK EXCEL ===== */}
+        {showBulk && (
           <div className="bg-muted rounded-xl p-4 mb-4 space-y-3">
-            <h3 className="font-bold text-sm">{editingId ? "تعديل السؤال" : "إضافة سؤال جديد"}</h3>
+            <h3 className="font-bold text-sm flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-primary" /> رفع من Excel</h3>
+            <div className="bg-background/60 rounded-lg p-3 text-xs text-muted-foreground">
+              <p className="font-bold text-foreground mb-1">📋 الأعمدة المطلوبة:</p>
+              <p>السؤال | الخيار 1 | الخيار 2 | الخيار 3 | الخيار 4 | الإجابة الصحيحة | الدرس (اختياري)</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <Label className="text-xs">الصف *</Label>
-                <select value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">اختر الصف</option>
-                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs">المادة *</Label>
-                <select value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">اختر المادة</option>
-                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs">الدرس (اختياري)</Label>
-                <Input value={form.lesson} onChange={e => setForm({ ...form, lesson: e.target.value })} placeholder="اسم الدرس" />
-              </div>
+              <div><Label className="text-xs">الصف *</Label><select value={bulkGrade} onChange={e => setBulkGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"><option value="">اختر</option>{gradesList.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+              <div><Label className="text-xs">المادة *</Label><select value={bulkSubject} onChange={e => setBulkSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"><option value="">اختر</option>{subjectsList.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+              <div><Label className="text-xs">الدرس (اختياري)</Label><Input value={bulkLesson} onChange={e => setBulkLesson(e.target.value)} placeholder="الدرس" /></div>
             </div>
-
-            <div>
-              <Label className="text-xs">نوع السؤال</Label>
-              <div className="flex gap-2 mt-1">
-                <Button variant={form.question_type === "mcq" ? "default" : "outline"} size="sm" onClick={() => setForm({ ...form, question_type: "mcq" })}>
-                  اختيار من متعدد
-                </Button>
-                <Button variant={form.question_type === "essay" ? "default" : "outline"} size="sm" onClick={() => setForm({ ...form, question_type: "essay" })}>
-                  مقالي
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs">نص السؤال *</Label>
-              <textarea
-                value={form.question_text}
-                onChange={e => setForm({ ...form, question_text: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-y"
-                placeholder="اكتب نص السؤال هنا..."
-              />
-            </div>
-
-            {form.question_type === "mcq" && (
-              <div className="space-y-2">
-                <Label className="text-xs">الخيارات (2-4 خيارات)</Label>
-                {form.options.map((opt, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <Input
-                      value={opt}
-                      onChange={e => {
-                        const newOpts = [...form.options];
-                        newOpts[i] = e.target.value;
-                        setForm({ ...form, options: newOpts });
-                      }}
-                      placeholder={`الخيار ${i + 1}`}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant={form.correct_answer === opt && opt.trim() ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => opt.trim() && setForm({ ...form, correct_answer: opt })}
-                      className="text-xs whitespace-nowrap"
-                      disabled={!opt.trim()}
-                    >
-                      {form.correct_answer === opt && opt.trim() ? "✓ صحيح" : "تحديد صحيح"}
-                    </Button>
+            <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} />
+            {bulkQuestions.length > 0 && (
+              <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                <p className="text-xs font-bold text-primary">{bulkQuestions.length} سؤال</p>
+                {bulkQuestions.map((q, i) => (
+                  <div key={i} className="bg-background rounded-lg p-2 border border-border/50 text-xs flex items-center gap-2">
+                    <span className="text-primary font-bold">{i+1}.</span>
+                    <span className="flex-1 truncate">{q.question_text}</span>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive shrink-0" onClick={() => setBulkQuestions(p => p.filter((_:any,j:number) => j !== i))}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
               </div>
             )}
-
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={cancelEdit} className="gap-1">
-                <X className="w-3 h-3" /> إلغاء
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
-                <Save className="w-3 h-3" /> {saving ? "جاري الحفظ..." : editingId ? "حفظ التعديل" : "إضافة السؤال"}
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setShowBulk(false); setBulkQuestions([]); }}><X className="w-3 h-3" /> إلغاء</Button>
+              <Button size="sm" onClick={handleBulkSave} disabled={bulkSaving || !bulkQuestions.length}><Save className="w-3 h-3" /> {bulkSaving ? "جاري الحفظ..." : `حفظ ${bulkQuestions.length} سؤال`}</Button>
             </div>
           </div>
         )}
 
         {/* Questions List */}
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-          </div>
+          <div className="text-center py-8"><div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full mx-auto" /></div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
-            {questions.length === 0 ? "لا توجد أسئلة بعد. اضغط 'رفع أسئلة بالجملة' لإضافة أسئلة من ملف Excel." : "لا توجد نتائج مطابقة للبحث."}
+            {questions.length === 0 ? "لا توجد أسئلة. اضغط 'إضافة أسئلة' للبدء." : "لا توجد نتائج."}
           </div>
         ) : (
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
@@ -480,9 +404,7 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
                       <span className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">{q.grade}</span>
                       <span className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">{q.subject}</span>
                       {q.lesson && <span className="text-[10px] bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">{q.lesson}</span>}
-                      <span className="text-[10px] bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
-                        {q.question_type === "mcq" ? "اختياري" : "مقالي"}
-                      </span>
+                      <span className="text-[10px] bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">{q.question_type === "mcq" ? "اختياري" : "مقالي"}</span>
                     </div>
                     {q.question_type === "mcq" && q.options && (
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -495,24 +417,12 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(q)}>
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(q)}><Edit2 className="w-3 h-3" /></Button>
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="w-3 h-3" /></Button></AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>حذف السؤال؟</AlertDialogTitle>
-                          <AlertDialogDescription>هل أنت متأكد من حذف هذا السؤال؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteQuestion(q.id)}>حذف</AlertDialogAction>
-                        </AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>حذف السؤال؟</AlertDialogTitle><AlertDialogDescription>لا يمكن التراجع عن هذا.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => deleteQuestion(q.id)}>حذف</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
