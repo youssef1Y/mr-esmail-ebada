@@ -1805,12 +1805,7 @@ const Dashboard = () => {
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
-              }
-
-              {/* Competition */}
-              {adminTab === "competition" && (
-                <AdminCompetitionTab toast={toast} />
-              )}
+  }
 
   const displayGrade = isAdmin ? selectedGrade : (profile?.grade || "");
   const subjects = gradeSubjects[displayGrade] || [];
