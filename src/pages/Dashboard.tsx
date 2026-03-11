@@ -1964,12 +1964,12 @@ const Dashboard = () => {
                 { key: "homework" as const, label: "الواجبات", icon: ClipboardList },
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
+                { key: "competition" as const, label: "المسابقات", icon: Trophy },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
                 { key: "messages" as const, label: "الشكاوى والاقتراحات", icon: MessageCircle },
                 { key: "parent-reports" as const, label: "تقارير أولياء الأمور", icon: Send },
-                { key: "competition" as const, label: "المسابقات", icon: Trophy },
                 { key: "keys" as const, label: "المفاتيح", icon: Lock },
                 { key: "promote" as const, label: "ترقية الصفوف", icon: ArrowRight },
               ].map(t => (
