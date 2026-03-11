@@ -88,11 +88,26 @@ const Profile = () => {
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDeleteAccount = async () => {
     if (!confirm("هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
-    await supabase.auth.signOut();
-    navigate("/");
-    toast({ title: "تم تسجيل الخروج", description: "تواصل مع الدعم لحذف حسابك نهائياً" });
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: session.user.id },
+      });
+      if (error || !data?.success) throw new Error(error?.message || "فشل الحذف");
+      await supabase.auth.signOut();
+      navigate("/");
+      toast({ title: "تم حذف الحساب", description: "تم حذف حسابك وجميع بياناتك بنجاح" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message || "فشل في حذف الحساب", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
