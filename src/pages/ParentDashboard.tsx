@@ -68,6 +68,8 @@ const ParentDashboard = () => {
           session_token: session.session_token,
         },
       });
+      console.log("📦 Raw response from server:", JSON.stringify(data, null, 2));
+      console.log("📦 Error from invoke:", error);
 
       if (error || data?.error) {
         toast({ title: "خطأ", description: data?.error || "فشل تحميل البيانات", variant: "destructive" });
@@ -79,17 +81,23 @@ const ParentDashboard = () => {
         return;
       }
 
-      const safeStudents = (data.students || []).map((s: any) => ({
-        profile: s.profile || {},
-        subjectProgress: s.subjectProgress || [],
-        pendingHomework: s.pendingHomework || [],
-        pendingExams: s.pendingExams || [],
-        examResults: s.examResults || [],
-        homeworkResults: s.homeworkResults || [],
-        rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
-        totalPoints: s.totalPoints || 0,
-        notifications: s.notifications || [],
-      }));
+      console.log("📦 data.students array:", JSON.stringify(data.students, null, 2));
+      
+      const safeStudents = (data.students || []).map((s: any) => {
+        console.log("📦 Single student raw:", JSON.stringify(s, null, 2));
+        return {
+          profile: s.profile || {},
+          subjectProgress: s.subjectProgress || [],
+          pendingHomework: s.pendingHomework || [],
+          pendingExams: s.pendingExams || [],
+          examResults: s.examResults || [],
+          homeworkResults: s.homeworkResults || [],
+          rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
+          totalPoints: s.totalPoints || 0,
+          notifications: s.notifications || [],
+        };
+      });
+      console.log("📦 Safe students:", JSON.stringify(safeStudents, null, 2));
       setStudents(safeStudents);
     } catch {
       toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
