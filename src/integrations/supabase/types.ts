@@ -1036,6 +1036,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_auth_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       complete_referral: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: undefined
