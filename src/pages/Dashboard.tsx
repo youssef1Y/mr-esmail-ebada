@@ -1956,7 +1956,7 @@ const Dashboard = () => {
         {isAdmin && adminUnlocked && (
           <div className="mb-8">
             {/* Admin Tabs */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-2 mb-4 flex-wrap pb-2">
               {[
                 { key: "subscribers" as const, label: "المشتركين", icon: Users },
                 { key: "videos" as const, label: "الفيديوهات", icon: Video },
