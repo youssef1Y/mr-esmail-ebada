@@ -1966,6 +1966,7 @@ const Dashboard = () => {
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
                 { key: "competition" as const, label: "المسابقات", icon: Trophy },
+                { key: "question_bank" as const, label: "بنك الأسئلة", icon: Library },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
