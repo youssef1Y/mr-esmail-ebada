@@ -2648,6 +2648,11 @@ const Dashboard = () => {
                 <AdminScheduleTab toast={toast} />
               )}
 
+              {/* Competition */}
+              {adminTab === "competition" && (
+                <AdminCompetitionTab toast={toast} />
+              )}
+
               {/* Grade Promotion */}
               {adminTab === "promote" && (
                 <AdminPromoteTab toast={toast} />
