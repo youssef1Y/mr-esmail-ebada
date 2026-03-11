@@ -79,7 +79,18 @@ const ParentDashboard = () => {
         return;
       }
 
-      setStudents(data.students || []);
+      const safeStudents = (data.students || []).map((s: any) => ({
+        profile: s.profile || {},
+        subjectProgress: s.subjectProgress || [],
+        pendingHomework: s.pendingHomework || [],
+        pendingExams: s.pendingExams || [],
+        examResults: s.examResults || [],
+        homeworkResults: s.homeworkResults || [],
+        rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
+        totalPoints: s.totalPoints || 0,
+        notifications: s.notifications || [],
+      }));
+      setStudents(safeStudents);
     } catch {
       toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
     }
