@@ -153,7 +153,7 @@ const Navbar = () => {
                   <ThemeToggle className="text-primary-foreground hover:bg-primary-foreground/10" />
                 </div>
                 <Link to="/auth/login" onClick={() => setMenuOpen(false)}>
-                  <Button variant="outline" size="sm" className="w-full border-gold/50 text-gold bg-gold/10 hover:bg-gold/20 mb-2">
+                  <Button variant="outline" size="sm" className="w-full bg-primary-foreground text-primary border-none hover:bg-primary-foreground/90 mb-2">
                     <LogIn className="w-4 h-4 ml-2" />
                     تسجيل الدخول
                   </Button>
