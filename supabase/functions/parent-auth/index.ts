@@ -383,6 +383,20 @@ serve(async (req) => {
       });
     }
 
+    // ========== LOGOUT ==========
+    if (action === "logout") {
+      if (session_token) {
+        await supabaseAdmin
+          .from("parent_sessions")
+          .delete()
+          .eq("token", session_token);
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "إجراء غير معروف" }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...corsHeaders },
