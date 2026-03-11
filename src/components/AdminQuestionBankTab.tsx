@@ -39,14 +39,12 @@ interface AdminQuestionBankTabProps {
   toast: any;
 }
 
-const emptyForm = {
-  grade: "",
-  subject: "",
-  lesson: "",
+const emptyQuestion = {
   question_text: "",
   question_type: "mcq" as "mcq" | "essay",
   options: ["", "", "", ""],
   correct_answer: "",
+  lesson: "",
 };
 
 const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
