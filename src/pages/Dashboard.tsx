@@ -11,6 +11,7 @@ import { AchievementBadges } from "@/components/AchievementBadges";
 import { DailyChallenges } from "@/components/DailyChallenges";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
+import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { Button } from "@/components/ui/button";
@@ -1163,7 +1164,7 @@ const Dashboard = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(() => sessionStorage.getItem("admin_selected_grade") || "");
-  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports" | "keys" | "competition">("subscribers");
+  const [adminTab, setAdminTab] = useState<"subscribers" | "videos" | "notifications" | "exams" | "stats" | "homework" | "submissions" | "leaderboard" | "messages" | "student-report" | "promote" | "schedule" | "parent-reports" | "keys" | "competition" | "question_bank">("subscribers");
 
   // Messages state (admin)
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
@@ -1965,6 +1966,7 @@ const Dashboard = () => {
                 { key: "submissions" as const, label: "الحلول", icon: ImageIcon },
                 { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
                 { key: "competition" as const, label: "المسابقات", icon: Trophy },
+                { key: "question_bank" as const, label: "بنك الأسئلة", icon: Library },
                 { key: "notifications" as const, label: "الإشعارات", icon: Bell },
                 { key: "leaderboard" as const, label: "ترتيب الطلاب", icon: Trophy },
                 { key: "student-report" as const, label: "تقرير الطلاب", icon: UserCog },
@@ -2651,6 +2653,11 @@ const Dashboard = () => {
               {/* Competition */}
               {adminTab === "competition" && (
                 <AdminCompetitionTab toast={toast} />
+              )}
+
+              {/* Question Bank */}
+              {adminTab === "question_bank" && (
+                <AdminQuestionBankTab toast={toast} />
               )}
 
               {/* Grade Promotion */}
