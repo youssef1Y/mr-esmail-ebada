@@ -68,41 +68,6 @@ async function verifyPassword(password: string, storedHash: string, phone: strin
   return sha256 === storedHash;
 }
 
-async function sendSMS(phone: string, message: string) {
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
-  const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER")!;
-
-  let intlPhone = phone;
-  if (phone.startsWith("0")) {
-    intlPhone = "+2" + phone;
-  } else if (!phone.startsWith("+")) {
-    intlPhone = "+" + phone;
-  }
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const body = new URLSearchParams({
-    To: intlPhone,
-    From: fromPhone,
-    Body: message,
-  });
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + btoa(`${accountSid}:${authToken}`),
-    },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Twilio SMS error:", errText);
-    throw new Error("Failed to send SMS");
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,7 +79,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { action, phone, password, full_name, otp, session_token } = await req.json();
+    const { action, phone, password, full_name, session_token } = await req.json();
 
     if (!phone && action !== "get_student_data") {
       return new Response(JSON.stringify({ error: "رقم الهاتف مطلوب" }), {
@@ -125,8 +90,16 @@ serve(async (req) => {
 
     const normalizedPhone = phone ? phone.trim().replace(/\s+/g, "") : "";
 
-    // ========== STEP 1: Send OTP to verify parent phone ==========
-    if (action === "send_otp") {
+    // ========== REGISTER (direct — no OTP) ==========
+    if (action === "register") {
+      if (!password || password.length < 6) {
+        return new Response(JSON.stringify({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Check if phone is registered as parent_phone for any student
       const { data: linkedStudents } = await supabaseAdmin
         .from("profiles")
         .select("full_name, grade")
@@ -139,6 +112,7 @@ serve(async (req) => {
         });
       }
 
+      // Check if already registered
       const { data: existing } = await supabaseAdmin
         .from("parent_accounts")
         .select("id")
@@ -152,124 +126,7 @@ serve(async (req) => {
         });
       }
 
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-      await supabaseAdmin
-        .from("password_reset_otps")
-        .delete()
-        .eq("phone", normalizedPhone + "_parent");
-
-      await supabaseAdmin
-        .from("password_reset_otps")
-        .insert({
-          phone: normalizedPhone + "_parent",
-          code,
-          expires_at: expiresAt.toISOString(),
-          attempt_count: 0,
-          used: false,
-        });
-
-      try {
-        await sendSMS(normalizedPhone, `كود التحقق لتسجيل ولي الأمر في منصة الأستاذ إسماعيل أحمد عبادة: ${code}\nصالح لمدة 10 دقائق.`);
-      } catch {
-        return new Response(JSON.stringify({ error: "فشل إرسال رسالة التحقق. حاول مرة أخرى." }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      return new Response(JSON.stringify({
-        success: true,
-        message: "تم إرسال كود التحقق",
-        students: linkedStudents.map(s => ({ full_name: s.full_name, grade: s.grade })),
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    // ========== STEP 2: Verify OTP and register ==========
-    if (action === "verify_and_register") {
-      if (!otp || !password) {
-        return new Response(JSON.stringify({ error: "كود التحقق وكلمة المرور مطلوبان" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      if (password.length < 6) {
-        return new Response(JSON.stringify({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      const { data: otpRecord } = await supabaseAdmin
-        .from("password_reset_otps")
-        .select("*")
-        .eq("phone", normalizedPhone + "_parent")
-        .eq("used", false)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!otpRecord) {
-        return new Response(JSON.stringify({ error: "لم يتم إرسال كود تحقق لهذا الرقم. أعد الإرسال." }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      if (new Date(otpRecord.expires_at) < new Date()) {
-        return new Response(JSON.stringify({ error: "انتهت صلاحية الكود. أعد الإرسال." }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      if (otpRecord.attempt_count >= 5) {
-        await supabaseAdmin
-          .from("password_reset_otps")
-          .update({ used: true })
-          .eq("id", otpRecord.id);
-        return new Response(JSON.stringify({ error: "تم تجاوز عدد المحاولات. أعد إرسال الكود." }), {
-          status: 429,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      await supabaseAdmin
-        .from("password_reset_otps")
-        .update({ attempt_count: otpRecord.attempt_count + 1 })
-        .eq("id", otpRecord.id);
-
-      if (otpRecord.code !== otp.trim()) {
-        return new Response(JSON.stringify({ error: "كود التحقق غير صحيح" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      await supabaseAdmin
-        .from("password_reset_otps")
-        .update({ used: true })
-        .eq("id", otpRecord.id);
-
-      const { data: existing } = await supabaseAdmin
-        .from("parent_accounts")
-        .select("id")
-        .eq("phone", normalizedPhone)
-        .maybeSingle();
-
-      if (existing) {
-        return new Response(JSON.stringify({ error: "هذا الرقم مسجل بالفعل." }), {
-          status: 409,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      // Use bcrypt for new accounts
+      // Create account with bcrypt
       const passwordHash = await bcryptHash(password);
 
       const { data: newParent, error: insertErr } = await supabaseAdmin
@@ -296,7 +153,6 @@ serve(async (req) => {
         .select("user_id, full_name, grade, is_subscribed, student_phone, school, governorate, madhab")
         .eq("parent_phone", normalizedPhone);
 
-      // Create session token
       const token = await createSession(supabaseAdmin, newParent.id);
 
       return new Response(JSON.stringify({
@@ -355,7 +211,6 @@ serve(async (req) => {
         .select("user_id, full_name, grade, is_subscribed, student_phone, school, governorate, madhab")
         .eq("parent_phone", normalizedPhone);
 
-      // Create session token
       const token = await createSession(supabaseAdmin, parent.id);
 
       return new Response(JSON.stringify({
@@ -371,7 +226,6 @@ serve(async (req) => {
 
     // ========== GET STUDENT DATA ==========
     if (action === "get_student_data") {
-      // Validate by session token (preferred) or legacy password
       let parentPhone: string | null = null;
 
       if (session_token) {
@@ -384,7 +238,6 @@ serve(async (req) => {
         }
         parentPhone = session.phone;
       } else if (password && normalizedPhone) {
-        // Legacy fallback - validate with password
         const { data: parent } = await supabaseAdmin
           .from("parent_accounts")
           .select("id, phone, password_hash, hash_version")
@@ -457,33 +310,57 @@ serve(async (req) => {
           const done = watchedCount + hwDone + examsDone;
           return {
             subject,
-            videosTotal: subVideos.length, videosWatched: watchedCount,
-            homeworkTotal: subHw.length, homeworkDone: hwDone,
-            examsTotal: subExams.length, examsDone,
-            overallPercent: total > 0 ? Math.round((done / total) * 100) : 0,
+            total,
+            done,
+            percent: total > 0 ? Math.round((done / total) * 100) : 0,
           };
         });
 
-        const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({ title: h.title, subject: h.subject, due_date: h.due_date }));
-        const pendingExams = exams.filter((e: any) => !attempts.has(e.id)).map((e: any) => ({ title: e.title, subject: e.subject }));
-        const examResults = exams.filter((e: any) => attempts.has(e.id)).map((e: any) => {
-          const a = attempts.get(e.id)!;
-          return { title: e.title, subject: e.subject, score: a.score, total: a.total, submitted_at: a.submitted_at };
-        });
-        const homeworkResults = homework.filter((h: any) => hwSubs.has(h.id)).map((h: any) => {
-          const s = hwSubs.get(h.id)!;
-          return { title: h.title, subject: h.subject, score: s.score, submitted_at: s.submitted_at };
+        const totalPoints = (pointsRes.data || []).reduce((s: number, p: any) => s + p.points, 0);
+        const rankData = rankRes.data?.[0] || { rank: 0, total_students: 0 };
+
+        // Exam scores
+        const examScores = exams.map((e: any) => {
+          const att = attempts.get(e.id);
+          return {
+            exam_title: e.title,
+            subject: e.subject,
+            score: att?.score || null,
+            total: att?.total || null,
+            submitted: !!att,
+            submitted_at: att?.submitted_at || null,
+          };
         });
 
-        const rank = rankRes.data?.[0] || { rank: 0, total_students: 0, total_points: 0 };
-        const totalPoints = (pointsRes.data || []).reduce((sum: number, p: any) => sum + p.points, 0);
+        // Homework status
+        const hwStatus = homework.map((h: any) => {
+          const sub = hwSubs.get(h.id);
+          return {
+            title: h.title,
+            subject: h.subject,
+            due_date: h.due_date,
+            submitted: !!sub,
+            score: sub?.score || null,
+            submitted_at: sub?.submitted_at || null,
+          };
+        });
+
+        // Pending items
+        const pendingHw = homework.filter((h: any) => !hwSubs.has(h.id));
+        const pendingExams = exams.filter((e: any) => !attempts.has(e.id));
 
         studentDataList.push({
-          profile: student,
-          subjectProgress: subjectProgress.sort((a, b) => b.overallPercent - a.overallPercent),
-          pendingHomework, pendingExams, examResults, homeworkResults,
-          rank: { rank: rank.rank, total_students: rank.total_students, total_points: rank.total_points },
-          totalPoints,
+          ...student,
+          subject_progress: subjectProgress,
+          total_points: totalPoints,
+          rank: rankData.rank,
+          total_students: rankData.total_students,
+          videos_watched: views.size,
+          total_videos: videos.length,
+          exam_scores: examScores,
+          homework_status: hwStatus,
+          pending_homework: pendingHw.length,
+          pending_exams: pendingExams.length,
           notifications: notificationsRes.data || [],
         });
       }
@@ -494,21 +371,7 @@ serve(async (req) => {
       });
     }
 
-    // ========== LOGOUT ==========
-    if (action === "logout") {
-      if (session_token) {
-        await supabaseAdmin
-          .from("parent_sessions")
-          .delete()
-          .eq("token", session_token);
-      }
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    return new Response(JSON.stringify({ error: "Invalid action" }), {
+    return new Response(JSON.stringify({ error: "إجراء غير معروف" }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
