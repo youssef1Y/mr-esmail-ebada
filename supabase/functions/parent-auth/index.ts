@@ -306,7 +306,6 @@ serve(async (req) => {
         const exams = examsRes.data || [];
         const attempts = new Map((attemptsRes.data || []).map((a: any) => [a.exam_id, a]));
 
-        const subjects = [...new Set([...videos.map((v: any) => v.subject), ...homework.map((h: any) => h.subject), ...exams.map((e: any) => e.subject)])];
         const subjectProgress = subjects.map(subject => {
           const subVideos = videos.filter((v: any) => v.subject === subject);
           const subHw = homework.filter((h: any) => h.subject === subject);
@@ -318,62 +317,81 @@ serve(async (req) => {
           const done = watchedCount + hwDone + examsDone;
           return {
             subject,
-            total,
-            done,
-            percent: total > 0 ? Math.round((done / total) * 100) : 0,
+            videosTotal: subVideos.length,
+            videosWatched: watchedCount,
+            homeworkTotal: subHw.length,
+            homeworkDone: hwDone,
+            examsTotal: subExams.length,
+            examsDone,
+            overallPercent: total > 0 ? Math.round((done / total) * 100) : 0,
           };
         });
 
         const totalPoints = (pointsRes.data || []).reduce((s: number, p: any) => s + p.points, 0);
-        const rankData = rankRes.data?.[0] || { rank: 0, total_students: 0 };
+        const rankData = rankRes.data?.[0] || { rank: 0, total_students: 0, total_points: 0 };
 
-        // Exam scores
-        const examScores = exams.map((e: any) => {
-          const att = attempts.get(e.id);
-          return {
-            exam_title: e.title,
-            subject: e.subject,
-            score: att?.score || null,
-            total: att?.total || null,
-            submitted: !!att,
-            submitted_at: att?.submitted_at || null,
-          };
-        });
+        // Pending items as arrays
+        const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({
+          title: h.title, subject: h.subject, due_date: h.due_date,
+        }));
+        const pendingExams = exams.filter((e: any) => !attempts.has(e.id)).map((e: any) => ({
+          title: e.title, subject: e.subject,
+        }));
 
-        // Homework status
-        const hwStatus = homework.map((h: any) => {
-          const sub = hwSubs.get(h.id);
-          return {
-            title: h.title,
-            subject: h.subject,
-            due_date: h.due_date,
-            submitted: !!sub,
-            score: sub?.score || null,
-            submitted_at: sub?.submitted_at || null,
-          };
-        });
+        // Exam results (only submitted)
+        const examResults = exams
+          .filter((e: any) => attempts.has(e.id))
+          .map((e: any) => {
+            const att = attempts.get(e.id);
+            return { title: e.title, subject: e.subject, score: att.score, total: att.total, submitted_at: att.submitted_at };
+          });
 
-        // Pending items
-        const pendingHw = homework.filter((h: any) => !hwSubs.has(h.id));
-        const pendingExams = exams.filter((e: any) => !attempts.has(e.id));
+        // Homework results (only submitted)
+        const homeworkResults = homework
+          .filter((h: any) => hwSubs.has(h.id))
+          .map((h: any) => {
+            const sub = hwSubs.get(h.id);
+            return { title: h.title, subject: h.subject, score: sub.score, submitted_at: sub.submitted_at };
+          });
 
         studentDataList.push({
-          ...student,
-          subject_progress: subjectProgress,
-          total_points: totalPoints,
-          rank: rankData.rank,
-          total_students: rankData.total_students,
-          videos_watched: views.size,
-          total_videos: videos.length,
-          exam_scores: examScores,
-          homework_status: hwStatus,
-          pending_homework: pendingHw.length,
-          pending_exams: pendingExams.length,
+          profile: {
+            user_id: student.user_id,
+            full_name: student.full_name,
+            grade: student.grade,
+            is_subscribed: student.is_subscribed,
+            subscription_expires_at: student.subscription_expires_at,
+            student_phone: student.student_phone,
+            school: student.school,
+            governorate: student.governorate,
+            madhab: student.madhab,
+          },
+          subjectProgress,
+          pendingHomework,
+          pendingExams,
+          examResults,
+          homeworkResults,
+          rank: { rank: rankData.rank || 0, total_students: rankData.total_students || 0, total_points: rankData.total_points || totalPoints },
+          totalPoints,
           notifications: notificationsRes.data || [],
         });
       }
 
       return new Response(JSON.stringify({ students: studentDataList }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // ========== LOGOUT ==========
+    if (action === "logout") {
+      if (session_token) {
+        await supabaseAdmin
+          .from("parent_sessions")
+          .delete()
+          .eq("token", session_token);
+      }
+      return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
