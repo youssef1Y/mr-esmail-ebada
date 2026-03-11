@@ -160,14 +160,14 @@ const ParentDashboard = () => {
               <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                 {students.map((s, i) => (
                   <Button
-                    key={s.profile.user_id}
+                    key={s.profile?.user_id || i}
                     variant={selectedStudent === i ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedStudent(i)}
                     className="whitespace-nowrap"
                   >
                     <GraduationCap className="w-4 h-4 ml-1" />
-                    {s.profile.full_name}
+                    {s.profile?.full_name || "طالب"}
                   </Button>
                 ))}
               </div>
