@@ -230,9 +230,9 @@ const Profile = () => {
           <p className="text-muted-foreground text-xs mb-4">
             حذف الحساب سيؤدي إلى إزالة جميع بياناتك نهائيًا. هذا الإجراء لا يمكن التراجع عنه.
           </p>
-          <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 gap-1" onClick={handleDeleteAccount}>
+          <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 gap-1" onClick={handleDeleteAccount} disabled={deleting}>
             <Trash2 className="w-3 h-3" />
-            حذف حسابي
+            {deleting ? "جاري الحذف..." : "حذف حسابي"}
           </Button>
         </div>
       </main>
