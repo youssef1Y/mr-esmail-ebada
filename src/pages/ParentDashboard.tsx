@@ -183,7 +183,7 @@ const ParentDashboard = () => {
                         <GraduationCap className="w-7 h-7 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="font-bold text-lg">{student.profile.full_name}</h2>
+                        <h2 className="font-bold text-lg">{student.profile?.full_name || "طالب"}</h2>
                         <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
                           <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.grade}</span>
                           {student.profile.school && <span className="bg-muted px-2 py-0.5 rounded-full">{student.profile.school}</span>}
