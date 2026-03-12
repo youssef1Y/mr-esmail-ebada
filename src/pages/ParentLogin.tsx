@@ -187,8 +187,7 @@ const ParentLogin = () => {
               {mode === "register" && (
                 <div>
                   <label className="text-sm font-medium mb-1 block">تأكيد كلمة المرور</label>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     placeholder="أعد كتابة كلمة المرور"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

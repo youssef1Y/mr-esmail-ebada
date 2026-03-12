@@ -290,7 +290,7 @@ const Register = () => {
 
             <motion.div custom={8} variants={fieldVariants} initial="hidden" animate="visible">
               <Label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</Label>
-              <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="أعد كتابة كلمة المرور" required className="h-11 rounded-xl" />
+              <PasswordInput name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="أعد كتابة كلمة المرور" required className="h-11 rounded-xl" />
             </motion.div>
 
             <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-start gap-2">

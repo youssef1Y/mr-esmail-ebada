@@ -135,8 +135,7 @@ const Login = () => {
                 <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                 كلمة المرور
               </Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="أدخل كلمة المرور"

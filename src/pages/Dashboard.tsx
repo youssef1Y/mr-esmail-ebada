@@ -1918,8 +1918,7 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground mt-1">أدخل كلمة مرور الأدمن</p>
             </div>
             <div className="space-y-3">
-              <Input
-                type="password"
+              <PasswordInput
                 value={adminPassword}
                 onChange={e => setAdminPassword(e.target.value)}
                 placeholder="كلمة مرور الأدمن"

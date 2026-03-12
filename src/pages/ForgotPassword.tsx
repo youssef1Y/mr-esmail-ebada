@@ -217,8 +217,7 @@ const ForgotPassword = () => {
             </div>
             <div>
               <Label className="text-sm font-medium">تأكيد كلمة المرور</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="أعد إدخال كلمة المرور"
