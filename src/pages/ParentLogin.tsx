@@ -19,7 +19,9 @@ const ParentLogin = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim() || !password) {
+    const normalizedPhone = phone.trim().replace(/\s+/g, "");
+
+    if (!normalizedPhone || !password) {
       toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف وكلمة المرور", variant: "destructive" });
       return;
     }
@@ -27,39 +29,45 @@ const ParentLogin = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("parent-auth", {
-        body: { action: "login", phone: phone.trim(), password },
+        body: { action: "login", phone: normalizedPhone, password },
       });
 
       if (error || data?.error) {
-        const errMsg = data?.error || "";
+        const errMsg = String(data?.error || error?.message || "");
         let description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+
         if (/غير مسجل|لأي طالب/i.test(errMsg)) {
-          description = errMsg;
-        } else if (/كلمة المرور/i.test(errMsg)) {
-          description = errMsg;
+          description = "هذا الرقم غير مسجل كولي أمر. تأكد من الرقم أو أنشئ حساب طالب أولاً.";
+        } else if (/كلمة المرور|غير صحيحة|invalid/i.test(errMsg)) {
+          description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        } else if (/rate limit|too many|محاولات/i.test(errMsg)) {
+          description = "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.";
         } else if (errMsg) {
           description = errMsg;
         }
+
         toast({ title: "فشل تسجيل الدخول", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
           students: data.students,
-          phone: phone.trim(),
+          phone: normalizedPhone,
           session_token: data.session_token,
         }));
         toast({ title: `أهلاً ${data.parent.full_name} 👋` });
         navigate("/parent/dashboard");
       }
     } catch {
-      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تعذر الاتصال بالخدمة الآن. تحقق من الإنترنت ثم أعد المحاولة.", variant: "destructive" });
     }
     setLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) {
+    const normalizedPhone = phone.trim().replace(/\s+/g, "");
+
+    if (!normalizedPhone) {
       toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف", variant: "destructive" });
       return;
     }
@@ -77,35 +85,39 @@ const ParentLogin = () => {
       const { data, error } = await supabase.functions.invoke("parent-auth", {
         body: {
           action: "register",
-          phone: phone.trim(),
+          phone: normalizedPhone,
           password,
           full_name: fullName.trim() || "ولي أمر",
         },
       });
 
       if (error || data?.error) {
-        const errMsg = data?.error || "";
-        let description = "حدث خطأ أثناء التسجيل. حاول مرة أخرى.";
+        const errMsg = String(data?.error || error?.message || "");
+        let description = "تعذر إنشاء حساب ولي الأمر الآن. تحقق من الرقم وحاول مرة أخرى.";
+
         if (/غير مسجل|لأي طالب/i.test(errMsg)) {
-          description = errMsg;
-        } else if (/مسجل بالفعل/i.test(errMsg)) {
-          description = errMsg;
+          description = "هذا الرقم غير مسجل كولي أمر لأي طالب. اطلب من الطالب تحديث بياناته أولًا.";
+        } else if (/مسجل بالفعل|already/i.test(errMsg)) {
+          description = "هذا الرقم مسجل بالفعل. استخدم تسجيل الدخول بدل إنشاء حساب جديد.";
+        } else if (/كلمة المرور|6 أحرف/i.test(errMsg)) {
+          description = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
         } else if (errMsg) {
           description = errMsg;
         }
+
         toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
           students: data.students,
-          phone: phone.trim(),
+          phone: normalizedPhone,
           session_token: data.session_token,
         }));
         toast({ title: "تم التسجيل بنجاح ✅", description: `مرحباً ${data.parent?.full_name || "ولي الأمر"}` });
         navigate("/parent/dashboard");
       }
     } catch {
-      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تعذر الاتصال بالخدمة الآن. تحقق من الإنترنت ثم أعد المحاولة.", variant: "destructive" });
     }
     setLoading(false);
   };
