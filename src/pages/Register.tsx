@@ -136,9 +136,9 @@ const Register = () => {
     setLoading(false);
 
     if (error) {
-      let description = "حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.";
+      let description = "تعذر إنشاء الحساب الآن. حاول مرة أخرى.";
       if (/already registered|already exists|user already/i.test(error.message)) {
-        description = "هذا الرقم مسجل بالفعل. سجّل دخول من صفحة تسجيل الدخول.";
+        description = "هذا الرقم مسجل بالفعل. إذا كان الحساب القديم محذوفًا جرّب تسجيل الدخول مرة واحدة ثم أعد التسجيل.";
       } else if (/password/i.test(error.message)) {
         description = "كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.";
       } else if (/rate limit|too many/i.test(error.message)) {
