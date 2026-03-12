@@ -65,7 +65,7 @@ const ForgotPassword = () => {
     e.preventDefault();
 
     if (newPassword.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
