@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key } from "lucide-react";
 import { motion } from "framer-motion";
@@ -1918,8 +1919,7 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground mt-1">أدخل كلمة مرور الأدمن</p>
             </div>
             <div className="space-y-3">
-              <Input
-                type="password"
+              <PasswordInput
                 value={adminPassword}
                 onChange={e => setAdminPassword(e.target.value)}
                 placeholder="كلمة مرور الأدمن"

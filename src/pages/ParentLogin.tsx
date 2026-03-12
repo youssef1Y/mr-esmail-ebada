@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { Eye, EyeOff, Users, ArrowRight, Phone } from "lucide-react";
+import { Users, ArrowRight, Phone } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 const ParentLogin = () => {
   const navigate = useNavigate();
@@ -175,25 +176,18 @@ const ParentLogin = () => {
 
               <div>
                 <label className="text-sm font-medium mb-1 block">كلمة المرور</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder={mode === "register" ? "6 أحرف على الأقل" : "كلمة المرور"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="text-right pl-10"
-                  />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <PasswordInput
+                  placeholder={mode === "register" ? "6 أحرف على الأقل" : "كلمة المرور"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="text-right"
+                />
               </div>
 
               {mode === "register" && (
                 <div>
                   <label className="text-sm font-medium mb-1 block">تأكيد كلمة المرور</label>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     placeholder="أعد كتابة كلمة المرور"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

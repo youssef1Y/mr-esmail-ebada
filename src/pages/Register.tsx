@@ -4,6 +4,7 @@ import { BookOpen, UserPlus, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -255,7 +256,7 @@ const Register = () => {
 
             <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible">
               <Label className="text-sm font-medium mb-1.5 block">كلمة المرور</Label>
-              <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="أدخل كلمة المرور" required className="h-11 rounded-xl" />
+              <PasswordInput name="password" value={form.password} onChange={handleChange} placeholder="أدخل كلمة المرور" required className="h-11 rounded-xl" />
               {form.password.length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   <div className="flex gap-1">
@@ -289,7 +290,7 @@ const Register = () => {
 
             <motion.div custom={8} variants={fieldVariants} initial="hidden" animate="visible">
               <Label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</Label>
-              <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="أعد كتابة كلمة المرور" required className="h-11 rounded-xl" />
+              <PasswordInput name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="أعد كتابة كلمة المرور" required className="h-11 rounded-xl" />
             </motion.div>
 
             <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-start gap-2">

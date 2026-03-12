@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, ArrowRight, Phone, KeyRound, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -206,8 +207,7 @@ const ForgotPassword = () => {
           <form onSubmit={handleResetPassword} className="space-y-5">
             <div>
               <Label className="text-sm font-medium">كلمة المرور الجديدة</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="أدخل كلمة المرور الجديدة"
@@ -217,8 +217,7 @@ const ForgotPassword = () => {
             </div>
             <div>
               <Label className="text-sm font-medium">تأكيد كلمة المرور</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="أعد إدخال كلمة المرور"

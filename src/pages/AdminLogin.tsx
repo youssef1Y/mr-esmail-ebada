@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Shield, Lock, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +64,7 @@ const AdminLogin = () => {
           </div>
           <div>
             <Label className="text-sm font-medium">كلمة المرور</Label>
-            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="أدخل كلمة مرور الأدمن" required />
+            <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="أدخل كلمة مرور الأدمن" required />
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
             <Shield className="w-4 h-4 ml-2" />
