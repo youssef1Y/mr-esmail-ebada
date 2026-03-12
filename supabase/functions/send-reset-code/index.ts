@@ -166,7 +166,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in send-reset-code:", error);
     return new Response(
-      JSON.stringify({ error: "حدث خطأ غير متوقع" }),
+      JSON.stringify({ error: "تعذر تنفيذ الطلب الآن. حاول مرة أخرى بعد قليل." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
