@@ -105,7 +105,7 @@ const ParentLogin = () => {
         navigate("/parent/dashboard");
       }
     } catch {
-      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
     }
     setLoading(false);
   };

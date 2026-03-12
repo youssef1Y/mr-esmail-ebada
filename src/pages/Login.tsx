@@ -68,7 +68,7 @@ const Login = () => {
 
       navigate("/dashboard");
     } catch {
-      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

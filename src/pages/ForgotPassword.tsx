@@ -83,9 +83,16 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error || data?.error) {
+      const errMsg = data?.error || "";
+      let description = "فشل في تغيير كلمة المرور. حاول مرة أخرى.";
+      if (/كود.*غير صحيح|invalid.*code|expired/i.test(errMsg)) {
+        description = "الكود غير صحيح أو منتهي الصلاحية. أعد طلب كود جديد.";
+      } else if (errMsg) {
+        description = errMsg;
+      }
       toast({
-        title: "خطأ",
-        description: data?.error || "فشل في تغيير كلمة المرور",
+        title: "فشل تغيير كلمة المرور",
+        description,
         variant: "destructive",
       });
       return;
