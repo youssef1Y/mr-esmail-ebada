@@ -150,7 +150,11 @@ serve(async (req) => {
 
       if (insertErr) {
         console.error("Insert error:", insertErr);
-        return new Response(JSON.stringify({ error: "حدث خطأ أثناء التسجيل" }), {
+        const friendlyError = insertErr.code === "23505"
+          ? "هذا الرقم مسجل بالفعل. يمكنك تسجيل الدخول مباشرة."
+          : "تعذر إنشاء حساب ولي الأمر الآن. حاول مرة أخرى بعد قليل.";
+
+        return new Response(JSON.stringify({ error: friendlyError }), {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
