@@ -60,7 +60,7 @@ const ParentLogin = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) {
-      toast({ title: "خطأ", description: "أدخل رقم الهاتف", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف", variant: "destructive" });
       return;
     }
     if (!password || password.length < 6) {
