@@ -89,9 +89,20 @@ const Register = () => {
     // If "already registered", try to clean orphan account automatically
     if (error && /already registered|already exists|user already/i.test(error.message)) {
       try {
-        const { data: cleanupResult } = await supabase.functions.invoke("cleanup-orphan-account", {
+        const { data: cleanupResult, error: cleanupError } = await supabase.functions.invoke("cleanup-orphan-account", {
           body: { phone: normalizedStudentPhone },
         });
+
+        if (cleanupError) {
+          console.error("Cleanup invoke error:", cleanupError);
+          setLoading(false);
+          toast({
+            title: "تعذر التحقق من حالة الحساب",
+            description: "حاول مرة أخرى بعد دقيقة. إذا استمرت المشكلة تواصل مع الدعم.",
+            variant: "destructive",
+          });
+          return;
+        }
 
         if (cleanupResult?.cleaned) {
           // Retry signup after cleanup
