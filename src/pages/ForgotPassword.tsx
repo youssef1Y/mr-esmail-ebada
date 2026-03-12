@@ -31,9 +31,18 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error || data?.error) {
+      const errMsg = data?.error || "";
+      let description = "فشل في إرسال الكود. حاول مرة أخرى.";
+      if (/غير مسجل/i.test(errMsg)) {
+        description = "هذا الرقم غير مسجل في المنصة. تأكد من الرقم أو أنشئ حساب جديد.";
+      } else if (/rate limit|too many|كثيرة/i.test(errMsg)) {
+        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+      } else if (errMsg) {
+        description = errMsg;
+      }
       toast({
-        title: "خطأ",
-        description: data?.error || "فشل في إرسال الكود",
+        title: "فشل إرسال الكود",
+        description,
         variant: "destructive",
       });
       return;
