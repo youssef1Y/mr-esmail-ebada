@@ -31,7 +31,16 @@ const ParentLogin = () => {
       });
 
       if (error || data?.error) {
-        toast({ title: "خطأ", description: data?.error || "حدث خطأ", variant: "destructive" });
+        const errMsg = data?.error || "";
+        let description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        if (/غير مسجل|لأي طالب/i.test(errMsg)) {
+          description = errMsg;
+        } else if (/كلمة المرور/i.test(errMsg)) {
+          description = errMsg;
+        } else if (errMsg) {
+          description = errMsg;
+        }
+        toast({ title: "فشل تسجيل الدخول", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
