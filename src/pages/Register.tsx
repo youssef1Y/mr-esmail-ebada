@@ -57,8 +57,8 @@ const Register = () => {
       toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
-    if (form.password.length < 6) {
-      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+    if (form.password.length < 3) {
+      toast({ title: "كلمة مرور قصيرة جدًا", description: "كلمة المرور يجب أن تكون 3 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
