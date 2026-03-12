@@ -64,7 +64,7 @@ const ParentLogin = () => {
       return;
     }
     if (!password || password.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
     if (password !== confirmPassword) {
