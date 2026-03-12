@@ -50,8 +50,15 @@ const Register = () => {
       return;
     }
 
+    const normalizedStudentPhone = form.studentPhone.trim().replace(/\s+/g, "");
+    const normalizedParentPhone = form.parentPhone.trim().replace(/\s+/g, "");
+    if (!normalizedStudentPhone) {
+      toast({ title: "خطأ", description: "رقم الطالب مطلوب", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    const email = `${form.studentPhone}@ismail-ebada.platform`;
+    const email = `${normalizedStudentPhone}@ismail-ebada.platform`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -60,8 +67,8 @@ const Register = () => {
         data: {
           full_name: form.fullName, grade: form.grade,
           school: form.school, governorate: form.governorate,
-          madhab: form.madhab, student_phone: form.studentPhone,
-          parent_phone: form.parentPhone,
+          madhab: form.madhab, student_phone: normalizedStudentPhone,
+          parent_phone: normalizedParentPhone,
         },
       },
     });
@@ -69,7 +76,10 @@ const Register = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
+      const description = /already registered|already exists|user already/i.test(error.message)
+        ? "هذا الرقم مسجل بالفعل. لو الحساب كان محذوفًا سابقًا، سجّل دخول مرة وسيتم تنظيفه تلقائيًا ثم أعد التسجيل."
+        : error.message;
+      toast({ title: "خطأ في التسجيل", description, variant: "destructive" });
     } else {
       // Complete referral if ref code exists
       if (refCode) {
@@ -84,7 +94,7 @@ const Register = () => {
         await supabase.functions.invoke("notify-registration", {
           body: {
             fullName: form.fullName, grade: form.grade,
-            studentPhone: form.studentPhone, school: form.school,
+            studentPhone: normalizedStudentPhone, school: form.school,
             governorate: form.governorate, madhab: form.madhab,
           },
         });

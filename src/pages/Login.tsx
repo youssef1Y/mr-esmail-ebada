@@ -19,19 +19,50 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const email = `${phone}@ismail-ebada.platform`;
+    try {
+      const normalizedPhone = phone.trim().replace(/\s+/g, "");
+      const email = `${normalizedPhone}@ismail-ebada.platform`;
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      if (error) {
+        toast({ title: "خطأ في تسجيل الدخول", description: "رقم الهاتف أو كلمة المرور غير صحيحة", variant: "destructive" });
+        return;
+      }
 
-    if (error) {
-      toast({ title: "خطأ في تسجيل الدخول", description: "رقم الهاتف أو كلمة المرور غير صحيحة", variant: "destructive" });
-    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "خطأ", description: "تعذر قراءة بيانات الحساب", variant: "destructive" });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        await supabase.functions.invoke("delete-user", {
+          body: { target_user_id: user.id },
+        });
+        await supabase.auth.signOut();
+        toast({
+          title: "تم تنظيف حساب قديم",
+          description: "هذا الحساب كانت بياناته محذوفة، يمكنك إنشاء حساب جديد بنفس الرقم الآن.",
+        });
+        navigate("/auth/register");
+        return;
+      }
+
       navigate("/dashboard");
+    } catch {
+      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 

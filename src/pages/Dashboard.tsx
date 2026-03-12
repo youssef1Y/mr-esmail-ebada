@@ -1247,19 +1247,41 @@ const Dashboard = () => {
   }, [navigate]);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("full_name, grade, madhab, is_subscribed, school, governorate")
       .eq("user_id", userId)
-      .single();
-    if (data) {
-      setProfile(data);
-      if (!sessionStorage.getItem("admin_selected_grade")) {
-        setSelectedGrade(data.grade);
-      }
-      fetchStudentNotifications(data.grade, data.is_subscribed);
-      fetchStudentExams(data.grade, data.is_subscribed);
+      .maybeSingle();
+
+    if (error) {
+      console.error("Fetch profile error:", error);
+      toast({ title: "خطأ", description: "تعذر تحميل بيانات الحساب", variant: "destructive" });
+      await supabase.auth.signOut();
+      navigate("/auth/login");
+      return;
     }
+
+    if (!data) {
+      await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: userId },
+      });
+      await supabase.auth.signOut();
+      toast({
+        title: "تم حذف الحساب القديم",
+        description: "بيانات هذا الحساب كانت محذوفة، أنشئ حسابًا جديدًا بنفس الرقم.",
+        variant: "destructive",
+      });
+      navigate("/auth/register");
+      return;
+    }
+
+    setProfile(data);
+    if (!sessionStorage.getItem("admin_selected_grade")) {
+      setSelectedGrade(data.grade);
+    }
+    fetchStudentNotifications(data.grade, data.is_subscribed);
+    fetchStudentExams(data.grade, data.is_subscribed);
+
     setLoading(false);
     // Fetch unread personal notifications count
     const { count } = await supabase
