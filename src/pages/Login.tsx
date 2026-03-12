@@ -43,7 +43,7 @@ const Login = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({ title: "خطأ", description: "تعذر قراءة بيانات الحساب", variant: "destructive" });
+        toast({ title: "خطأ غير متوقع", description: "تعذر قراءة بيانات الحساب. حاول مرة أخرى.", variant: "destructive" });
         return;
       }
 
