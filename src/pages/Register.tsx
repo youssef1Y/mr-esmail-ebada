@@ -22,6 +22,18 @@ const governorates = [
 
 const madhabs = ["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي"];
 
+const passwordStrength = (password: string): { level: number; label: string } => {
+  if (!password) return { level: 0, label: "" };
+  const hasLetters = /[a-zA-Zأ-ي]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9أ-ي\s]/.test(password);
+  const isLong = password.length >= 8;
+
+  if (hasLetters && hasNumbers && (hasSpecial || isLong)) return { level: 3, label: "ممتاز 💪" };
+  if (hasLetters && hasNumbers) return { level: 2, label: "جيد 👍" };
+  return { level: 1, label: "ضعيف ⚠️" };
+};
+
 const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -45,8 +57,8 @@ const Register = () => {
       toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
-    if (form.password.length < 6) {
-      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+    if (form.password.length < 3) {
+      toast({ title: "كلمة مرور قصيرة جدًا", description: "كلمة المرور يجب أن تكون 3 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
@@ -220,26 +232,53 @@ const Register = () => {
               </select>
             </motion.div>
 
-            <motion.div custom={5} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">رقم الطالب</Label>
-                <Input name="studentPhone" value={form.studentPhone} onChange={handleChange} placeholder="01XXXXXXXXX" required dir="ltr" className="h-11 rounded-xl" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">رقم ولي الأمر</Label>
-                <Input name="parentPhone" value={form.parentPhone} onChange={handleChange} placeholder="01XXXXXXXXX" dir="ltr" className="h-11 rounded-xl" />
-              </div>
+            <motion.div custom={5} variants={fieldVariants} initial="hidden" animate="visible">
+              <Label className="text-sm font-medium mb-1.5 block">رقم الطالب</Label>
+              <Input name="studentPhone" value={form.studentPhone} onChange={handleChange} placeholder="01XXXXXXXXX" required dir="ltr" className="h-11 rounded-xl" />
             </motion.div>
 
-            <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">كلمة المرور</Label>
-                <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="6 أحرف على الأقل" required className="h-11 rounded-xl" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</Label>
-                <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="أعد الكتابة" required className="h-11 rounded-xl" />
-              </div>
+            <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible">
+              <Label className="text-sm font-medium mb-1.5 block">رقم ولي الأمر</Label>
+              <Input name="parentPhone" value={form.parentPhone} onChange={handleChange} placeholder="01XXXXXXXXX" dir="ltr" className="h-11 rounded-xl" />
+            </motion.div>
+
+            <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible">
+              <Label className="text-sm font-medium mb-1.5 block">كلمة المرور</Label>
+              <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="أدخل كلمة المرور" required className="h-11 rounded-xl" />
+              {form.password.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1.5 flex-1 rounded-full transition-colors ${
+                          passwordStrength(form.password).level >= level
+                            ? passwordStrength(form.password).level === 1
+                              ? "bg-destructive"
+                              : passwordStrength(form.password).level === 2
+                              ? "bg-yellow-500"
+                              : "bg-green-500"
+                            : "bg-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs font-medium ${
+                    passwordStrength(form.password).level === 1
+                      ? "text-destructive"
+                      : passwordStrength(form.password).level === 2
+                      ? "text-yellow-600 dark:text-yellow-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}>
+                    {passwordStrength(form.password).label}
+                  </p>
+                </div>
+              )}
+            </motion.div>
+
+            <motion.div custom={8} variants={fieldVariants} initial="hidden" animate="visible">
+              <Label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</Label>
+              <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="أعد كتابة كلمة المرور" required className="h-11 rounded-xl" />
             </motion.div>
 
             <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-start gap-2">
