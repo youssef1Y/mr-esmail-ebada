@@ -207,8 +207,7 @@ const ForgotPassword = () => {
           <form onSubmit={handleResetPassword} className="space-y-5">
             <div>
               <Label className="text-sm font-medium">كلمة المرور الجديدة</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="أدخل كلمة المرور الجديدة"
