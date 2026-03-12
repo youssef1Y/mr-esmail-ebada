@@ -29,7 +29,15 @@ const Login = () => {
       });
 
       if (error) {
-        toast({ title: "خطأ في تسجيل الدخول", description: "رقم الهاتف أو كلمة المرور غير صحيحة", variant: "destructive" });
+        let description = "رقم الهاتف أو كلمة المرور غير صحيحة";
+        if (/invalid login/i.test(error.message)) {
+          description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        } else if (/email not confirmed/i.test(error.message)) {
+          description = "لم يتم تأكيد الحساب بعد. تواصل مع الدعم.";
+        } else if (/rate limit|too many/i.test(error.message)) {
+          description = "محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.";
+        }
+        toast({ title: "فشل تسجيل الدخول", description, variant: "destructive" });
         return;
       }
 
