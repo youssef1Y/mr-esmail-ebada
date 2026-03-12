@@ -84,7 +84,16 @@ const ParentLogin = () => {
       });
 
       if (error || data?.error) {
-        toast({ title: "خطأ", description: data?.error || "حدث خطأ", variant: "destructive" });
+        const errMsg = data?.error || "";
+        let description = "حدث خطأ أثناء التسجيل. حاول مرة أخرى.";
+        if (/غير مسجل|لأي طالب/i.test(errMsg)) {
+          description = errMsg;
+        } else if (/مسجل بالفعل/i.test(errMsg)) {
+          description = errMsg;
+        } else if (errMsg) {
+          description = errMsg;
+        }
+        toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
