@@ -106,7 +106,7 @@ serve(async (req) => {
     if (insertError) {
       console.error("Error storing OTP:", insertError.message);
       return new Response(
-        JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
+        JSON.stringify({ error: "تعذر إرسال كود الاستعادة الآن. حاول مرة أخرى بعد قليل." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
