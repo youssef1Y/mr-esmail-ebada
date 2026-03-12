@@ -42,25 +42,26 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      toast({ title: "خطأ", description: "كلمة المرور غير متطابقة", variant: "destructive" });
+      toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
     if (form.password.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
     const normalizedStudentPhone = form.studentPhone.trim().replace(/\s+/g, "");
     const normalizedParentPhone = form.parentPhone.trim().replace(/\s+/g, "");
     if (!normalizedStudentPhone) {
-      toast({ title: "خطأ", description: "رقم الطالب مطلوب", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "رقم الطالب مطلوب", variant: "destructive" });
       return;
     }
 
     setLoading(true);
     const email = `${normalizedStudentPhone}@ismail-ebada.platform`;
 
-    const { error } = await supabase.auth.signUp({
+    // First attempt signup
+    let { error } = await supabase.auth.signUp({
       email,
       password: form.password,
       options: {
@@ -73,13 +74,54 @@ const Register = () => {
       },
     });
 
+    // If "already registered", try to clean orphan account automatically
+    if (error && /already registered|already exists|user already/i.test(error.message)) {
+      try {
+        const { data: cleanupResult } = await supabase.functions.invoke("cleanup-orphan-account", {
+          body: { phone: normalizedStudentPhone },
+        });
+
+        if (cleanupResult?.cleaned) {
+          // Retry signup after cleanup
+          const retry = await supabase.auth.signUp({
+            email,
+            password: form.password,
+            options: {
+              data: {
+                full_name: form.fullName, grade: form.grade,
+                school: form.school, governorate: form.governorate,
+                madhab: form.madhab, student_phone: normalizedStudentPhone,
+                parent_phone: normalizedParentPhone,
+              },
+            },
+          });
+          error = retry.error;
+        } else if (cleanupResult?.reason === "account_active") {
+          setLoading(false);
+          toast({
+            title: "هذا الرقم مسجل بالفعل",
+            description: "يوجد حساب نشط بهذا الرقم. إذا كان حسابك، سجّل دخول بدلاً من ذلك.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Cleanup error:", e);
+      }
+    }
+
     setLoading(false);
 
     if (error) {
-      const description = /already registered|already exists|user already/i.test(error.message)
-        ? "هذا الرقم مسجل بالفعل. لو الحساب كان محذوفًا سابقًا، سجّل دخول مرة وسيتم تنظيفه تلقائيًا ثم أعد التسجيل."
-        : error.message;
-      toast({ title: "خطأ في التسجيل", description, variant: "destructive" });
+      let description = "حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.";
+      if (/already registered|already exists|user already/i.test(error.message)) {
+        description = "هذا الرقم مسجل بالفعل. سجّل دخول من صفحة تسجيل الدخول.";
+      } else if (/password/i.test(error.message)) {
+        description = "كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.";
+      } else if (/rate limit|too many/i.test(error.message)) {
+        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+      }
+      toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
     } else {
       // Complete referral if ref code exists
       if (refCode) {

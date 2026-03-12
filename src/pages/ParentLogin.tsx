@@ -20,7 +20,7 @@ const ParentLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim() || !password) {
-      toast({ title: "خطأ", description: "أدخل رقم الهاتف وكلمة المرور", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف وكلمة المرور", variant: "destructive" });
       return;
     }
 
@@ -31,7 +31,16 @@ const ParentLogin = () => {
       });
 
       if (error || data?.error) {
-        toast({ title: "خطأ", description: data?.error || "حدث خطأ", variant: "destructive" });
+        const errMsg = data?.error || "";
+        let description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        if (/غير مسجل|لأي طالب/i.test(errMsg)) {
+          description = errMsg;
+        } else if (/كلمة المرور/i.test(errMsg)) {
+          description = errMsg;
+        } else if (errMsg) {
+          description = errMsg;
+        }
+        toast({ title: "فشل تسجيل الدخول", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
@@ -43,7 +52,7 @@ const ParentLogin = () => {
         navigate("/parent/dashboard");
       }
     } catch {
-      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
     }
     setLoading(false);
   };
@@ -51,15 +60,15 @@ const ParentLogin = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) {
-      toast({ title: "خطأ", description: "أدخل رقم الهاتف", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف", variant: "destructive" });
       return;
     }
     if (!password || password.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: "خطأ", description: "كلمة المرور غير متطابقة", variant: "destructive" });
+      toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
 
@@ -75,7 +84,16 @@ const ParentLogin = () => {
       });
 
       if (error || data?.error) {
-        toast({ title: "خطأ", description: data?.error || "حدث خطأ", variant: "destructive" });
+        const errMsg = data?.error || "";
+        let description = "حدث خطأ أثناء التسجيل. حاول مرة أخرى.";
+        if (/غير مسجل|لأي طالب/i.test(errMsg)) {
+          description = errMsg;
+        } else if (/مسجل بالفعل/i.test(errMsg)) {
+          description = errMsg;
+        } else if (errMsg) {
+          description = errMsg;
+        }
+        toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
       } else {
         localStorage.setItem("parent_session", JSON.stringify({
           parent: data.parent,
@@ -87,7 +105,7 @@ const ParentLogin = () => {
         navigate("/parent/dashboard");
       }
     } catch {
-      toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
+      toast({ title: "فشل الاتصال", description: "تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", variant: "destructive" });
     }
     setLoading(false);
   };

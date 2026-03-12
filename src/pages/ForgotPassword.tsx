@@ -31,9 +31,18 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error || data?.error) {
+      const errMsg = data?.error || "";
+      let description = "فشل في إرسال الكود. حاول مرة أخرى.";
+      if (/غير مسجل/i.test(errMsg)) {
+        description = "هذا الرقم غير مسجل في المنصة. تأكد من الرقم أو أنشئ حساب جديد.";
+      } else if (/rate limit|too many|كثيرة/i.test(errMsg)) {
+        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+      } else if (errMsg) {
+        description = errMsg;
+      }
       toast({
-        title: "خطأ",
-        description: data?.error || "فشل في إرسال الكود",
+        title: "فشل إرسال الكود",
+        description,
         variant: "destructive",
       });
       return;
@@ -46,7 +55,7 @@ const ForgotPassword = () => {
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6) {
-      toast({ title: "خطأ", description: "الكود يجب أن يكون 6 أرقام", variant: "destructive" });
+      toast({ title: "كود غير صحيح", description: "الكود يجب أن يكون 6 أرقام", variant: "destructive" });
       return;
     }
     setStep("password");
@@ -56,12 +65,12 @@ const ForgotPassword = () => {
     e.preventDefault();
 
     if (newPassword.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      toast({ title: "كلمة مرور قصيرة", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({ title: "خطأ", description: "كلمتا المرور غير متطابقتين", variant: "destructive" });
+      toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
 
@@ -74,9 +83,16 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error || data?.error) {
+      const errMsg = data?.error || "";
+      let description = "فشل في تغيير كلمة المرور. حاول مرة أخرى.";
+      if (/كود.*غير صحيح|invalid.*code|expired/i.test(errMsg)) {
+        description = "الكود غير صحيح أو منتهي الصلاحية. أعد طلب كود جديد.";
+      } else if (errMsg) {
+        description = errMsg;
+      }
       toast({
-        title: "خطأ",
-        description: data?.error || "فشل في تغيير كلمة المرور",
+        title: "فشل تغيير كلمة المرور",
+        description,
         variant: "destructive",
       });
       return;
