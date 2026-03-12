@@ -21,25 +21,30 @@ const ForgotPassword = () => {
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
+    const normalizedPhone = phone.trim().replace(/\s+/g, "");
+    if (!normalizedPhone) return;
     setLoading(true);
 
     const { data, error } = await supabase.functions.invoke("send-reset-code", {
-      body: { phone: phone.trim() },
+      body: { phone: normalizedPhone },
     });
 
     setLoading(false);
 
     if (error || data?.error) {
-      const errMsg = data?.error || "";
-      let description = "فشل في إرسال الكود. حاول مرة أخرى.";
+      const errMsg = String(data?.error || error?.message || "");
+      let description = "تعذر إرسال كود الاستعادة الآن. حاول مرة أخرى بعد قليل.";
+
       if (/غير مسجل/i.test(errMsg)) {
-        description = "هذا الرقم غير مسجل في المنصة. تأكد من الرقم أو أنشئ حساب جديد.";
-      } else if (/rate limit|too many|كثيرة/i.test(errMsg)) {
-        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+        description = "هذا الرقم غير مسجل في المنصة. تأكد من الرقم أو أنشئ حسابًا جديدًا.";
+      } else if (/rate limit|too many|كثيرة|انتظر/i.test(errMsg)) {
+        description = "محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.";
+      } else if (/رقم هاتف غير صالح/i.test(errMsg)) {
+        description = "الرقم غير صحيح. اكتب رقم هاتف صحيحًا ثم حاول مرة أخرى.";
       } else if (errMsg) {
         description = errMsg;
       }
+
       toast({
         title: "فشل إرسال الكود",
         description,
@@ -48,6 +53,7 @@ const ForgotPassword = () => {
       return;
     }
 
+    setPhone(normalizedPhone);
     toast({ title: "تم الإرسال", description: "تم إرسال كود التحقق على رقمك" });
     setStep("code");
   };
