@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key } from "lucide-react";
 import { motion } from "framer-motion";
