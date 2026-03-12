@@ -53,7 +53,7 @@ const Register = () => {
     const normalizedStudentPhone = form.studentPhone.trim().replace(/\s+/g, "");
     const normalizedParentPhone = form.parentPhone.trim().replace(/\s+/g, "");
     if (!normalizedStudentPhone) {
-      toast({ title: "خطأ", description: "رقم الطالب مطلوب", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "رقم الطالب مطلوب", variant: "destructive" });
       return;
     }
 
