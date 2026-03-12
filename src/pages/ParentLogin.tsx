@@ -176,18 +176,12 @@ const ParentLogin = () => {
 
               <div>
                 <label className="text-sm font-medium mb-1 block">كلمة المرور</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder={mode === "register" ? "6 أحرف على الأقل" : "كلمة المرور"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="text-right pl-10"
-                  />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <PasswordInput
+                  placeholder={mode === "register" ? "6 أحرف على الأقل" : "كلمة المرور"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="text-right"
+                />
               </div>
 
               {mode === "register" && (
