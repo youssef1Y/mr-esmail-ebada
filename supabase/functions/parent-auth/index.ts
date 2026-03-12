@@ -413,7 +413,7 @@ serve(async (req) => {
     });
   } catch (err: any) {
     console.error("Parent auth error:", err?.message || err);
-    return new Response(JSON.stringify({ error: "حدث خطأ غير متوقع" }), {
+    return new Response(JSON.stringify({ error: "تعذر تنفيذ الطلب الآن. حاول مرة أخرى بعد قليل." }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
