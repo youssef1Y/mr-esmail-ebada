@@ -55,7 +55,7 @@ const ForgotPassword = () => {
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6) {
-      toast({ title: "خطأ", description: "الكود يجب أن يكون 6 أرقام", variant: "destructive" });
+      toast({ title: "كود غير صحيح", description: "الكود يجب أن يكون 6 أرقام", variant: "destructive" });
       return;
     }
     setStep("password");
