@@ -82,20 +82,27 @@ const ForgotPassword = () => {
 
     setLoading(true);
 
+    const normalizedPhone = phone.trim().replace(/\s+/g, "");
     const { data, error } = await supabase.functions.invoke("verify-reset-code", {
-      body: { phone: phone.trim(), code, new_password: newPassword },
+      body: { phone: normalizedPhone, code, new_password: newPassword },
     });
 
     setLoading(false);
 
     if (error || data?.error) {
-      const errMsg = data?.error || "";
-      let description = "فشل في تغيير كلمة المرور. حاول مرة أخرى.";
-      if (/كود.*غير صحيح|invalid.*code|expired/i.test(errMsg)) {
-        description = "الكود غير صحيح أو منتهي الصلاحية. أعد طلب كود جديد.";
+      const errMsg = String(data?.error || error?.message || "");
+      let description = "تعذر تغيير كلمة المرور الآن. حاول مرة أخرى بعد قليل.";
+
+      if (/كود.*غير صحيح|invalid.*code|expired|منتهي/i.test(errMsg)) {
+        description = "الكود غير صحيح أو منتهي الصلاحية. اطلب كودًا جديدًا.";
+      } else if (/لم يتم العثور|غير مسجل/i.test(errMsg)) {
+        description = "هذا الرقم غير مسجل في المنصة.";
+      } else if (/6 أحرف|كلمة المرور/i.test(errMsg)) {
+        description = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
       } else if (errMsg) {
         description = errMsg;
       }
+
       toast({
         title: "فشل تغيير كلمة المرور",
         description,
