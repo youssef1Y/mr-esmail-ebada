@@ -20,7 +20,7 @@ const ParentLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim() || !password) {
-      toast({ title: "خطأ", description: "أدخل رقم الهاتف وكلمة المرور", variant: "destructive" });
+      toast({ title: "بيانات ناقصة", description: "أدخل رقم الهاتف وكلمة المرور", variant: "destructive" });
       return;
     }
 
