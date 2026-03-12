@@ -256,7 +256,7 @@ const Register = () => {
 
             <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible">
               <Label className="text-sm font-medium mb-1.5 block">كلمة المرور</Label>
-              <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="أدخل كلمة المرور" required className="h-11 rounded-xl" />
+              <PasswordInput name="password" value={form.password} onChange={handleChange} placeholder="أدخل كلمة المرور" required className="h-11 rounded-xl" />
               {form.password.length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   <div className="flex gap-1">
