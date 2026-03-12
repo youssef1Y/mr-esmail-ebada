@@ -306,7 +306,13 @@ serve(async (req) => {
         const exams = examsRes.data || [];
         const attempts = new Map((attemptsRes.data || []).map((a: any) => [a.exam_id, a]));
 
-        const subjectProgress = subjects.map(subject => {
+        // Derive unique subjects from actual data
+        const allSubjects = new Set([
+          ...videos.map((v: any) => v.subject),
+          ...homework.map((h: any) => h.subject),
+          ...exams.map((e: any) => e.subject),
+        ]);
+        const subjectProgress = Array.from(allSubjects).map(subject => {
           const subVideos = videos.filter((v: any) => v.subject === subject);
           const subHw = homework.filter((h: any) => h.subject === subject);
           const subExams = exams.filter((e: any) => e.subject === subject);
