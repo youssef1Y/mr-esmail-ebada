@@ -64,7 +64,7 @@ serve(async (req) => {
     if (listError) {
       console.error("Error looking up user:", listError.message);
       return new Response(
-        JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
+        JSON.stringify({ error: "تعذر التحقق من الرقم الآن. حاول مرة أخرى بعد قليل." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -106,7 +106,7 @@ serve(async (req) => {
     if (insertError) {
       console.error("Error storing OTP:", insertError.message);
       return new Response(
-        JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
+        JSON.stringify({ error: "تعذر إرسال كود الاستعادة الآن. حاول مرة أخرى بعد قليل." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -166,7 +166,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in send-reset-code:", error);
     return new Response(
-      JSON.stringify({ error: "حدث خطأ غير متوقع" }),
+      JSON.stringify({ error: "تعذر تنفيذ الطلب الآن. حاول مرة أخرى بعد قليل." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

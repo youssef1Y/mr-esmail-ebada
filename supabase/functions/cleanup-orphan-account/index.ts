@@ -28,17 +28,20 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Find the auth user by email
-    const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+    // Find the auth user by email (filtered query to avoid pagination misses)
+    const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
+      filter: email,
+    });
+
     if (listErr) {
       console.error("List users error:", listErr);
-      return new Response(JSON.stringify({ cleaned: false }), {
+      return new Response(JSON.stringify({ cleaned: false, reason: "lookup_failed" }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const authUser = users.find((u: any) => u.email === email);
+    const authUser = usersData?.users?.find((u: any) => u.email === email);
     if (!authUser) {
       // No auth user exists — safe to register
       return new Response(JSON.stringify({ cleaned: true, reason: "no_auth_user" }), {
