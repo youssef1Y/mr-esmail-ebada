@@ -1255,6 +1255,7 @@ const Dashboard = () => {
 
     if (error) {
       console.error("Fetch profile error:", error);
+      setLoading(false);
       toast({ title: "خطأ", description: "تعذر تحميل بيانات الحساب", variant: "destructive" });
       await supabase.auth.signOut();
       navigate("/auth/login");
@@ -1265,6 +1266,7 @@ const Dashboard = () => {
       await supabase.functions.invoke("delete-user", {
         body: { target_user_id: userId },
       });
+      setLoading(false);
       await supabase.auth.signOut();
       toast({
         title: "تم حذف الحساب القديم",
