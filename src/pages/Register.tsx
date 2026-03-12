@@ -22,6 +22,18 @@ const governorates = [
 
 const madhabs = ["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي"];
 
+const passwordStrength = (password: string): { level: number; label: string } => {
+  if (!password) return { level: 0, label: "" };
+  const hasLetters = /[a-zA-Zأ-ي]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9أ-ي\s]/.test(password);
+  const isLong = password.length >= 8;
+
+  if (hasLetters && hasNumbers && (hasSpecial || isLong)) return { level: 3, label: "ممتاز 💪" };
+  if (hasLetters && hasNumbers) return { level: 2, label: "جيد 👍" };
+  return { level: 1, label: "ضعيف ⚠️" };
+};
+
 const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
