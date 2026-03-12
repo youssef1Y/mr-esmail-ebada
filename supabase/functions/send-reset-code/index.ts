@@ -64,7 +64,7 @@ serve(async (req) => {
     if (listError) {
       console.error("Error looking up user:", listError.message);
       return new Response(
-        JSON.stringify({ error: "حدث خطأ، حاول مرة أخرى" }),
+        JSON.stringify({ error: "تعذر التحقق من الرقم الآن. حاول مرة أخرى بعد قليل." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
