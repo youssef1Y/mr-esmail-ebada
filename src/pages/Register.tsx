@@ -60,7 +60,8 @@ const Register = () => {
     setLoading(true);
     const email = `${normalizedStudentPhone}@ismail-ebada.platform`;
 
-    const { error } = await supabase.auth.signUp({
+    // First attempt signup
+    let { error } = await supabase.auth.signUp({
       email,
       password: form.password,
       options: {
@@ -73,13 +74,54 @@ const Register = () => {
       },
     });
 
+    // If "already registered", try to clean orphan account automatically
+    if (error && /already registered|already exists|user already/i.test(error.message)) {
+      try {
+        const { data: cleanupResult } = await supabase.functions.invoke("cleanup-orphan-account", {
+          body: { phone: normalizedStudentPhone },
+        });
+
+        if (cleanupResult?.cleaned) {
+          // Retry signup after cleanup
+          const retry = await supabase.auth.signUp({
+            email,
+            password: form.password,
+            options: {
+              data: {
+                full_name: form.fullName, grade: form.grade,
+                school: form.school, governorate: form.governorate,
+                madhab: form.madhab, student_phone: normalizedStudentPhone,
+                parent_phone: normalizedParentPhone,
+              },
+            },
+          });
+          error = retry.error;
+        } else if (cleanupResult?.reason === "account_active") {
+          setLoading(false);
+          toast({
+            title: "هذا الرقم مسجل بالفعل",
+            description: "يوجد حساب نشط بهذا الرقم. إذا كان حسابك، سجّل دخول بدلاً من ذلك.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Cleanup error:", e);
+      }
+    }
+
     setLoading(false);
 
     if (error) {
-      const description = /already registered|already exists|user already/i.test(error.message)
-        ? "هذا الرقم مسجل بالفعل. لو الحساب كان محذوفًا سابقًا، سجّل دخول مرة وسيتم تنظيفه تلقائيًا ثم أعد التسجيل."
-        : error.message;
-      toast({ title: "خطأ في التسجيل", description, variant: "destructive" });
+      let description = "حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.";
+      if (/already registered|already exists|user already/i.test(error.message)) {
+        description = "هذا الرقم مسجل بالفعل. سجّل دخول من صفحة تسجيل الدخول.";
+      } else if (/password/i.test(error.message)) {
+        description = "كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.";
+      } else if (/rate limit|too many/i.test(error.message)) {
+        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+      }
+      toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
     } else {
       // Complete referral if ref code exists
       if (refCode) {
