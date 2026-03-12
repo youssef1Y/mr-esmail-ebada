@@ -68,7 +68,7 @@ const ParentLogin = () => {
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: "خطأ", description: "كلمة المرور غير متطابقة", variant: "destructive" });
+      toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
 
