@@ -96,6 +96,7 @@ const ParentDashboard = () => {
           rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
           totalPoints: s.totalPoints || 0,
           notifications: s.notifications || [],
+          parentMessages: s.parentMessages || [],
         };
       });
       console.log("📦 Safe students:", JSON.stringify(safeStudents, null, 2));
