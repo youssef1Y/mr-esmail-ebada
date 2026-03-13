@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, LogOut, BookOpen, Video, ClipboardList, FileText, Trophy, Star,
-  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell
+  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell, BellRing
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParentPushNotifications } from "@/hooks/use-parent-push";
 
 interface SubjectProgress {
   subject: string;
@@ -50,6 +51,8 @@ const ParentDashboard = () => {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(0);
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission, subscribe: pushSubscribe } = useParentPushNotifications();
+  const [pushLoading, setPushLoading] = useState(false);
 
   const fetchData = async () => {
     const sessionStr = localStorage.getItem("parent_session");
@@ -167,6 +170,21 @@ const ParentDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Push Notification Banner */}
+        {pushSupported && !pushSubscribed && pushPermission !== "denied" && (
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <BellRing className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-sm">فعّل الإشعارات</h4>
+              <p className="text-xs text-muted-foreground">احصل على إشعارات فورية عند إرسال المعلم تقرير عن ابنك</p>
+            </div>
+            <Button size="sm" onClick={async () => { setPushLoading(true); await pushSubscribe(); setPushLoading(false); }} disabled={pushLoading} className="text-xs h-8">
+              {pushLoading ? "جاري..." : "تفعيل"}
+            </Button>
+          </div>
+        )}
         {students.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>

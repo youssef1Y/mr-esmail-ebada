@@ -438,6 +438,33 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          parent_phone: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          parent_phone: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          parent_phone?: string
+        }
+        Relationships: []
+      }
       parent_sessions: {
         Row: {
           created_at: string
