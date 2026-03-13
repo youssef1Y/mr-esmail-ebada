@@ -290,7 +290,7 @@ serve(async (req) => {
 
         const [
           videosRes, viewsRes, homeworkRes, hwSubsRes, examsRes, attemptsRes,
-          pointsRes, rankRes, notificationsRes
+          pointsRes, rankRes, notificationsRes, parentNotificationsRes
         ] = await Promise.all([
           supabaseAdmin.from("videos").select("id, subject, title").eq("grade", grade),
           supabaseAdmin.from("video_views").select("video_id").eq("user_id", userId),
@@ -301,6 +301,7 @@ serve(async (req) => {
           supabaseAdmin.from("student_points").select("points").eq("user_id", userId),
           supabaseAdmin.rpc("get_student_rank", { p_user_id: userId }),
           supabaseAdmin.from("student_notifications").select("title, body, created_at, is_read, type").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+          supabaseAdmin.from("parent_notifications").select("id, title, body, created_at, is_read").eq("parent_phone", parentPhone).eq("student_user_id", userId).order("created_at", { ascending: false }).limit(30),
         ]);
 
         const videos = videosRes.data || [];
