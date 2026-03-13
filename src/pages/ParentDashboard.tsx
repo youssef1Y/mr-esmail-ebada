@@ -51,6 +51,8 @@ const ParentDashboard = () => {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(0);
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission, subscribe: pushSubscribe } = useParentPushNotifications();
+  const [pushLoading, setPushLoading] = useState(false);
 
   const fetchData = async () => {
     const sessionStr = localStorage.getItem("parent_session");
