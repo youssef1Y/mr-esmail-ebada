@@ -150,6 +150,21 @@ const AdminReportsTab = ({ toast }: { toast: any }) => {
       toast({ title: "خطأ", description: "فشل إرسال الرسالة", variant: "destructive" });
     } else {
       toast({ title: "تم إرسال الرسالة لولي الأمر ✅" });
+
+      // Send push notification to parent
+      try {
+        await supabase.functions.invoke("send-parent-push", {
+          body: {
+            action: "send",
+            parent_phone: selectedStudent.parent_phone,
+            title: `📩 ${msgTitle}`,
+            body: msgBody,
+          },
+        });
+      } catch (e) {
+        console.log("Parent push send attempt:", e);
+      }
+
       setMsgTitle("");
       setMsgBody("");
       setSelectedStudent(null);
