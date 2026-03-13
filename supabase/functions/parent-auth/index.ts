@@ -385,6 +385,7 @@ serve(async (req) => {
           rank: { rank: rankData.rank || 0, total_students: rankData.total_students || 0, total_points: rankData.total_points || totalPoints },
           totalPoints,
           notifications: notificationsRes.data || [],
+          parentMessages: parentNotificationsRes.data || [],
         });
       }
 
