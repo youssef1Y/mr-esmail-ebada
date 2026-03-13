@@ -408,6 +408,36 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          parent_phone: string
+          student_user_id: string
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          parent_phone: string
+          student_user_id: string
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          parent_phone?: string
+          student_user_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       parent_sessions: {
         Row: {
           created_at: string
