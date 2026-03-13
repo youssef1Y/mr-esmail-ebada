@@ -102,6 +102,154 @@ interface ExamAttemptWithDetails {
   student_madhab: string | null;
 }
 
+// Admin Reports Tab Component - Send messages to parents
+const AdminReportsTab = ({ toast }: { toast: any }) => {
+  const [students, setStudents] = useState<{ user_id: string; full_name: string; grade: string; parent_phone: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<{ user_id: string; full_name: string; grade: string; parent_phone: string | null } | null>(null);
+  const [msgTitle, setMsgTitle] = useState("");
+  const [msgBody, setMsgBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentMessages, setSentMessages] = useState<any[]>([]);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("profiles").select("user_id, full_name, grade, parent_phone");
+    if (data) setStudents(data);
+    setLoading(false);
+  };
+
+  const fetchSentMessages = async () => {
+    const { data } = await (supabase.from("parent_notifications" as any) as any).select("*").order("created_at", { ascending: false }).limit(50);
+    if (data) setSentMessages(data as any[]);
+  };
+
+  useEffect(() => { fetchStudents(); fetchSentMessages(); }, []);
+
+  const sendToParent = async () => {
+    if (!selectedStudent || !msgTitle || !msgBody) {
+      toast({ title: "خطأ", description: "اختر طالب واكتب العنوان والرسالة", variant: "destructive" });
+      return;
+    }
+    if (!selectedStudent.parent_phone) {
+      toast({ title: "خطأ", description: "هذا الطالب ليس لديه رقم ولي أمر مسجل", variant: "destructive" });
+      return;
+    }
+
+    setSending(true);
+    const { error } = await (supabase.from("parent_notifications" as any) as any).insert({
+      parent_phone: selectedStudent.parent_phone,
+      student_user_id: selectedStudent.user_id,
+      title: msgTitle,
+      body: msgBody,
+    });
+
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إرسال الرسالة", variant: "destructive" });
+    } else {
+      toast({ title: "تم إرسال الرسالة لولي الأمر ✅" });
+      setMsgTitle("");
+      setMsgBody("");
+      setSelectedStudent(null);
+      fetchSentMessages();
+    }
+    setSending(false);
+  };
+
+  const filteredStudents = students.filter(s => {
+    const matchesGrade = !selectedGrade || s.grade === selectedGrade;
+    const matchesSearch = !searchQuery || s.full_name.includes(searchQuery) || s.parent_phone?.includes(searchQuery);
+    return matchesGrade && matchesSearch;
+  });
+
+  const deleteMsg = async (id: string) => {
+    await (supabase.from("parent_notifications" as any) as any).delete().eq("id", id);
+    fetchSentMessages();
+    toast({ title: "تم حذف الرسالة" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <h2 className="text-lg font-bold font-amiri flex items-center gap-2 mb-4">
+          <Send className="w-5 h-5" /> إرسال رسالة لولي الأمر
+        </h2>
+        <div className="space-y-3 mb-4">
+          <div className="flex gap-2">
+            <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm w-48">
+              <option value="">كل الصفوف</option>
+              {grades.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+            <Input placeholder="بحث بالاسم أو رقم ولي الأمر..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1" />
+          </div>
+          {selectedStudent ? (
+            <div className="bg-primary/10 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm">{selectedStudent.full_name}</p>
+                <p className="text-xs text-muted-foreground">{selectedStudent.grade} • ولي الأمر: {selectedStudent.parent_phone || "غير مسجل"}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedStudent(null)}>تغيير</Button>
+            </div>
+          ) : (
+            <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+              {loading ? (
+                <p className="text-center text-muted-foreground text-sm py-4">جاري التحميل...</p>
+              ) : filteredStudents.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-4">لا يوجد طلاب</p>
+              ) : (
+                filteredStudents.slice(0, 50).map(s => (
+                  <button key={s.user_id} onClick={() => setSelectedStudent(s)} className="w-full text-right p-2 hover:bg-muted/50 border-b border-border last:border-0 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{s.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{s.grade}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{s.parent_phone || "لا يوجد رقم"}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+        <div className="space-y-3">
+          <Input placeholder="عنوان الرسالة (مثال: تقرير أداء الطالب)" value={msgTitle} onChange={e => setMsgTitle(e.target.value)} />
+          <textarea placeholder="محتوى الرسالة لولي الأمر..." value={msgBody} onChange={e => setMsgBody(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring" />
+          <Button onClick={sendToParent} disabled={sending || !selectedStudent} className="w-full gap-2">
+            <Send className="w-4 h-4" />
+            {sending ? "جاري الإرسال..." : "إرسال الرسالة لولي الأمر"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <h2 className="text-lg font-bold font-amiri flex items-center gap-2 mb-4">📨 الرسائل المرسلة</h2>
+        {sentMessages.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-6">لم يتم إرسال رسائل بعد</p>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {sentMessages.map((msg: any) => {
+              const studentName = students.find(s => s.user_id === msg.student_user_id)?.full_name || "طالب";
+              return (
+                <div key={msg.id} className="bg-background rounded-xl border border-border p-3 flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">{msg.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{msg.body}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">إلى ولي أمر: {studentName} • {msg.parent_phone} • {new Date(msg.created_at).toLocaleDateString("ar-EG")}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => deleteMsg(msg.id)} className="text-destructive h-7 w-7 shrink-0">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Admin News Tab Component
 const AdminNewsTab = ({ toast }: { toast: any }) => {
   const [newsList, setNewsList] = useState<{ id: string; title: string; body: string; icon: string; created_at: string }[]>([]);
