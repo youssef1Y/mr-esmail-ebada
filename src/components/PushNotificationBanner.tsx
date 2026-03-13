@@ -170,40 +170,50 @@ export const PushNotificationBanner = () => {
 export const PushNotificationToggle = () => {
   const { isSupported, isSubscribed, permission, subscribe, unsubscribe } = usePushNotifications();
   const [loading, setLoading] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
 
   if (!isSupported) return null;
 
   const handleToggle = async () => {
+    if (permission === "denied") {
+      setShowBlocked(true);
+      return;
+    }
     setLoading(true);
     if (isSubscribed) {
       await unsubscribe();
     } else {
-      await subscribe();
+      const success = await subscribe();
+      if (!success && Notification.permission === "denied") {
+        setShowBlocked(true);
+      }
     }
     setLoading(false);
   };
 
-  if (permission === "denied") {
-    return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <BellOff className="w-4 h-4" />
-        <span>الإشعارات محظورة من المتصفح</span>
-      </div>
-    );
-  }
-
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
-      className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition-colors ${
-        isSubscribed
-          ? "bg-primary/10 text-primary border-primary/20"
-          : "bg-muted text-muted-foreground border-border hover:border-primary/30"
-      }`}
-    >
-      {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-      {loading ? "جاري..." : isSubscribed ? "الإشعارات مفعّلة ✓" : "تفعيل الإشعارات"}
-    </button>
+    <>
+      <button
+        onClick={handleToggle}
+        disabled={loading}
+        className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition-colors ${
+          permission === "denied"
+            ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
+            : isSubscribed
+              ? "bg-primary/10 text-primary border-primary/20"
+              : "bg-muted text-muted-foreground border-border hover:border-primary/30"
+        }`}
+      >
+        {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+        {loading
+          ? "جاري..."
+          : permission === "denied"
+            ? "الإشعارات محظورة — اضغط للتفعيل"
+            : isSubscribed
+              ? "الإشعارات مفعّلة ✓"
+              : "تفعيل الإشعارات"}
+      </button>
+      <NotificationBlockedDialog open={showBlocked} onOpenChange={setShowBlocked} />
+    </>
   );
 };
