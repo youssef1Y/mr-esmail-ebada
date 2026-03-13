@@ -35,14 +35,15 @@ const ParentLogin = () => {
 
       if (error || data?.error) {
         const errMsg = String(data?.error || error?.message || "");
-        let description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        const errType = data?.error_type || "";
+        let description = "حدث خطأ غير متوقع. حاول مرة أخرى.";
 
-        if (/غير مسجل|لأي طالب/i.test(errMsg)) {
-          description = "هذا الرقم غير مسجل كولي أمر. تأكد من الرقم أو أنشئ حساب طالب أولاً.";
-        } else if (/كلمة المرور|غير صحيحة|invalid/i.test(errMsg)) {
-          description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+        if (errType === "not_registered" || /غير مسجل/i.test(errMsg)) {
+          description = "❌ هذا الرقم غير مسجل كولي أمر. أنشئ حساب جديد أولاً.";
+        } else if (errType === "wrong_password" || /كلمة المرور غير صحيحة|invalid/i.test(errMsg)) {
+          description = "❌ كلمة المرور غير صحيحة. تأكد من كلمة المرور وحاول مرة أخرى.";
         } else if (/rate limit|too many|محاولات/i.test(errMsg)) {
-          description = "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.";
+          description = "⏳ محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.";
         } else if (errMsg) {
           description = errMsg;
         }

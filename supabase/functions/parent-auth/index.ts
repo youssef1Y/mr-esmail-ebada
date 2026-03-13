@@ -195,7 +195,7 @@ serve(async (req) => {
         .maybeSingle();
 
       if (!parent) {
-        return new Response(JSON.stringify({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" }), {
+        return new Response(JSON.stringify({ error: "هذا الرقم غير مسجل كولي أمر. أنشئ حساب جديد أولاً.", error_type: "not_registered" }), {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
@@ -203,7 +203,7 @@ serve(async (req) => {
 
       const valid = await verifyPassword(password, parent.password_hash, normalizedPhone, parent.hash_version || 1);
       if (!valid) {
-        return new Response(JSON.stringify({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" }), {
+        return new Response(JSON.stringify({ error: "كلمة المرور غير صحيحة. تأكد من كلمة المرور وحاول مرة أخرى.", error_type: "wrong_password" }), {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
@@ -290,7 +290,7 @@ serve(async (req) => {
 
         const [
           videosRes, viewsRes, homeworkRes, hwSubsRes, examsRes, attemptsRes,
-          pointsRes, rankRes, notificationsRes
+          pointsRes, rankRes, notificationsRes, parentNotificationsRes
         ] = await Promise.all([
           supabaseAdmin.from("videos").select("id, subject, title").eq("grade", grade),
           supabaseAdmin.from("video_views").select("video_id").eq("user_id", userId),
@@ -301,6 +301,7 @@ serve(async (req) => {
           supabaseAdmin.from("student_points").select("points").eq("user_id", userId),
           supabaseAdmin.rpc("get_student_rank", { p_user_id: userId }),
           supabaseAdmin.from("student_notifications").select("title, body, created_at, is_read, type").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+          supabaseAdmin.from("parent_notifications").select("id, title, body, created_at, is_read").eq("parent_phone", parentPhone).eq("student_user_id", userId).order("created_at", { ascending: false }).limit(30),
         ]);
 
         const videos = videosRes.data || [];
@@ -384,6 +385,7 @@ serve(async (req) => {
           rank: { rank: rankData.rank || 0, total_students: rankData.total_students || 0, total_points: rankData.total_points || totalPoints },
           totalPoints,
           notifications: notificationsRes.data || [],
+          parentMessages: parentNotificationsRes.data || [],
         });
       }
 

@@ -42,6 +42,7 @@ interface StudentData {
   rank: { rank: number; total_students: number; total_points: number };
   totalPoints: number;
   notifications: { title: string; body: string; created_at: string; is_read: boolean; type: string }[];
+  parentMessages: { id: string; title: string; body: string; created_at: string; is_read: boolean }[];
 }
 
 const ParentDashboard = () => {
@@ -95,6 +96,7 @@ const ParentDashboard = () => {
           rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
           totalPoints: s.totalPoints || 0,
           notifications: s.notifications || [],
+          parentMessages: s.parentMessages || [],
         };
       });
       console.log("📦 Safe students:", JSON.stringify(safeStudents, null, 2));
@@ -226,11 +228,19 @@ const ParentDashboard = () => {
 
                 {/* Tabs */}
                 <Tabs defaultValue="progress" className="space-y-4">
-                  <TabsList className="w-full grid grid-cols-4 h-auto">
+                  <TabsList className="w-full grid grid-cols-5 h-auto">
                     <TabsTrigger value="progress" className="text-xs py-2">📊 التقدم</TabsTrigger>
                     <TabsTrigger value="results" className="text-xs py-2">📝 النتائج</TabsTrigger>
                     <TabsTrigger value="pending" className="text-xs py-2">⏳ المتأخر</TabsTrigger>
-                    <TabsTrigger value="notifications" className="text-xs py-2">🔔 الإشعارات</TabsTrigger>
+                    <TabsTrigger value="notifications" className="text-xs py-2">🔔 إشعارات</TabsTrigger>
+                    <TabsTrigger value="parent_messages" className="text-xs py-2 relative">
+                      ✉️ رسائل المعلم
+                      {(student.parentMessages?.filter(m => !m.is_read).length || 0) > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+                          {student.parentMessages.filter(m => !m.is_read).length}
+                        </span>
+                      )}
+                    </TabsTrigger>
                   </TabsList>
 
                   {/* Progress Tab */}
@@ -409,6 +419,32 @@ const ParentDashboard = () => {
                                 <p className="text-sm font-medium">{n.title}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{n.body}</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleDateString("ar-EG")}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Parent Messages Tab */}
+                  <TabsContent value="parent_messages">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          ✉️ رسائل من المعلم
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(student.parentMessages || []).length === 0 ? (
+                          <p className="text-muted-foreground text-center py-6 text-sm">لا توجد رسائل من المعلم</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {student.parentMessages.map((m, i) => (
+                              <div key={m.id || i} className={`rounded-lg p-3 ${m.is_read ? "bg-muted/30" : "bg-primary/5 border border-primary/20"}`}>
+                                <p className="text-sm font-medium">{m.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{m.body}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</p>
                               </div>
                             ))}
                           </div>
