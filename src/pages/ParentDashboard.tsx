@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, LogOut, BookOpen, Video, ClipboardList, FileText, Trophy, Star,
-  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell
+  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell, BellRing
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParentPushNotifications } from "@/hooks/use-parent-push";
 
 interface SubjectProgress {
   subject: string;
