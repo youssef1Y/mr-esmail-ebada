@@ -1763,7 +1763,10 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Reports Tab - removed WhatsApp */}
+        {/* Reports Tab */}
+        {tab === "reports" && (
+          <AdminReportsTab toast={toast} />
+        )}
 
         {tab === "video_homework" && (
           <AdminVideoHomeworkTab toast={toast} />
