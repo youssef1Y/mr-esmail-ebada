@@ -195,7 +195,7 @@ serve(async (req) => {
         .maybeSingle();
 
       if (!parent) {
-        return new Response(JSON.stringify({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" }), {
+        return new Response(JSON.stringify({ error: "هذا الرقم غير مسجل كولي أمر. أنشئ حساب جديد أولاً.", error_type: "not_registered" }), {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
@@ -203,7 +203,7 @@ serve(async (req) => {
 
       const valid = await verifyPassword(password, parent.password_hash, normalizedPhone, parent.hash_version || 1);
       if (!valid) {
-        return new Response(JSON.stringify({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" }), {
+        return new Response(JSON.stringify({ error: "كلمة المرور غير صحيحة. تأكد من كلمة المرور وحاول مرة أخرى.", error_type: "wrong_password" }), {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
