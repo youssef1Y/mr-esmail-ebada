@@ -228,11 +228,19 @@ const ParentDashboard = () => {
 
                 {/* Tabs */}
                 <Tabs defaultValue="progress" className="space-y-4">
-                  <TabsList className="w-full grid grid-cols-4 h-auto">
+                  <TabsList className="w-full grid grid-cols-5 h-auto">
                     <TabsTrigger value="progress" className="text-xs py-2">📊 التقدم</TabsTrigger>
                     <TabsTrigger value="results" className="text-xs py-2">📝 النتائج</TabsTrigger>
                     <TabsTrigger value="pending" className="text-xs py-2">⏳ المتأخر</TabsTrigger>
-                    <TabsTrigger value="notifications" className="text-xs py-2">🔔 الإشعارات</TabsTrigger>
+                    <TabsTrigger value="notifications" className="text-xs py-2">🔔 إشعارات</TabsTrigger>
+                    <TabsTrigger value="parent_messages" className="text-xs py-2 relative">
+                      ✉️ رسائل المعلم
+                      {(student.parentMessages?.filter(m => !m.is_read).length || 0) > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+                          {student.parentMessages.filter(m => !m.is_read).length}
+                        </span>
+                      )}
+                    </TabsTrigger>
                   </TabsList>
 
                   {/* Progress Tab */}
