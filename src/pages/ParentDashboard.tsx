@@ -401,15 +401,32 @@ const ParentDashboard = () => {
                     </div>
                   </TabsContent>
 
-                  {/* Notifications Tab */}
-                  <TabsContent value="notifications">
+                  {/* Parent Messages Tab */}
+                  <TabsContent value="parent_messages">
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                          <Bell className="w-4 h-4" /> آخر الإشعارات
+                          ✉️ رسائل من المعلم
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
+                        {(student.parentMessages || []).length === 0 ? (
+                          <p className="text-muted-foreground text-center py-6 text-sm">لا توجد رسائل من المعلم</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {student.parentMessages.map((m, i) => (
+                              <div key={m.id || i} className={`rounded-lg p-3 ${m.is_read ? "bg-muted/30" : "bg-primary/5 border border-primary/20"}`}>
+                                <p className="text-sm font-medium">{m.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{m.body}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
                         {student.notifications.length === 0 ? (
                           <p className="text-muted-foreground text-center py-6 text-sm">لا توجد إشعارات</p>
                         ) : (
