@@ -42,6 +42,7 @@ interface StudentData {
   rank: { rank: number; total_students: number; total_points: number };
   totalPoints: number;
   notifications: { title: string; body: string; created_at: string; is_read: boolean; type: string }[];
+  parentMessages: { id: string; title: string; body: string; created_at: string; is_read: boolean }[];
 }
 
 const ParentDashboard = () => {
