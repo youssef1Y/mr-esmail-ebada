@@ -27,16 +27,49 @@ serve(async (req) => {
     const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { messages } = await req.json();
+    const { messages, action, video_id } = await req.json();
 
-    // Fetch all data in parallel
-    const [profileRes, viewsRes, rankRes, homeworkRes, examRes, scheduleRes, pointsRes, keysRes] = await Promise.all([
+    // Handle video summary request
+    if (action === "summarize_video" && video_id) {
+      // Check if student watched the video
+      const { data: viewCheck } = await adminClient
+        .from("video_views")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("video_id", video_id)
+        .limit(1);
+
+      if (!viewCheck || viewCheck.length === 0) {
+        return new Response(JSON.stringify({ error: "لازم تشوف الفيديو الأول" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Call summarize-video function internally
+      const sumResp = await fetch(`${SUPABASE_URL}/functions/v1/summarize-video`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+        },
+        body: JSON.stringify({ video_id }),
+      });
+
+      const sumData = await sumResp.json();
+      return new Response(JSON.stringify(sumData), {
+        status: sumResp.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Regular chat flow - fetch all data in parallel
+    const [profileRes, viewsRes, rankRes, homeworkRes, examRes, scheduleRes, pointsRes, keysRes, summariesRes] = await Promise.all([
       adminClient.from("profiles").select("full_name, grade, is_subscribed, madhab, school, governorate, parent_phone, student_phone, subscription_expires_at").eq("user_id", user.id).single(),
       adminClient.from("video_views").select("video_id").eq("user_id", user.id),
       adminClient.rpc("get_student_rank", { p_user_id: user.id }),
@@ -45,6 +78,7 @@ serve(async (req) => {
       adminClient.from("schedule_events").select("title, event_date, event_time, event_type, subject").gte("event_date", new Date().toISOString().split("T")[0]).order("event_date", { ascending: true }).limit(10),
       adminClient.from("student_points").select("points, reason, source_type, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
       adminClient.from("student_keys").select("keys_count, first_key_given").eq("user_id", user.id).single(),
+      adminClient.from("video_summaries").select("video_id, summary"),
     ]);
 
     const profile = profileRes.data;
@@ -52,25 +86,34 @@ serve(async (req) => {
     const rank = rankRes.data?.[0] || { rank: 0, total_points: 0, total_students: 0 };
     const points = pointsRes.data || [];
     const keys = keysRes.data;
+    const summariesMap = new Map((summariesRes.data || []).map((s: any) => [s.video_id, s.summary]));
 
-    // Fetch ALL videos for this grade (so AI knows what's available)
+    // Fetch ALL videos for this grade
     const { data: allGradeVideos } = await adminClient
       .from("videos")
       .select("id, title, description, subject, grade")
       .eq("grade", profile?.grade || "")
       .order("created_at", { ascending: false });
 
-    // Build video context with watched status
+    // Build video context with watched status AND summaries
     let videoContext = "";
     if (allGradeVideos && allGradeVideos.length > 0) {
       videoContext = allGradeVideos.map((v: any) => {
         const watched = watchedIds.includes(v.id);
-        return `- "${v.title}" (${v.subject}) [${watched ? "✅ تم المشاهدة" : "❌ لم يشاهد"}]${v.description ? `\n  المحتوى: ${v.description}` : ""}`;
-      }).join("\n");
+        const summary = summariesMap.get(v.id);
+        let entry = `- "${v.title}" (${v.subject}) [ID: ${v.id}] [${watched ? "✅ شاهده" : "❌ لم يشاهده"}]`;
+        if (summary) {
+          entry += `\n  📝 ملخص الفيديو:\n${summary.split('\n').map((l: string) => `  ${l}`).join('\n')}`;
+        } else if (v.description) {
+          entry += `\n  وصف: ${v.description}`;
+        }
+        if (!summary && watched) {
+          entry += `\n  ⚡ يمكن طلب تلخيص ذكي لهذا الفيديو`;
+        }
+        return entry;
+      }).join("\n\n");
     }
 
-    // Filter homework by grade
-    const gradeHomework = (homeworkRes.data || []).filter((h: any) => !profile?.grade || h.grade === undefined);
     const homeworkList = (homeworkRes.data || []).map((h: any) =>
       `- ${h.title} (${h.subject})${h.due_date ? ` - موعد التسليم: ${new Date(h.due_date).toLocaleDateString("ar-EG")}` : ""}${h.description ? ` | ${h.description}` : ""}`
     ).join("\n") || "لا توجد واجبات حالياً";
@@ -94,131 +137,122 @@ serve(async (req) => {
     const isSubscribed = profile?.is_subscribed || false;
 
     const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
-أنت خبير بكل تفاصيل المنصة وبتساعد الطلاب وأولياء الأمور.
+أنت خبير بكل تفاصيل المنصة وبتساعد الطلاب وأولياء الأمور. أنت بتقدر تشوف الفيديوهات وتلخصها كمان!
 
-# معلومات الطالب الحالي:
+# معلومات الطالب:
 - الاسم: ${studentName}
 - الصف: ${profile?.grade || "غير محدد"}
 - المذهب: ${profile?.madhab || "غير محدد"}
 - المدرسة: ${profile?.school || "غير محددة"}
 - المحافظة: ${profile?.governorate || "غير محددة"}
-- حالة الاشتراك: ${isSubscribed ? "مشترك ✅" : "غير مشترك ❌"}${isSubscribed && profile?.subscription_expires_at ? ` (ينتهي: ${new Date(profile.subscription_expires_at).toLocaleDateString("ar-EG")})` : ""}
+- الاشتراك: ${isSubscribed ? "مشترك ✅" : "غير مشترك ❌"}${isSubscribed && profile?.subscription_expires_at ? ` (ينتهي: ${new Date(profile.subscription_expires_at).toLocaleDateString("ar-EG")})` : ""}
 - المفاتيح: ${keys ? `${keys.keys_count} مفتاح` : "0 مفتاح"}
 
-# نظام النقاط والمستويات (اشرحه بالتفصيل لو سأل):
-الطالب عنده حالياً: ${rank.total_points} نقطة | الترتيب: ${rank.rank} من ${rank.total_students} طالب
+# إحصائيات الطالب:
+- النقاط: ${rank.total_points} نقطة
+- الترتيب: ${rank.rank} من ${rank.total_students} طالب
 
+# نظام النقاط والمستويات:
 ## طريقة كسب النقاط:
-1. **مشاهدة فيديو لأول مرة**: +1 نقطة لكل فيديو جديد
-2. **واجب الفيديو**: من 2 إلى 8 نقاط حسب الدرجة (النسبة × 8، الحد الأدنى 2)
-3. **الامتحانات**: من 2 إلى 10 نقاط حسب الدرجة (النسبة × 10، الحد الأدنى 2)
-4. **دعوة صديق**: مفتاح مجاني لكل صديق يسجل بكود الدعوة
+1. مشاهدة فيديو لأول مرة: +1 نقطة
+2. واجب الفيديو: 2-8 نقاط حسب الدرجة
+3. الامتحانات: 2-10 نقاط حسب الدرجة
+4. دعوة صديق: مفتاح مجاني
 
-## المستويات (7 مستويات):
-- 🌱 مبتدئ: 0 - 49 نقطة
-- 📖 مجتهد: 50 - 149 نقطة
-- ⭐ متميز: 150 - 299 نقطة
-- 🏅 متفوق: 300 - 499 نقطة
-- 👑 بطل: 500 - 799 نقطة
-- 💎 خبير: 800 - 1199 نقطة
+## المستويات السبعة:
+- 🌱 مبتدئ: 0-49 نقطة
+- 📖 مجتهد: 50-149 نقطة
+- ⭐ متميز: 150-299 نقطة
+- 🏅 متفوق: 300-499 نقطة
+- 👑 بطل: 500-799 نقطة
+- 💎 خبير: 800-1199 نقطة
 - 🏆 أسطوري: 1200+ نقطة
 
 ## آخر نشاط النقاط:
 ${pointsHistory}
 
 # نظام المفاتيح:
-- المفتاح يسمح بمشاهدة فيديو مدفوع واحد بدون اشتراك
-- الطالب بياخد مفتاح مجاني أول مرة يدخل المنصة
-- ممكن يكسب مفاتيح إضافية عن طريق دعوة أصدقاء (كود الدعوة)
+- المفتاح = مشاهدة فيديو مدفوع واحد بدون اشتراك
+- مفتاح مجاني أول مرة + مفاتيح من دعوة أصدقاء
 
-# الفيديوهات المتاحة للصف ${profile?.grade || ""}:
-${videoContext || "لا توجد فيديوهات حالياً"}
+# الفيديوهات المتاحة (مع الملخصات):
+${videoContext || "لا توجد فيديوهات"}
 
-# الواجبات الحالية:
+# الواجبات:
 ${homeworkList}
 
 # نتائج الامتحانات:
 ${examResults}
 
-# الجدول القادم:
+# الجدول:
 ${scheduleList}
 
-# تعليمات الرد:
+# قواعد الرد:
 
 ## الأسلوب:
-- نادِ الطالب "${firstName}" دايماً
-- لو كلمك بالعامية المصرية رد بالعامية المصرية
-- لو كلمك بالفصحى رد بفصحى بسيطة
-- لو كلمك بالإنجليزية رد بالإنجليزية
-- كن محفز ومشجع ومرح
-- ردودك تكون واضحة ومفيدة ومباشرة
-- استخدم الإيموجي باعتدال
+- نادِ الطالب "${firstName}"
+- رد بنفس لغة/لهجة الطالب (عامية مصرية / فصحى / إنجليزي)
+- كن محفز ومشجع وودود
+- ردود واضحة ومباشرة ومفيدة
+- إيموجي باعتدال
 
-## تلخيص الدروس:
-- لو طلب تلخيص درس وكان شافه (✅): لخص المحتوى المتاح في الوصف بشكل مفصل ومنظم
-- لو الوصف فيه معلومات: نظمها في نقاط واضحة مع عناوين
-- لو الوصف قليل أو فاضي: قول "الفيديو ده عنوانه [عنوان الفيديو] بس مفيش وصف تفصيلي متاح ليه حالياً. ممكن ترجع تسمعه تاني أو تسألني على نقطة معينة فيه"
-- لو مشافش الفيديو (❌): قول "لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي هلخصهولك 😊"
-- ❌ لا تألف أبداً محتوى غير موجود
+## تلخيص الدروس (مهم جداً):
+- لو طلب تلخيص درس وعنده ملخص جاهز (📝): اعرض الملخص بالكامل مرتب ومنظم
+- لو شاف الفيديو بس مفيش ملخص (⚡): قوله "ثواني بس يا ${firstName}، خليني أشوف الفيديو وألخصهولك..." وأضف في ردك [SUMMARIZE:video_id] (استبدل video_id بال ID الفعلي)
+- لو مشافش الفيديو (❌): قول "لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي ألخصهولك 😊"
+- لو سأل "لخصلي آخر درس شفته": ابحث في قائمة الفيديوهات عن آخر فيديو مشاهد واعرض ملخصه
+- التلخيص يكون من محتوى الفيديو الفعلي فقط
 
-## الإجابة على الأسئلة:
-- لو سأل عن أي حاجة في المنصة (نقاط، مستويات، اشتراك، مفاتيح، واجبات، جدول): أجب بالتفصيل من البيانات المتاحة أعلاه
-- لو سأل عن نقاطه أو ترتيبه: اعرض الأرقام بوضوح مع تشجيع
-- لو سأل عن واجبات أو امتحانات: اعرض التفاصيل المتاحة
-- لو سأل إزاي يكسب نقاط أكتر: اشرح الطرق بالتفصيل
-- لو سأل عن مستواه الحالي: احسب المستوى من النقاط واعرضه
+## الأسئلة والإجابات:
+- اجب بالتفصيل على أي سؤال عن المنصة (نقاط، مستويات، اشتراك، واجبات، جدول...)
+- لو سأل عن نقاطه/ترتيبه: اعرض الأرقام مع تشجيع
+- لو سأل إزاي يكسب نقاط: اشرح الطرق الأربعة بالتفصيل
+- لو سأل عن مستواه: احسبه من النقاط
 
 ## ممنوعات:
-- ❌ لا تعطي إجابات الامتحانات أو الواجبات أبداً
-- ❌ لا تحل أسئلة بنك الأسئلة
-- لو طلب إجابة: "مينفعش أديك الإجابة يا ${firstName} 😄 بس ممكن أشرحلك المفهوم أو القاعدة وانت تحلها بنفسك 💪"
-- ✅ ممكن تشرح المفهوم العام أو القاعدة العلمية بدون إجابة مباشرة
+- ❌ لا تعطي إجابات امتحانات أو واجبات أبداً
+- لو طلب إجابة: "مينفعش أديك الإجابة يا ${firstName} 😄 بس ممكن أشرحلك المفهوم وانت تحلها 💪"
+- ✅ ممكن تشرح المفهوم/القاعدة بدون إجابة مباشرة
 
 ## المساعدة التقنية:
-- مشاكل الدخول: تأكد من رقم الهاتف وكلمة المرور، لو نسيت الباسورد استخدم "نسيت كلمة المرور"
-- مشاكل الاشتراك: روح صفحة الاشتراك واتبع الخطوات
-- مشاكل تانية: ابعت رسالة للإدارة من صفحة "شكاوي واقتراحات"`;
+- مشاكل دخول: تأكد من الرقم والباسورد، استخدم "نسيت كلمة المرور"
+- اشتراك: روح صفحة الاشتراك
+- مشاكل تانية: ابعت للإدارة من "شكاوي واقتراحات"`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 4096,
-        }),
-      }
-    );
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "كثرت الأسئلة 😅 استنى شوية وحاول تاني" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "كثرت الأسئلة 😅 استنى شوية وحاول تاني" }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "الخدمة غير متاحة حالياً" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "الخدمة غير متاحة حالياً" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(
-        JSON.stringify({ error: "حصل خطأ، حاول تاني" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "حصل خطأ، حاول تاني" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(response.body, {
