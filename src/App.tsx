@@ -93,6 +93,17 @@ const AnimatedRoutes = () => {
   );
 };
 
+const AuthenticatedChatAssistant = () => {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setAuthed(!!session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setAuthed(!!session));
+    return () => subscription.unsubscribe();
+  }, []);
+  if (!authed) return null;
+  return <AIChatAssistant />;
+};
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -101,6 +112,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AnimatedRoutes />
+          <AuthenticatedChatAssistant />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
