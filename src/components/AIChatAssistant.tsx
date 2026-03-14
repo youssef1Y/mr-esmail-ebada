@@ -115,38 +115,6 @@ const AIChatAssistant = () => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
-  // Process AI response for [SUMMARIZE:video_id] tags
-  const processSummarizeTag = useCallback(async (content: string) => {
-    const match = content.match(/\[SUMMARIZE:([a-f0-9-]+)\]/i);
-    if (!match) return;
-
-    const videoId = match[1];
-    setSummarizing(true);
-
-    // Remove the tag from the message
-    setMessages((prev) => prev.map((m, i) =>
-      i === prev.length - 1 && m.role === "assistant"
-        ? { ...m, content: m.content.replace(/\[SUMMARIZE:[a-f0-9-]+\]/i, "⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت").trim() }
-        : m
-    ));
-
-    const summary = await requestVideoSummary(videoId);
-    setSummarizing(false);
-
-    if (summary) {
-      setMessages((prev) => prev.map((m, i) =>
-        i === prev.length - 1 && m.role === "assistant"
-          ? { ...m, content: m.content.replace("⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت", `✅ تم تلخيص الفيديو:\n\n${summary}`).trim() }
-          : m
-      ));
-    } else {
-      setMessages((prev) => prev.map((m, i) =>
-        i === prev.length - 1 && m.role === "assistant"
-          ? { ...m, content: m.content.replace("⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت", "❌ معرفتش ألخص الفيديو ده دلوقتي، حاول تاني بعدين").trim() }
-          : m
-      ));
-    }
-  }, []);
 
   const sendMsg = useCallback(async (text?: string) => {
     const msg = (text || input).trim();
@@ -178,10 +146,6 @@ const AIChatAssistant = () => {
       onDelta: upsert,
       onDone: () => {
         setLoading(false);
-        // Check if the final message contains a summarize tag
-        if (assistantSoFar.includes("[SUMMARIZE:")) {
-          processSummarizeTag(assistantSoFar);
-        }
       },
       onError: (e) => {
         setMessages((prev) => [
@@ -191,7 +155,7 @@ const AIChatAssistant = () => {
         setLoading(false);
       },
     });
-  }, [input, loading, summarizing, messages, processSummarizeTag]);
+  }, [input, loading, summarizing, messages]);
 
   return (
     <>
