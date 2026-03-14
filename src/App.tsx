@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
 import PageTransition from "@/components/PageTransition";
+import AIChatAssistant from "@/components/AIChatAssistant";
 
 // Only eagerly load the landing page
 import Index from "./pages/Index";

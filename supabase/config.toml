@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.send-parent-push]
 verify_jwt = false
+
+[functions.ai-assistant]
+verify_jwt = false
