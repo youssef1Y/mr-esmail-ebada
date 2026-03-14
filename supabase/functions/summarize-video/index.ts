@@ -12,6 +12,7 @@ function getStoragePath(videoUrl: string): string | null {
   if (!videoUrl.includes("://")) {
     return decodeURIComponent(videoUrl.replace(/^\/+/, ""));
   }
+
   try {
     const url = new URL(videoUrl);
     const markers = [
@@ -19,19 +20,93 @@ function getStoragePath(videoUrl: string): string | null {
       "/storage/v1/object/public/videos/",
       "/storage/v1/object/videos/",
     ];
+
     for (const marker of markers) {
       if (url.pathname.includes(marker)) {
         const rawPath = url.pathname.split(marker)[1] || "";
         return decodeURIComponent(rawPath.replace(/^\/+/, ""));
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    // ignore
+  }
+
   return null;
 }
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
+function extractSummaryFromAi(rawText: string): string | null {
+  if (!rawText) return null;
+  const text = rawText.trim();
+
+  if (text.startsWith("STATUS:NO_VIDEO")) return null;
+
+  if (text.startsWith("STATUS:OK")) {
+    return text.replace(/^STATUS:OK\s*/i, "").trim();
+  }
+
+  // If model didn't follow format, reject to avoid fake/title-based summary
+  return null;
+}
+
+async function callGatewayWithVideo(
+  LOVABLE_API_KEY: string,
+  prompt: string,
+  videoPart: Record<string, unknown>
+): Promise<{ ok: boolean; summary?: string; error?: string }> {
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            videoPart,
+          ],
+        },
+      ],
+      max_tokens: 4096,
+      temperature: 0.1,
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const errText = await aiResponse.text();
+    return { ok: false, error: `status=${aiResponse.status} body=${errText}` };
+  }
+
+  const aiData = await aiResponse.json();
+  const raw = aiData.choices?.[0]?.message?.content || "";
+  const summary = extractSummaryFromAi(raw);
+
+  if (!summary || summary.length < 80) {
+    return { ok: false, error: "model_did_not_confirm_video_analysis" };
+  }
+
+  return { ok: true, summary };
+}
+
 serve(async (req) => {
-  if (req.method === "OPTIONS")
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -41,27 +116,33 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Auth check
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
+
     const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
+
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabaseUser.auth.getUser();
+
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { video_id } = await req.json();
     if (!video_id) {
       return new Response(JSON.stringify({ error: "video_id مطلوب" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check cache first
     const { data: cached } = await adminClient
       .from("video_summaries")
       .select("summary")
@@ -69,31 +150,29 @@ serve(async (req) => {
       .single();
 
     if (cached?.summary) {
-      console.log("Returning cached summary for video:", video_id);
       return new Response(JSON.stringify({ summary: cached.summary, cached: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get video info
     const { data: video, error: videoErr } = await adminClient
       .from("videos")
-      .select("id, title, description, video_url, subject, grade")
+      .select("id, title, video_url, subject, grade")
       .eq("id", video_id)
       .single();
 
     if (videoErr || !video) {
       return new Response(JSON.stringify({ error: "الفيديو غير موجود" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Generate signed URL for the video
     const storagePath = getStoragePath(video.video_url);
     if (!storagePath) {
-      console.error("Cannot extract storage path from:", video.video_url);
       return new Response(JSON.stringify({ error: "لا يمكن الوصول للفيديو" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -104,170 +183,105 @@ serve(async (req) => {
     if (signErr || !signedData?.signedUrl) {
       console.error("Signed URL error:", signErr);
       return new Response(JSON.stringify({ error: "لا يمكن الوصول للفيديو" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const videoSignedUrl = signedData.signedUrl;
-    console.log("Got signed URL for video:", video.title, "storagePath:", storagePath);
-
-    // Download the video file to send as base64 (for small videos)
-    // or use the URL directly
-    const analysisPrompt = `أنت خبير تعليمي متخصص. شاهد هذا الفيديو التعليمي بعناية شديدة وقدم تلخيصاً شاملاً ومفصلاً لمحتواه الفعلي.
+    const analysisPrompt = `أنت خبير تعليمي. مطلوب تحليل الفيديو نفسه ثم تلخيصه.
 
 معلومات الفيديو:
 - العنوان: ${video.title}
 - المادة: ${video.subject}
 - الصف: ${video.grade}
 
-تعليمات مهمة جداً:
-1. لخص المحتوى الفعلي اللي في الفيديو بالتفصيل - اللي المدرس بيشرحه فعلاً
-2. اذكر كل النقاط والمفاهيم الرئيسية اللي اتشرحت بالترتيب
-3. اذكر أي أمثلة أو تمارين أو تطبيقات اتحلت في الفيديو
-4. اذكر أي قواعد أو معادلات أو تعريفات ذكرها المدرس
-5. لو فيه خطوات حل اتشرحت، اذكرها بالتفصيل
-6. التلخيص يكون بالعربية وبأسلوب تعليمي واضح
-7. رتب التلخيص في نقاط منظمة مع عناوين فرعية
+قواعد إلزامية:
+1) لا تعتمد على العنوان فقط إطلاقاً.
+2) لو لم تستطع مشاهدة محتوى الفيديو الفعلي، اكتب فقط: STATUS:NO_VIDEO
+3) لو شاهدت الفيديو فعلاً، ابدأ الرد بـ STATUS:OK ثم اكتب ملخصاً تفصيلياً مرتباً بعناوين فرعية ونقاط.
+4) اذكر المفاهيم، الأمثلة، خطوات الشرح، وأي قواعد/تعريفات وردت داخل الفيديو.
+5) الرد بالعربية.`;
 
-⚠️ مهم جداً: التلخيص لازم يكون من محتوى الفيديو الفعلي فقط اللي شفته. لا تخترع أو تضيف أي معلومات من عندك. لو مش قادر تشوف محتوى الفيديو بوضوح قول كده.`;
+    // Attempt 1: direct signed URL as video_url
+    const attempt1 = await callGatewayWithVideo(
+      LOVABLE_API_KEY,
+      analysisPrompt,
+      { type: "video_url", video_url: { url: signedData.signedUrl } }
+    );
 
-    // Try sending video URL to Gemini for multimodal analysis
-    console.log("Sending video to AI for analysis...");
-    
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: analysisPrompt },
-            { 
-              type: "image_url", 
-              image_url: { 
-                url: videoSignedUrl,
-              } 
-            },
-          ],
-        }],
-        max_tokens: 8192,
-        temperature: 0.2,
-      }),
-    });
+    if (attempt1.ok && attempt1.summary) {
+      await adminClient.from("video_summaries").upsert(
+        {
+          video_id: video.id,
+          summary: attempt1.summary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "video_id" }
+      );
 
-    console.log("AI response status:", aiResponse.status);
+      return new Response(JSON.stringify({ summary: attempt1.summary, cached: false }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI video analysis failed:", aiResponse.status, errText);
-      
-      // Fallback: Try downloading video and sending as base64 data URL
-      console.log("Trying fallback: downloading video...");
-      try {
-        const videoResp = await fetch(videoSignedUrl);
-        if (videoResp.ok) {
-          const videoBuffer = await videoResp.arrayBuffer();
-          const videoSizeMB = videoBuffer.byteLength / (1024 * 1024);
-          console.log("Video size:", videoSizeMB.toFixed(2), "MB");
-          
-          // Only try base64 for videos under 20MB
-          if (videoSizeMB <= 20) {
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(videoBuffer)));
-            const dataUrl = `data:video/mp4;base64,${base64}`;
-            
-            console.log("Sending video as base64 data URL...");
-            const fallbackAiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [{
-                  role: "user",
-                  content: [
-                    { type: "text", text: analysisPrompt },
-                    { 
-                      type: "image_url", 
-                      image_url: { url: dataUrl } 
-                    },
-                  ],
-                }],
-                max_tokens: 8192,
-                temperature: 0.2,
-              }),
-            });
+    console.error("Video URL attempt failed:", attempt1.error);
 
-            console.log("Fallback AI response status:", fallbackAiResponse.status);
-            
-            if (fallbackAiResponse.ok) {
-              const fallbackData = await fallbackAiResponse.json();
-              const fallbackSummary = fallbackData.choices?.[0]?.message?.content || "";
-              
-              if (fallbackSummary && fallbackSummary.length > 50) {
-                console.log("Fallback succeeded! Summary length:", fallbackSummary.length);
-                await adminClient.from("video_summaries").upsert({
-                  video_id: video.id,
-                  summary: fallbackSummary,
-                  updated_at: new Date().toISOString(),
-                }, { onConflict: "video_id" });
+    // Attempt 2: data URL (base64), memory-safe conversion
+    const videoResp = await fetch(signedData.signedUrl);
+    if (!videoResp.ok) {
+      return new Response(JSON.stringify({ error: "تعذر تحميل الفيديو للتحليل" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-                return new Response(JSON.stringify({ summary: fallbackSummary, cached: false }), {
-                  headers: { ...corsHeaders, "Content-Type": "application/json" },
-                });
-              }
-            } else {
-              const fallbackErr = await fallbackAiResponse.text();
-              console.error("Fallback also failed:", fallbackAiResponse.status, fallbackErr);
-            }
-          } else {
-            console.log("Video too large for base64:", videoSizeMB.toFixed(2), "MB");
-          }
-        }
-      } catch (dlErr) {
-        console.error("Video download error:", dlErr);
-      }
-      
-      // Final fallback: use description if available
-      if (video.description) {
-        const descSummary = `## ملخص: ${video.title}\n\n${video.description}\n\n*ملاحظة: هذا ملخص مبدئي من وصف الفيديو. حاول تاني لاحقاً للحصول على تلخيص كامل من محتوى الفيديو.*`;
-        return new Response(JSON.stringify({ summary: descSummary, cached: false, fallback: true }), {
+    const videoBuffer = await videoResp.arrayBuffer();
+    const videoBytes = new Uint8Array(videoBuffer);
+    const videoSizeMB = videoBytes.byteLength / (1024 * 1024);
+
+    if (videoSizeMB > 18) {
+      return new Response(
+        JSON.stringify({ error: "الفيديو كبير جداً للتلخيص حالياً، حاول على نسخة أصغر" }),
+        {
+          status: 413,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        }
+      );
+    }
+
+    const base64 = uint8ToBase64(videoBytes);
+    const dataUrl = `data:video/mp4;base64,${base64}`;
+
+    const attempt2 = await callGatewayWithVideo(
+      LOVABLE_API_KEY,
+      analysisPrompt,
+      { type: "video_url", video_url: { url: dataUrl } }
+    );
+
+    if (attempt2.ok && attempt2.summary) {
+      await adminClient.from("video_summaries").upsert(
+        {
+          video_id: video.id,
+          summary: attempt2.summary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "video_id" }
+      );
+
+      return new Response(JSON.stringify({ summary: attempt2.summary, cached: false }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.error("Data URL attempt failed:", attempt2.error);
+
+    return new Response(
+      JSON.stringify({ error: "تعذر تلخيص محتوى الفيديو الفعلي حالياً، حاول مرة تانية بعد قليل" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-
-      return new Response(JSON.stringify({ error: "فشل في تحليل الفيديو، حاول تاني" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    const summary = aiData.choices?.[0]?.message?.content || "";
-    console.log("AI summary generated, length:", summary.length);
-
-    if (!summary || summary.length < 50) {
-      console.error("Summary too short or empty:", summary);
-      return new Response(JSON.stringify({ error: "لم يتم إنشاء ملخص كافي" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Cache the summary
-    await adminClient.from("video_summaries").upsert({
-      video_id: video.id,
-      summary: summary,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "video_id" });
-
-    console.log("Summary cached successfully for video:", video.title);
-    return new Response(JSON.stringify({ summary, cached: false }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    );
   } catch (e) {
     console.error("summarize-video error:", e);
     return new Response(
