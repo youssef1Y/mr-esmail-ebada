@@ -146,10 +146,6 @@ const AIChatAssistant = () => {
       onDelta: upsert,
       onDone: () => {
         setLoading(false);
-        // Check if the final message contains a summarize tag
-        if (assistantSoFar.includes("[SUMMARIZE:")) {
-          processSummarizeTag(assistantSoFar);
-        }
       },
       onError: (e) => {
         setMessages((prev) => [
@@ -159,7 +155,7 @@ const AIChatAssistant = () => {
         setLoading(false);
       },
     });
-  }, [input, loading, summarizing, messages, processSummarizeTag]);
+  }, [input, loading, summarizing, messages]);
 
   return (
     <>
