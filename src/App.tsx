@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
 import PageTransition from "@/components/PageTransition";
 import AIChatAssistant from "@/components/AIChatAssistant";
+import { supabase } from "@/integrations/supabase/client";
 
 // Only eagerly load the landing page
 import Index from "./pages/Index";
