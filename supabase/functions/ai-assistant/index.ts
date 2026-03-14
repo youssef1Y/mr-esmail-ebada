@@ -35,164 +35,149 @@ serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { messages } = await req.json();
 
-    // Fetch student profile
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("full_name, grade, is_subscribed, madhab, school, governorate, parent_phone, student_phone")
-      .eq("user_id", user.id)
-      .single();
+    // Fetch all data in parallel
+    const [profileRes, viewsRes, rankRes, homeworkRes, examRes, scheduleRes, pointsRes, keysRes] = await Promise.all([
+      adminClient.from("profiles").select("full_name, grade, is_subscribed, madhab, school, governorate, parent_phone, student_phone, subscription_expires_at").eq("user_id", user.id).single(),
+      adminClient.from("video_views").select("video_id").eq("user_id", user.id),
+      adminClient.rpc("get_student_rank", { p_user_id: user.id }),
+      adminClient.from("homework").select("title, subject, due_date, description").order("created_at", { ascending: false }).limit(10),
+      adminClient.from("exam_attempts").select("score, total, submitted_at, exam_id, exams(title, subject)").eq("user_id", user.id).order("submitted_at", { ascending: false }).limit(10),
+      adminClient.from("schedule_events").select("title, event_date, event_time, event_type, subject").gte("event_date", new Date().toISOString().split("T")[0]).order("event_date", { ascending: true }).limit(10),
+      adminClient.from("student_points").select("points, reason, source_type, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+      adminClient.from("student_keys").select("keys_count, first_key_given").eq("user_id", user.id).single(),
+    ]);
 
-    // Fetch watched videos
-    const { data: views } = await adminClient
-      .from("video_views")
-      .select("video_id")
-      .eq("user_id", user.id);
-    const watchedIds = (views || []).map((v: any) => v.video_id);
+    const profile = profileRes.data;
+    const watchedIds = (viewsRes.data || []).map((v: any) => v.video_id);
+    const rank = rankRes.data?.[0] || { rank: 0, total_points: 0, total_students: 0 };
+    const points = pointsRes.data || [];
+    const keys = keysRes.data;
 
+    // Fetch ALL videos for this grade (so AI knows what's available)
+    const { data: allGradeVideos } = await adminClient
+      .from("videos")
+      .select("id, title, description, subject, grade")
+      .eq("grade", profile?.grade || "")
+      .order("created_at", { ascending: false });
+
+    // Build video context with watched status
     let videoContext = "";
-    let allVideos: any[] = [];
-    if (watchedIds.length > 0) {
-      const { data: videos } = await adminClient
-        .from("videos")
-        .select("id, title, description, subject, grade")
-        .in("id", watchedIds);
-      allVideos = videos || [];
-      if (allVideos.length > 0) {
-        videoContext = allVideos
-          .map((v: any) => `📹 "${v.title}" (${v.subject} - ${v.grade}):\n${v.description || "لا يوجد وصف تفصيلي"}`)
-          .join("\n\n");
-      }
+    if (allGradeVideos && allGradeVideos.length > 0) {
+      videoContext = allGradeVideos.map((v: any) => {
+        const watched = watchedIds.includes(v.id);
+        return `- "${v.title}" (${v.subject}) [${watched ? "✅ تم المشاهدة" : "❌ لم يشاهد"}]${v.description ? `\n  المحتوى: ${v.description}` : ""}`;
+      }).join("\n");
     }
 
-    // Fetch student points & rank
-    const { data: rankData } = await adminClient.rpc("get_student_rank", { p_user_id: user.id });
-    const rank = rankData?.[0] || { rank: 0, total_points: 0, total_students: 0 };
-
-    // Fetch recent homework
-    const { data: homework } = await adminClient
-      .from("homework")
-      .select("title, subject, due_date")
-      .eq("grade", profile?.grade || "")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    // Fetch recent exam results
-    const { data: examAttempts } = await adminClient
-      .from("exam_attempts")
-      .select("score, total, submitted_at, exam_id")
-      .eq("user_id", user.id)
-      .order("submitted_at", { ascending: false })
-      .limit(5);
-
-    // Fetch schedule
-    const { data: schedule } = await adminClient
-      .from("schedule_events")
-      .select("title, event_date, event_time, event_type, subject")
-      .eq("grade", profile?.grade || "")
-      .gte("event_date", new Date().toISOString().split("T")[0])
-      .order("event_date", { ascending: true })
-      .limit(5);
-
-    const studentName = profile?.full_name || "الطالب";
-    const grade = profile?.grade || "";
-    const isSubscribed = profile?.is_subscribed || false;
-
-    const homeworkList = (homework || []).map((h: any) =>
-      `- ${h.title} (${h.subject}) ${h.due_date ? `موعد التسليم: ${h.due_date}` : ""}`
+    // Filter homework by grade
+    const gradeHomework = (homeworkRes.data || []).filter((h: any) => !profile?.grade || h.grade === undefined);
+    const homeworkList = (homeworkRes.data || []).map((h: any) =>
+      `- ${h.title} (${h.subject})${h.due_date ? ` - موعد التسليم: ${new Date(h.due_date).toLocaleDateString("ar-EG")}` : ""}${h.description ? ` | ${h.description}` : ""}`
     ).join("\n") || "لا توجد واجبات حالياً";
 
-    const examResults = (examAttempts || []).map((e: any) =>
-      `- ${e.score}/${e.total} (${new Date(e.submitted_at).toLocaleDateString("ar-EG")})`
-    ).join("\n") || "لا توجد نتائج بعد";
+    const examResults = (examRes.data || []).map((e: any) => {
+      const examInfo = (e as any).exams;
+      const pct = e.total > 0 ? Math.round((e.score / e.total) * 100) : 0;
+      return `- ${examInfo?.title || "امتحان"} (${examInfo?.subject || ""}): ${e.score}/${e.total} (${pct}%) - ${new Date(e.submitted_at).toLocaleDateString("ar-EG")}`;
+    }).join("\n") || "لا توجد نتائج بعد";
 
-    const scheduleList = (schedule || []).map((s: any) =>
-      `- ${s.title} (${s.event_type}) - ${s.event_date} ${s.event_time || ""}`
+    const scheduleList = (scheduleRes.data || []).map((s: any) =>
+      `- ${s.title}${s.subject ? ` (${s.subject})` : ""} - ${s.event_date}${s.event_time ? ` الساعة ${s.event_time}` : ""}`
     ).join("\n") || "لا توجد أحداث قادمة";
 
-    const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
-شخصيتك: ودود، مرح، محفّز، صبور، بتحب تشجع الطلاب. زي صاحب كبير بيساعد في المذاكرة.
+    const pointsHistory = points.map((p: any) =>
+      `- ${p.points > 0 ? "+" : ""}${p.points} نقطة: ${p.reason} (${new Date(p.created_at).toLocaleDateString("ar-EG")})`
+    ).join("\n") || "لا توجد نقاط بعد";
 
-═══════════════════════════════════
-👤 معلومات المستخدم الحالي:
+    const studentName = profile?.full_name || "الطالب";
+    const firstName = studentName.split(' ')[0];
+    const isSubscribed = profile?.is_subscribed || false;
+
+    const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
+أنت خبير بكل تفاصيل المنصة وبتساعد الطلاب وأولياء الأمور.
+
+# معلومات الطالب الحالي:
 - الاسم: ${studentName}
-- الصف الدراسي: ${grade}
+- الصف: ${profile?.grade || "غير محدد"}
 - المذهب: ${profile?.madhab || "غير محدد"}
 - المدرسة: ${profile?.school || "غير محددة"}
 - المحافظة: ${profile?.governorate || "غير محددة"}
-- حالة الاشتراك: ${isSubscribed ? "مشترك ✅" : "غير مشترك ❌"}
-- النقاط: ${rank.total_points} نقطة
-- الترتيب: ${rank.rank} من ${rank.total_students} طالب
+- حالة الاشتراك: ${isSubscribed ? "مشترك ✅" : "غير مشترك ❌"}${isSubscribed && profile?.subscription_expires_at ? ` (ينتهي: ${new Date(profile.subscription_expires_at).toLocaleDateString("ar-EG")})` : ""}
+- المفاتيح: ${keys ? `${keys.keys_count} مفتاح` : "0 مفتاح"}
 
-═══════════════════════════════════
-📹 الفيديوهات اللي شافها ${studentName}:
-${videoContext || "ما شافش أي فيديو لسه."}
+# نظام النقاط والمستويات (اشرحه بالتفصيل لو سأل):
+الطالب عنده حالياً: ${rank.total_points} نقطة | الترتيب: ${rank.rank} من ${rank.total_students} طالب
 
-═══════════════════════════════════
-📝 الواجبات الحالية:
+## طريقة كسب النقاط:
+1. **مشاهدة فيديو لأول مرة**: +1 نقطة لكل فيديو جديد
+2. **واجب الفيديو**: من 2 إلى 8 نقاط حسب الدرجة (النسبة × 8، الحد الأدنى 2)
+3. **الامتحانات**: من 2 إلى 10 نقاط حسب الدرجة (النسبة × 10، الحد الأدنى 2)
+4. **دعوة صديق**: مفتاح مجاني لكل صديق يسجل بكود الدعوة
+
+## المستويات (7 مستويات):
+- 🌱 مبتدئ: 0 - 49 نقطة
+- 📖 مجتهد: 50 - 149 نقطة
+- ⭐ متميز: 150 - 299 نقطة
+- 🏅 متفوق: 300 - 499 نقطة
+- 👑 بطل: 500 - 799 نقطة
+- 💎 خبير: 800 - 1199 نقطة
+- 🏆 أسطوري: 1200+ نقطة
+
+## آخر نشاط النقاط:
+${pointsHistory}
+
+# نظام المفاتيح:
+- المفتاح يسمح بمشاهدة فيديو مدفوع واحد بدون اشتراك
+- الطالب بياخد مفتاح مجاني أول مرة يدخل المنصة
+- ممكن يكسب مفاتيح إضافية عن طريق دعوة أصدقاء (كود الدعوة)
+
+# الفيديوهات المتاحة للصف ${profile?.grade || ""}:
+${videoContext || "لا توجد فيديوهات حالياً"}
+
+# الواجبات الحالية:
 ${homeworkList}
 
-═══════════════════════════════════
-📊 آخر نتائج الامتحانات:
+# نتائج الامتحانات:
 ${examResults}
 
-═══════════════════════════════════
-📅 الجدول القادم:
+# الجدول القادم:
 ${scheduleList}
 
-═══════════════════════════════════
+# تعليمات الرد:
 
-## قواعد الرد:
+## الأسلوب:
+- نادِ الطالب "${firstName}" دايماً
+- لو كلمك بالعامية المصرية رد بالعامية المصرية
+- لو كلمك بالفصحى رد بفصحى بسيطة
+- لو كلمك بالإنجليزية رد بالإنجليزية
+- كن محفز ومشجع ومرح
+- ردودك تكون واضحة ومفيدة ومباشرة
+- استخدم الإيموجي باعتدال
 
-### 🗣️ اللغة والأسلوب:
-- لو كلمك بالعامية المصرية → رد بالعامية المصرية (أهلاً، إيه، ازيك، كده...)
-- لو كلمك بالفصحى → رد بفصحى بسيطة
-- لو كلمك بالإنجليزية → رد بالإنجليزية
-- نادِ الطالب باسمه الأول دايماً: "${studentName.split(' ')[0]}"
-- استخدم الإيموجي بشكل طبيعي ومش زيادة
-- ردودك تكون مختصرة ومفيدة، مش طويلة زيادة
-- لو الطالب محبط → شجعه وحفّزه
-- لو عمل حاجة كويسة → امدحه وشجعه يكمل
+## تلخيص الدروس:
+- لو طلب تلخيص درس وكان شافه (✅): لخص المحتوى المتاح في الوصف بشكل مفصل ومنظم
+- لو الوصف فيه معلومات: نظمها في نقاط واضحة مع عناوين
+- لو الوصف قليل أو فاضي: قول "الفيديو ده عنوانه [عنوان الفيديو] بس مفيش وصف تفصيلي متاح ليه حالياً. ممكن ترجع تسمعه تاني أو تسألني على نقطة معينة فيه"
+- لو مشافش الفيديو (❌): قول "لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي هلخصهولك 😊"
+- ❌ لا تألف أبداً محتوى غير موجود
 
-### 📚 تلخيص الدروس:
-- لو طلب تلخيص درس/فيديو معين → شوف لو موجود في قائمة الفيديوهات اللي شافها
-- لو شافه → لخص من الوصف المتاح بالضبط. لو الوصف قليل قول "الوصف المتاح محدود بس اللي أقدر أقولك عليه هو: ..." ومتألفش حاجة
-- لو مشافش الفيديو → قول: "لازم تسمع الفيديو الأول يا ${studentName.split(' ')[0]} 😊 وبعدين هلخصهولك"
-- ❌ متألفش أبداً محتوى مش موجود في الوصف
+## الإجابة على الأسئلة:
+- لو سأل عن أي حاجة في المنصة (نقاط، مستويات، اشتراك، مفاتيح، واجبات، جدول): أجب بالتفصيل من البيانات المتاحة أعلاه
+- لو سأل عن نقاطه أو ترتيبه: اعرض الأرقام بوضوح مع تشجيع
+- لو سأل عن واجبات أو امتحانات: اعرض التفاصيل المتاحة
+- لو سأل إزاي يكسب نقاط أكتر: اشرح الطرق بالتفصيل
+- لو سأل عن مستواه الحالي: احسب المستوى من النقاط واعرضه
 
-### 🚫 ممنوعات صارمة جداً:
-- لا تعطي إجابات الامتحانات أو الواجبات أو بنك الأسئلة نهائياً
-- لو طلب إجابة → قول: "مينفعش أديك الإجابة يا ${studentName.split(' ')[0]} 😄 لازم تحلها بنفسك علشان تستفيد وتفهم 💪 لو محتاج مساعدة في الفهم ممكن أشرحلك المفهوم"
-- ممكن تشرح المفهوم أو القاعدة بس من غير ما تدي الإجابة المباشرة
-- متألفش معلومات عن دروس مشافهاش الطالب
+## ممنوعات:
+- ❌ لا تعطي إجابات الامتحانات أو الواجبات أبداً
+- ❌ لا تحل أسئلة بنك الأسئلة
+- لو طلب إجابة: "مينفعش أديك الإجابة يا ${firstName} 😄 بس ممكن أشرحلك المفهوم أو القاعدة وانت تحلها بنفسك 💪"
+- ✅ ممكن تشرح المفهوم العام أو القاعدة العلمية بدون إجابة مباشرة
 
-### 🔧 المساعدة في المنصة:
-- وجّه المستخدم بوضوح ← "روح على صفحة [اسم الصفحة] من القائمة"
-- لو مش مشترك وسأل عن محتوى مدفوع → "محتاج تشترك الأول يا ${studentName.split(' ')[0]}! روح على صفحة الاشتراك 💳"
-- لو سأل عن نقاطه/ترتيبه → عنده ${rank.total_points} نقطة وترتيبه ${rank.rank}
-- لو سأل عن الواجبات → اعرضله الواجبات الحالية
-- لو سأل عن الجدول → اعرضله الأحداث القادمة
-- لو سأل عن نتائجه → اعرضله آخر نتائج الامتحانات
-- لو عنده مشكلة تقنية مش عارف تحلها → وجهه لصفحة "شكاوي واقتراحات" يبعت للإدارة
-
-### 📍 أقسام المنصة:
-- لوحة التحكم (الصفحة الرئيسية بعد الدخول)
-- صفحة المواد والفيديوهات
-- الواجبات
-- بنك الأسئلة (للتدريب)
-- المسابقة الأسبوعية
-- لوحة المتصدرين
-- نتائج الامتحانات
-- الجدول الأسبوعي
-- الاشتراك
-- الشهادات
-- شكاوي واقتراحات
-- الملف الشخصي
-
-### 💡 نصائح تحفيزية (استخدمها وقت مناسب):
-- "كل ما تذاكر أكتر كل ما نقاطك تزيد وترتيبك يعلى! 🚀"
-- "استمر كده يا بطل! 💪"
-- "المسابقة الأسبوعية فرصة تكسب جوائز، جربها! 🏆"
-- "لو خلصت الواجب بدري هتاخد نقاط إضافية 📝"`;
+## المساعدة التقنية:
+- مشاكل الدخول: تأكد من رقم الهاتف وكلمة المرور، لو نسيت الباسورد استخدم "نسيت كلمة المرور"
+- مشاكل الاشتراك: روح صفحة الاشتراك واتبع الخطوات
+- مشاكل تانية: ابعت رسالة للإدارة من صفحة "شكاوي واقتراحات"`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -210,6 +195,7 @@ ${scheduleList}
           ],
           stream: true,
           temperature: 0.7,
+          max_tokens: 4096,
         }),
       }
     );
