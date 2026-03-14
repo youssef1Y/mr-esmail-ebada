@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, X, Send, Sparkles } from "lucide-react";
+import { Bot, X, Send, Sparkles, Trash2, GraduationCap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
@@ -67,28 +67,42 @@ async function streamChat({
   onDone();
 }
 
+const quickQuestions = [
+  { emoji: "📚", text: "لخصلي آخر درس شفته" },
+  { emoji: "💳", text: "إزاي أشترك في المنصة؟" },
+  { emoji: "🏆", text: "إزاي أجمع نقاط أكتر؟" },
+  { emoji: "📝", text: "عندي واجب مش عارف أحله" },
+  { emoji: "🔧", text: "عندي مشكلة في المنصة" },
+];
+
 const AIChatAssistant = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pulse, setPulse] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Stop pulsing after first open
+  useEffect(() => {
+    if (open) setPulse(false);
+  }, [open]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  const sendMsg = useCallback(async (text?: string) => {
+    const msg = (text || input).trim();
+    if (!msg || loading) return;
     setInput("");
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: msg };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
@@ -128,15 +142,20 @@ const AIChatAssistant = () => {
       <AnimatePresence>
         {!open && (
           <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            whileHover={{ scale: 1.1 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            transition={{ type: "spring", damping: 15, stiffness: 200 }}
+            whileHover={{ scale: 1.15, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-20 left-4 z-[100] w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg flex items-center justify-center"
+            className="fixed bottom-20 left-4 z-[100] w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-gold text-primary-foreground shadow-xl flex items-center justify-center group"
           >
-            <Sparkles className="w-6 h-6" />
+            {/* Pulse ring */}
+            {pulse && (
+              <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+            )}
+            <GraduationCap className="w-7 h-7 drop-shadow-sm" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -144,105 +163,169 @@ const AIChatAssistant = () => {
       {/* Chat Panel */}
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-4 left-4 right-4 z-[100] sm:left-4 sm:right-auto sm:w-[380px] h-[70vh] max-h-[600px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-border bg-gradient-to-l from-primary/10 to-transparent">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-primary" />
+          <>
+            {/* Mobile backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[99] bg-black/30 backdrop-blur-sm sm:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 80, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 80, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[100] sm:bottom-4 sm:left-4 sm:right-auto sm:w-[400px] h-[85vh] sm:h-[75vh] max-h-[700px] bg-card border border-border sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-l from-primary/5 via-gold/5 to-transparent">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-gold/20 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold flex items-center gap-1">
+                      مساعد المنصة
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">مدعوم بالذكاء الاصطناعي • جاهز يساعدك ✨</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold">مساعد المنصة</h3>
-                  <p className="text-[10px] text-muted-foreground">مدعوم بالذكاء الاصطناعي ✨</p>
+                <div className="flex items-center gap-1">
+                  {messages.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setMessages([])}
+                      title="مسح المحادثة"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {messages.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-8 h-8 text-primary" />
-                  </div>
-                  <h4 className="font-bold text-sm mb-1">أهلاً بيك! 👋</h4>
-                  <p className="text-xs text-muted-foreground">
-                    أنا مساعد المنصة، اسألني أي حاجة عن الدروس أو المنصة
-                  </p>
-                  <div className="mt-4 space-y-2">
-                    {["لخصلي آخر درس شفته", "إزاي أشترك في المنصة؟", "عندي مشكلة في الدخول"].map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => { setInput(q); }}
-                        className="block w-full text-xs bg-muted rounded-lg px-3 py-2 text-right hover:bg-muted/80 transition-colors"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-center py-4"
                   >
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1 text-sm">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p>{m.content}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {loading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-xl px-4 py-2">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-gold/10 flex items-center justify-center mx-auto mb-4 rotate-3">
+                      <GraduationCap className="w-10 h-10 text-primary" />
                     </div>
-                  </div>
-                </div>
-              )}
-              <div ref={endRef} />
-            </div>
+                    <h4 className="font-bold text-base mb-1">أهلاً بيك! 👋</h4>
+                    <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+                      أنا مساعدك الذكي في المنصة
+                      <br />
+                      اسألني عن أي حاجة وأنا هساعدك 🚀
+                    </p>
+                    <div className="space-y-2">
+                      {quickQuestions.map((q) => (
+                        <motion.button
+                          key={q.text}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => sendMsg(q.text)}
+                          className="flex items-center gap-2 w-full text-xs bg-muted/60 hover:bg-muted rounded-xl px-4 py-2.5 text-right transition-colors border border-transparent hover:border-border"
+                        >
+                          <span className="text-base">{q.emoji}</span>
+                          <span>{q.text}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
 
-            {/* Input */}
-            <div className="p-3 border-t border-border flex gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="اكتب سؤالك هنا..."
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[40px] max-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-                }}
-              />
-              <Button onClick={send} disabled={loading || !input.trim()} size="icon" className="h-10 w-10 flex-shrink-0">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </motion.div>
+                {messages.map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} gap-2`}
+                  >
+                    {m.role === "assistant" && (
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/15 to-gold/15 flex items-center justify-center flex-shrink-0 mt-1">
+                        <Bot className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        m.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted text-foreground rounded-bl-md"
+                      }`}
+                    >
+                      {m.role === "assistant" ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm text-sm">
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p>{m.content}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {loading && messages[messages.length - 1]?.role !== "assistant" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-start gap-2"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/15 to-gold/15 flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                      <div className="flex gap-1.5">
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                <div ref={endRef} />
+              </div>
+
+              {/* Input */}
+              <div className="p-3 border-t border-border bg-card/80 backdrop-blur-sm">
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="اكتب سؤالك هنا... 💬"
+                    rows={1}
+                    className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm min-h-[44px] max-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+                    }}
+                  />
+                  <Button
+                    onClick={() => sendMsg()}
+                    disabled={loading || !input.trim()}
+                    size="icon"
+                    className="h-11 w-11 rounded-xl flex-shrink-0 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-[9px] text-muted-foreground/50 text-center mt-1.5">
+                  مساعد المنصة بيساعدك في الدروس والمنصة • لا يعطي إجابات الامتحانات
+                </p>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
