@@ -7,6 +7,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Detect if user is asking for a video summary
+function detectSummaryRequest(messages: any[]): boolean {
+  const lastMsg = messages[messages.length - 1];
+  if (!lastMsg || lastMsg.role !== "user") return false;
+  const text = lastMsg.content.toLowerCase();
+  const keywords = ["لخص", "تلخيص", "ملخص", "لخصلي", "لخصهولي", "لخصه", "summary", "summarize", "لخصلى", "لخصهولى"];
+  return keywords.some(k => text.includes(k));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -34,9 +43,8 @@ serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { messages, action, video_id } = await req.json();
 
-    // Handle video summary request
+    // Handle direct video summary request (from client-side trigger)
     if (action === "summarize_video" && video_id) {
-      // Check if student watched the video
       const { data: viewCheck } = await adminClient
         .from("video_views")
         .select("id")
@@ -50,7 +58,6 @@ serve(async (req) => {
         });
       }
 
-      // Call summarize-video function internally
       const sumResp = await fetch(`${SUPABASE_URL}/functions/v1/summarize-video`, {
         method: "POST",
         headers: {
@@ -95,20 +102,104 @@ serve(async (req) => {
       .eq("grade", profile?.grade || "")
       .order("created_at", { ascending: false });
 
+    // === SERVER-SIDE SUMMARY DETECTION ===
+    // If user asks for summary, try to generate it BEFORE the AI responds
+    const isSummaryRequest = detectSummaryRequest(messages || []);
+    let freshSummaryVideoId: string | null = null;
+    let freshSummary: string | null = null;
+
+    if (isSummaryRequest && allGradeVideos && allGradeVideos.length > 0) {
+      const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
+      
+      // Find which video the user wants summarized
+      // Check if they mention a specific video title
+      let targetVideo: any = null;
+      
+      for (const v of allGradeVideos) {
+        if (lastUserMsg.includes(v.title.toLowerCase()) || lastUserMsg.includes(v.title)) {
+          targetVideo = v;
+          break;
+        }
+      }
+      
+      // If no specific video mentioned, check for "آخر درس" (last lesson) or just pick the last watched
+      if (!targetVideo) {
+        if (lastUserMsg.includes("آخر") || lastUserMsg.includes("اخر")) {
+          // Find the last watched video
+          const { data: lastView } = await adminClient
+            .from("video_views")
+            .select("video_id")
+            .eq("user_id", user.id)
+            .order("viewed_at", { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (lastView) {
+            targetVideo = allGradeVideos.find((v: any) => v.id === lastView.video_id);
+          }
+        } else {
+          // Try to match any watched video
+          const watchedVideos = allGradeVideos.filter((v: any) => watchedIds.includes(v.id));
+          if (watchedVideos.length === 1) {
+            targetVideo = watchedVideos[0];
+          } else if (watchedVideos.length > 0) {
+            // Pick the most recently watched
+            const { data: lastView } = await adminClient
+              .from("video_views")
+              .select("video_id")
+              .eq("user_id", user.id)
+              .order("viewed_at", { ascending: false })
+              .limit(1)
+              .single();
+            if (lastView) {
+              targetVideo = watchedVideos.find((v: any) => v.id === lastView.video_id);
+            }
+          }
+        }
+      }
+
+      // If we found a target video that's been watched and has no cached summary, generate one now
+      if (targetVideo && watchedIds.includes(targetVideo.id) && !summariesMap.has(targetVideo.id)) {
+        console.log("Auto-triggering summarization for video:", targetVideo.title, targetVideo.id);
+        try {
+          const sumResp = await fetch(`${SUPABASE_URL}/functions/v1/summarize-video`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+            },
+            body: JSON.stringify({ video_id: targetVideo.id }),
+          });
+
+          if (sumResp.ok) {
+            const sumData = await sumResp.json();
+            if (sumData.summary) {
+              freshSummaryVideoId = targetVideo.id;
+              freshSummary = sumData.summary;
+              summariesMap.set(targetVideo.id, sumData.summary);
+              console.log("Summary generated successfully for:", targetVideo.title);
+            }
+          } else {
+            console.error("Summary generation failed:", sumResp.status, await sumResp.text());
+          }
+        } catch (sumErr) {
+          console.error("Summary generation error:", sumErr);
+        }
+      }
+    }
+
     // Build video context with watched status AND summaries
     let videoContext = "";
     if (allGradeVideos && allGradeVideos.length > 0) {
       videoContext = allGradeVideos.map((v: any) => {
         const watched = watchedIds.includes(v.id);
         const summary = summariesMap.get(v.id);
-        let entry = `- "${v.title}" (${v.subject}) [ID: ${v.id}] [${watched ? "✅ شاهده" : "❌ لم يشاهده"}]`;
+        let entry = `- "${v.title}" (${v.subject}) [ID: ${v.id}] [${watched ? "✅ تمت المشاهدة" : "❌ لم يشاهده"}]`;
         if (summary) {
-          entry += `\n  📝 ملخص الفيديو:\n${summary.split('\n').map((l: string) => `  ${l}`).join('\n')}`;
+          entry += `\n  📝 ملخص الفيديو المفصل:\n${summary.split('\n').map((l: string) => `    ${l}`).join('\n')}`;
         } else if (v.description) {
-          entry += `\n  وصف: ${v.description}`;
-        }
-        if (!summary && watched) {
-          entry += `\n  ⚡ يمكن طلب تلخيص ذكي لهذا الفيديو`;
+          entry += `\n  وصف مختصر: ${v.description}`;
         }
         return entry;
       }).join("\n\n");
@@ -136,8 +227,14 @@ serve(async (req) => {
     const firstName = studentName.split(' ')[0];
     const isSubscribed = profile?.is_subscribed || false;
 
+    // Add fresh summary note to context if we just generated one
+    let freshSummaryNote = "";
+    if (freshSummary && freshSummaryVideoId) {
+      const videoTitle = allGradeVideos?.find((v: any) => v.id === freshSummaryVideoId)?.title || "";
+      freshSummaryNote = `\n\n🔔 تنبيه: تم للتو تلخيص فيديو "${videoTitle}" بنجاح. الملخص موجود أعلاه في قائمة الفيديوهات. اعرضه للطالب بشكل منظم وجميل.`;
+    }
+
     const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
-أنت خبير بكل تفاصيل المنصة وبتساعد الطلاب وأولياء الأمور. أنت بتقدر تشوف الفيديوهات وتلخصها كمان!
 
 # معلومات الطالب:
 - الاسم: ${studentName}
@@ -177,6 +274,7 @@ ${pointsHistory}
 
 # الفيديوهات المتاحة (مع الملخصات):
 ${videoContext || "لا توجد فيديوهات"}
+${freshSummaryNote}
 
 # الواجبات:
 ${homeworkList}
@@ -197,27 +295,21 @@ ${scheduleList}
 - إيموجي باعتدال
 
 ## تلخيص الدروس (مهم جداً):
-- لو طلب تلخيص درس وعنده ملخص جاهز (📝): اعرض الملخص بالكامل مرتب ومنظم
-- لو شاف الفيديو بس مفيش ملخص (⚡): قوله "ثواني بس يا ${firstName}، خليني أشوف الفيديو وألخصهولك..." وأضف في ردك [SUMMARIZE:video_id] (استبدل video_id بال ID الفعلي)
+- لو فيه ملخص للفيديو (📝): اعرضه بالكامل مرتب ومنظم بعناوين فرعية
+- لو الطالب شاف الفيديو بس مفيش ملخص: قوله "للأسف معرفتش ألخص الفيديو ده دلوقتي، حاول تاني بعدين"
 - لو مشافش الفيديو (❌): قول "لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي ألخصهولك 😊"
-- لو سأل "لخصلي آخر درس شفته": ابحث في قائمة الفيديوهات عن آخر فيديو مشاهد واعرض ملخصه
-- التلخيص يكون من محتوى الفيديو الفعلي فقط
+- لو سأل "لخصلي آخر درس شفته": ابحث عن آخر فيديو مشاهد واعرض ملخصه
+- التلخيص بيكون من محتوى الفيديو الفعلي (شرح المدرس) مش من العنوان
 
 ## الأسئلة والإجابات:
-- اجب بالتفصيل على أي سؤال عن المنصة (نقاط، مستويات، اشتراك، واجبات، جدول...)
+- اجب بالتفصيل على أي سؤال عن المنصة
 - لو سأل عن نقاطه/ترتيبه: اعرض الأرقام مع تشجيع
-- لو سأل إزاي يكسب نقاط: اشرح الطرق الأربعة بالتفصيل
-- لو سأل عن مستواه: احسبه من النقاط
+- لو سأل إزاي يكسب نقاط: اشرح الطرق بالتفصيل
 
 ## ممنوعات:
-- ❌ لا تعطي إجابات امتحانات أو واجبات أبداً
-- لو طلب إجابة: "مينفعش أديك الإجابة يا ${firstName} 😄 بس ممكن أشرحلك المفهوم وانت تحلها 💪"
-- ✅ ممكن تشرح المفهوم/القاعدة بدون إجابة مباشرة
-
-## المساعدة التقنية:
-- مشاكل دخول: تأكد من الرقم والباسورد، استخدم "نسيت كلمة المرور"
-- اشتراك: روح صفحة الاشتراك
-- مشاكل تانية: ابعت للإدارة من "شكاوي واقتراحات"`;
+- ❌ لا تعطي إجابات امتحانات أو واجبات
+- لو طلب إجابة: "مينفعش أديك الإجابة يا ${firstName} 😄 بس ممكن أشرحلك المفهوم 💪"
+- ✅ ممكن تشرح المفهوم بدون إجابة مباشرة`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
