@@ -972,6 +972,30 @@ export type Database = {
           },
         ]
       }
+      video_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          summary: string
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          summary: string
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          summary?: string
+          updated_at?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       video_views: {
         Row: {
           id: string
