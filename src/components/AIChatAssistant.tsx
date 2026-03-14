@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, X, Send, Sparkles, Trash2, GraduationCap } from "lucide-react";
+import { Bot, X, Send, Sparkles, Trash2, GraduationCap, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
@@ -67,11 +67,29 @@ async function streamChat({
   onDone();
 }
 
+async function requestVideoSummary(videoId: string): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ action: "summarize_video", video_id: videoId }),
+  });
+
+  const data = await resp.json();
+  if (!resp.ok) return null;
+  return data.summary || null;
+}
+
 const quickQuestions = [
   { emoji: "📚", text: "لخصلي آخر درس شفته" },
   { emoji: "💳", text: "إزاي أشترك في المنصة؟" },
   { emoji: "🏆", text: "إزاي أجمع نقاط أكتر؟" },
-  { emoji: "📝", text: "عندي واجب مش عارف أحله" },
+  { emoji: "📊", text: "كام نقطتي وترتيبي كام؟" },
   { emoji: "🔧", text: "عندي مشكلة في المنصة" },
 ];
 
@@ -80,11 +98,11 @@ const AIChatAssistant = () => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [pulse, setPulse] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Stop pulsing after first open
   useEffect(() => {
     if (open) setPulse(false);
   }, [open]);
@@ -97,9 +115,42 @@ const AIChatAssistant = () => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
+  // Process AI response for [SUMMARIZE:video_id] tags
+  const processSummarizeTag = useCallback(async (content: string) => {
+    const match = content.match(/\[SUMMARIZE:([a-f0-9-]+)\]/i);
+    if (!match) return;
+
+    const videoId = match[1];
+    setSummarizing(true);
+
+    // Remove the tag from the message
+    setMessages((prev) => prev.map((m, i) =>
+      i === prev.length - 1 && m.role === "assistant"
+        ? { ...m, content: m.content.replace(/\[SUMMARIZE:[a-f0-9-]+\]/i, "⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت").trim() }
+        : m
+    ));
+
+    const summary = await requestVideoSummary(videoId);
+    setSummarizing(false);
+
+    if (summary) {
+      setMessages((prev) => prev.map((m, i) =>
+        i === prev.length - 1 && m.role === "assistant"
+          ? { ...m, content: m.content.replace("⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت", `✅ تم تلخيص الفيديو:\n\n${summary}`).trim() }
+          : m
+      ));
+    } else {
+      setMessages((prev) => prev.map((m, i) =>
+        i === prev.length - 1 && m.role === "assistant"
+          ? { ...m, content: m.content.replace("⏳ جاري تحليل الفيديو وتلخيصه... ده ممكن ياخد شوية وقت", "❌ معرفتش ألخص الفيديو ده دلوقتي، حاول تاني بعدين").trim() }
+          : m
+      ));
+    }
+  }, []);
+
   const sendMsg = useCallback(async (text?: string) => {
     const msg = (text || input).trim();
-    if (!msg || loading) return;
+    if (!msg || loading || summarizing) return;
     setInput("");
 
     const userMsg: Msg = { role: "user", content: msg };
@@ -125,7 +176,13 @@ const AIChatAssistant = () => {
     await streamChat({
       messages: allMsgs,
       onDelta: upsert,
-      onDone: () => setLoading(false),
+      onDone: () => {
+        setLoading(false);
+        // Check if the final message contains a summarize tag
+        if (assistantSoFar.includes("[SUMMARIZE:")) {
+          processSummarizeTag(assistantSoFar);
+        }
+      },
       onError: (e) => {
         setMessages((prev) => [
           ...prev,
@@ -134,7 +191,7 @@ const AIChatAssistant = () => {
         setLoading(false);
       },
     });
-  }, [input, loading, messages]);
+  }, [input, loading, summarizing, messages, processSummarizeTag]);
 
   return (
     <>
@@ -151,7 +208,6 @@ const AIChatAssistant = () => {
             onClick={() => setOpen(true)}
             className="fixed bottom-20 left-4 z-[100] w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-gold text-primary-foreground shadow-xl flex items-center justify-center group"
           >
-            {/* Pulse ring */}
             {pulse && (
               <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
             )}
@@ -164,7 +220,6 @@ const AIChatAssistant = () => {
       <AnimatePresence>
         {open && (
           <>
-            {/* Mobile backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -190,7 +245,9 @@ const AIChatAssistant = () => {
                       مساعد المنصة
                       <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                     </h3>
-                    <p className="text-[10px] text-muted-foreground">مدعوم بالذكاء الاصطناعي • جاهز يساعدك ✨</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {summarizing ? "⏳ جاري تحليل الفيديو..." : "مدعوم بالذكاء الاصطناعي • يقدر يلخص الفيديوهات ✨"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -227,7 +284,7 @@ const AIChatAssistant = () => {
                     <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
                       أنا مساعدك الذكي في المنصة
                       <br />
-                      اسألني عن أي حاجة وأنا هساعدك 🚀
+                      بقدر ألخصلك الفيديوهات اللي شفتها 📹 واساعدك في أي حاجة 🚀
                     </p>
                     <div className="space-y-2">
                       {quickQuestions.map((q) => (
@@ -276,7 +333,7 @@ const AIChatAssistant = () => {
                   </motion.div>
                 ))}
 
-                {loading && messages[messages.length - 1]?.role !== "assistant" && (
+                {(loading || summarizing) && messages[messages.length - 1]?.role !== "assistant" && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -304,24 +361,25 @@ const AIChatAssistant = () => {
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="اكتب سؤالك هنا... 💬"
+                    placeholder={summarizing ? "جاري تحليل الفيديو..." : "اكتب سؤالك هنا... 💬"}
                     rows={1}
-                    className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm min-h-[44px] max-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                    disabled={summarizing}
+                    className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm min-h-[44px] max-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all disabled:opacity-50"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
                     }}
                   />
                   <Button
                     onClick={() => sendMsg()}
-                    disabled={loading || !input.trim()}
+                    disabled={loading || summarizing || !input.trim()}
                     size="icon"
                     className="h-11 w-11 rounded-xl flex-shrink-0 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
                   >
-                    <Send className="w-4 h-4" />
+                    {summarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
                 <p className="text-[9px] text-muted-foreground/50 text-center mt-1.5">
-                  مساعد المنصة بيساعدك في الدروس والمنصة • لا يعطي إجابات الامتحانات
+                  يقدر يلخص الفيديوهات اللي شفتها 📹 • لا يعطي إجابات الامتحانات
                 </p>
               </div>
             </motion.div>
