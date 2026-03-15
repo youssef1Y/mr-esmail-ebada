@@ -173,9 +173,6 @@ serve(async (req) => {
     const points = pointsRes.data || [];
     const keys = keysRes.data;
     const summariesMap = new Map((summariesRes.data || []).map((s: any) => [s.video_id, s.summary]));
-    const studentName = profile?.full_name || "الطالب";
-    const firstName = studentName.split(' ')[0];
-    const isSubscribed = profile?.is_subscribed || false;
 
     // Fetch ALL videos for this grade
     const { data: allGradeVideos } = await adminClient
