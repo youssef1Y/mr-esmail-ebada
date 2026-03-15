@@ -474,6 +474,14 @@ serve(async (req) => {
           homeworkResults: homeworkResults2,
           rank: { rank: rankData.rank || 0, total_students: rankData.total_students || 0, total_points: rankData.total_points || totalPoints },
           totalPoints,
+          weeklyProgress,
+          classComparison: {
+            studentExamAvg,
+            classExamAvg: classAvgExam,
+            studentHwAvg,
+            classHwAvg: classAvgHw,
+            videoWatchPercent,
+          },
           notifications: notificationsRes.data || [],
           parentMessages: parentNotificationsRes.data || [],
         });
