@@ -188,21 +188,33 @@ serve(async (req) => {
       });
     }
 
-    const analysisPrompt = `أنت خبير تعليمي. مطلوب تحليل الفيديو نفسه ثم تلخيصه.
+    const analysisPrompt = `أنت محلل محتوى تعليمي. المطلوب تلخيص ما يقال ويُشرح داخل الفيديو نفسه فقط.
 
-معلومات الفيديو:
-- العنوان: ${video.title}
-- المادة: ${video.subject}
-- الصف: ${video.grade}
+قواعد إلزامية صارمة:
+1) ممنوع الاعتماد على عنوان الفيديو أو أي معرفة عامة خارج الفيديو.
+2) لو لم تستطع تحليل الفيديو الفعلي (صوت/صورة)، اكتب فقط: STATUS:NO_VIDEO
+3) لو حللت الفيديو فعلاً، ابدأ الرد بـ STATUS:OK ثم قدّم:
+   - عناوين فرعية واضحة
+   - نقاط مرتبة للمفاهيم الأساسية
+   - أمثلة أو خطوات شرح وردت داخل الفيديو
+4) الرد بالعربية.`;
 
-قواعد إلزامية:
-1) لا تعتمد على العنوان فقط إطلاقاً.
-2) لو لم تستطع مشاهدة محتوى الفيديو الفعلي، اكتب فقط: STATUS:NO_VIDEO
-3) لو شاهدت الفيديو فعلاً، ابدأ الرد بـ STATUS:OK ثم اكتب ملخصاً تفصيلياً مرتباً بعناوين فرعية ونقاط.
-4) اذكر المفاهيم، الأمثلة، خطوات الشرح، وأي قواعد/تعريفات وردت داخل الفيديو.
-5) الرد بالعربية.`;
+    const persistSummary = async (summary: string) => {
+      await adminClient.from("video_summaries").upsert(
+        {
+          video_id: video.id,
+          summary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "video_id" }
+      );
 
-    // Attempt 1: direct signed URL as video_url
+      return new Response(JSON.stringify({ summary, cached: false }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    };
+
+    // Attempt 1: signed URL
     const attempt1 = await callGatewayWithVideo(
       LOVABLE_API_KEY,
       analysisPrompt,
@@ -210,23 +222,12 @@ serve(async (req) => {
     );
 
     if (attempt1.ok && attempt1.summary) {
-      await adminClient.from("video_summaries").upsert(
-        {
-          video_id: video.id,
-          summary: attempt1.summary,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "video_id" }
-      );
-
-      return new Response(JSON.stringify({ summary: attempt1.summary, cached: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return await persistSummary(attempt1.summary);
     }
 
     console.error("Video URL attempt failed:", attempt1.error);
 
-    // Attempt 2: data URL (base64), memory-safe conversion
+    // Fetch bytes once for fallback attempts
     const videoResp = await fetch(signedData.signedUrl);
     if (!videoResp.ok) {
       return new Response(JSON.stringify({ error: "تعذر تحميل الفيديو للتحليل" }), {
@@ -235,6 +236,7 @@ serve(async (req) => {
       });
     }
 
+    const contentType = videoResp.headers.get("content-type")?.split(";")[0] || "video/mp4";
     const videoBuffer = await videoResp.arrayBuffer();
     const videoBytes = new Uint8Array(videoBuffer);
     const videoSizeMB = videoBytes.byteLength / (1024 * 1024);
@@ -250,30 +252,38 @@ serve(async (req) => {
     }
 
     const base64 = uint8ToBase64(videoBytes);
-    const dataUrl = `data:video/mp4;base64,${base64}`;
 
+    // Attempt 2: Gemini-style inline_data fallback
     const attempt2 = await callGatewayWithVideo(
+      LOVABLE_API_KEY,
+      analysisPrompt,
+      {
+        inline_data: {
+          mime_type: contentType,
+          data: base64,
+        },
+      }
+    );
+
+    if (attempt2.ok && attempt2.summary) {
+      return await persistSummary(attempt2.summary);
+    }
+
+    console.error("inline_data attempt failed:", attempt2.error);
+
+    // Attempt 3: data URL fallback
+    const dataUrl = `data:${contentType};base64,${base64}`;
+    const attempt3 = await callGatewayWithVideo(
       LOVABLE_API_KEY,
       analysisPrompt,
       { type: "video_url", video_url: { url: dataUrl } }
     );
 
-    if (attempt2.ok && attempt2.summary) {
-      await adminClient.from("video_summaries").upsert(
-        {
-          video_id: video.id,
-          summary: attempt2.summary,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "video_id" }
-      );
-
-      return new Response(JSON.stringify({ summary: attempt2.summary, cached: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (attempt3.ok && attempt3.summary) {
+      return await persistSummary(attempt3.summary);
     }
 
-    console.error("Data URL attempt failed:", attempt2.error);
+    console.error("Data URL attempt failed:", attempt3.error);
 
     return new Response(
       JSON.stringify({ error: "تعذر تلخيص محتوى الفيديو الفعلي حالياً، حاول مرة تانية بعد قليل" }),

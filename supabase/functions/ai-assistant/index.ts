@@ -16,6 +16,83 @@ function detectSummaryRequest(messages: any[]): boolean {
   return keywords.some(k => text.includes(k));
 }
 
+function normalizeArabicText(text: string): string {
+  return (text || "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveSummaryVideoTarget(
+  messageText: string,
+  allVideos: any[],
+  watchedIds: string[],
+  lastWatchedVideoId: string | null
+) {
+  if (!allVideos || allVideos.length === 0) return null;
+
+  const normalizedMsg = normalizeArabicText(messageText);
+  const watchedSet = new Set(watchedIds);
+  const watchedVideos = allVideos.filter((v: any) => watchedSet.has(v.id));
+
+  const scoreVideo = (video: any) => {
+    const titleNorm = normalizeArabicText(video.title || "");
+    if (!titleNorm) return 0;
+    if (normalizedMsg.includes(titleNorm)) return 4;
+
+    const titleWords = titleNorm.split(" ").filter((w: string) => w.length > 2);
+    let hitCount = 0;
+    for (const w of titleWords) {
+      if (normalizedMsg.includes(w)) hitCount += 1;
+    }
+    if (hitCount >= 2) return 3;
+    if (hitCount === 1) return 2;
+    return 0;
+  };
+
+  const watchedMatches = watchedVideos
+    .map((v: any) => ({ v, score: scoreVideo(v) }))
+    .filter((x: any) => x.score > 0)
+    .sort((a: any, b: any) => b.score - a.score);
+
+  if (watchedMatches.length > 0) return watchedMatches[0].v;
+
+  const allMatches = allVideos
+    .map((v: any) => ({ v, score: scoreVideo(v) }))
+    .filter((x: any) => x.score > 0)
+    .sort((a: any, b: any) => b.score - a.score);
+
+  if (allMatches.length > 0) return allMatches[0].v;
+
+  if (lastWatchedVideoId) {
+    const lastWatched = allVideos.find((v: any) => v.id === lastWatchedVideoId);
+    if (lastWatched) return lastWatched;
+  }
+
+  return watchedVideos[0] || allVideos[0] || null;
+}
+
+function createSseTextResponse(text: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`)
+      );
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -78,7 +155,7 @@ serve(async (req) => {
     // Regular chat flow - fetch all data in parallel
     const [profileRes, viewsRes, rankRes, homeworkRes, examRes, scheduleRes, pointsRes, keysRes, summariesRes] = await Promise.all([
       adminClient.from("profiles").select("full_name, grade, is_subscribed, madhab, school, governorate, parent_phone, student_phone, subscription_expires_at").eq("user_id", user.id).single(),
-      adminClient.from("video_views").select("video_id").eq("user_id", user.id),
+      adminClient.from("video_views").select("video_id, viewed_at").eq("user_id", user.id).order("viewed_at", { ascending: false }),
       adminClient.rpc("get_student_rank", { p_user_id: user.id }),
       adminClient.from("homework").select("title, subject, due_date, description").order("created_at", { ascending: false }).limit(10),
       adminClient.from("exam_attempts").select("score, total, submitted_at, exam_id, exams(title, subject)").eq("user_id", user.id).order("submitted_at", { ascending: false }).limit(10),
@@ -89,11 +166,16 @@ serve(async (req) => {
     ]);
 
     const profile = profileRes.data;
-    const watchedIds = (viewsRes.data || []).map((v: any) => v.video_id);
+    const views = viewsRes.data || [];
+    const watchedIds = Array.from(new Set(views.map((v: any) => v.video_id)));
+    const lastWatchedVideoId = views[0]?.video_id ?? null;
     const rank = rankRes.data?.[0] || { rank: 0, total_points: 0, total_students: 0 };
     const points = pointsRes.data || [];
     const keys = keysRes.data;
     const summariesMap = new Map((summariesRes.data || []).map((s: any) => [s.video_id, s.summary]));
+    const studentName = profile?.full_name || "الطالب";
+    const firstName = studentName.split(' ')[0];
+    const isSubscribed = profile?.is_subscribed || false;
 
     // Fetch ALL videos for this grade
     const { data: allGradeVideos } = await adminClient
@@ -102,65 +184,31 @@ serve(async (req) => {
       .eq("grade", profile?.grade || "")
       .order("created_at", { ascending: false });
 
-    // === SERVER-SIDE SUMMARY DETECTION ===
-    // If user asks for summary, try to generate it BEFORE the AI responds
+    // === SERVER-SIDE SUMMARY DETECTION (deterministic) ===
     const isSummaryRequest = detectSummaryRequest(messages || []);
-    let freshSummaryVideoId: string | null = null;
-    let freshSummary: string | null = null;
 
-    if (isSummaryRequest && allGradeVideos && allGradeVideos.length > 0) {
-      const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
-      
-      // Find which video the user wants summarized
-      // Check if they mention a specific video title
-      let targetVideo: any = null;
-      
-      for (const v of allGradeVideos) {
-        if (lastUserMsg.includes(v.title.toLowerCase()) || lastUserMsg.includes(v.title)) {
-          targetVideo = v;
-          break;
-        }
-      }
-      
-      // If no specific video mentioned, check for "آخر درس" (last lesson) or just pick the last watched
+    if (isSummaryRequest) {
+      const lastUserMsg = Array.isArray(messages) && messages.length > 0
+        ? messages[messages.length - 1].content || ""
+        : "";
+      const targetVideo = resolveSummaryVideoTarget(
+        lastUserMsg,
+        allGradeVideos || [],
+        watchedIds,
+        lastWatchedVideoId
+      );
+
       if (!targetVideo) {
-        if (lastUserMsg.includes("آخر") || lastUserMsg.includes("اخر")) {
-          // Find the last watched video
-          const { data: lastView } = await adminClient
-            .from("video_views")
-            .select("video_id")
-            .eq("user_id", user.id)
-            .order("viewed_at", { ascending: false })
-            .limit(1)
-            .single();
-          
-          if (lastView) {
-            targetVideo = allGradeVideos.find((v: any) => v.id === lastView.video_id);
-          }
-        } else {
-          // Try to match any watched video
-          const watchedVideos = allGradeVideos.filter((v: any) => watchedIds.includes(v.id));
-          if (watchedVideos.length === 1) {
-            targetVideo = watchedVideos[0];
-          } else if (watchedVideos.length > 0) {
-            // Pick the most recently watched
-            const { data: lastView } = await adminClient
-              .from("video_views")
-              .select("video_id")
-              .eq("user_id", user.id)
-              .order("viewed_at", { ascending: false })
-              .limit(1)
-              .single();
-            if (lastView) {
-              targetVideo = watchedVideos.find((v: any) => v.id === lastView.video_id);
-            }
-          }
-        }
+        return createSseTextResponse(`يا ${firstName} 😊 اكتب اسم الدرس اللي عايز تلخيصه أو قول: لخصلي آخر درس شفته.`);
       }
 
-      // If we found a target video that's been watched and has no cached summary, generate one now
-      if (targetVideo && watchedIds.includes(targetVideo.id) && !summariesMap.has(targetVideo.id)) {
-        console.log("Auto-triggering summarization for video:", targetVideo.title, targetVideo.id);
+      if (!watchedIds.includes(targetVideo.id)) {
+        return createSseTextResponse(`لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي ألخصهولك 😊`);
+      }
+
+      let targetSummary = summariesMap.get(targetVideo.id) || null;
+
+      if (!targetSummary) {
         try {
           const sumResp = await fetch(`${SUPABASE_URL}/functions/v1/summarize-video`, {
             method: "POST",
@@ -174,11 +222,9 @@ serve(async (req) => {
 
           if (sumResp.ok) {
             const sumData = await sumResp.json();
-            if (sumData.summary) {
-              freshSummaryVideoId = targetVideo.id;
-              freshSummary = sumData.summary;
-              summariesMap.set(targetVideo.id, sumData.summary);
-              console.log("Summary generated successfully for:", targetVideo.title);
+            if (sumData?.summary) {
+              targetSummary = sumData.summary;
+              summariesMap.set(targetVideo.id, targetSummary);
             }
           } else {
             console.error("Summary generation failed:", sumResp.status, await sumResp.text());
@@ -187,6 +233,14 @@ serve(async (req) => {
           console.error("Summary generation error:", sumErr);
         }
       }
+
+      if (!targetSummary) {
+        return createSseTextResponse(`للأسف معرفتش ألخص الفيديو ده دلوقتي يا ${firstName}، جرّب تاني بعد شوية.`);
+      }
+
+      return createSseTextResponse(
+        `أكيد يا ${firstName} 💙\n\n**ملخص فيديو "${targetVideo.title}"**\n\n${targetSummary}\n\nلو حابب، أقدر أحوّل الملخص لأسئلة مراجعة سريعة.`
+      );
     }
 
     // Build video context with watched status AND summaries
@@ -223,16 +277,7 @@ serve(async (req) => {
       `- ${p.points > 0 ? "+" : ""}${p.points} نقطة: ${p.reason} (${new Date(p.created_at).toLocaleDateString("ar-EG")})`
     ).join("\n") || "لا توجد نقاط بعد";
 
-    const studentName = profile?.full_name || "الطالب";
-    const firstName = studentName.split(' ')[0];
-    const isSubscribed = profile?.is_subscribed || false;
 
-    // Add fresh summary note to context if we just generated one
-    let freshSummaryNote = "";
-    if (freshSummary && freshSummaryVideoId) {
-      const videoTitle = allGradeVideos?.find((v: any) => v.id === freshSummaryVideoId)?.title || "";
-      freshSummaryNote = `\n\n🔔 تنبيه: تم للتو تلخيص فيديو "${videoTitle}" بنجاح. الملخص موجود أعلاه في قائمة الفيديوهات. اعرضه للطالب بشكل منظم وجميل.`;
-    }
 
     const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
 
@@ -274,7 +319,7 @@ ${pointsHistory}
 
 # الفيديوهات المتاحة (مع الملخصات):
 ${videoContext || "لا توجد فيديوهات"}
-${freshSummaryNote}
+
 
 # الواجبات:
 ${homeworkList}
