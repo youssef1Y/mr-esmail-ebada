@@ -317,7 +317,7 @@ ${pointsHistory}
 
 # الفيديوهات المتاحة (مع الملخصات):
 ${videoContext || "لا توجد فيديوهات"}
-${freshSummaryNote}
+
 
 # الواجبات:
 ${homeworkList}
