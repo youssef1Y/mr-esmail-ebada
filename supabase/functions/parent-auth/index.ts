@@ -288,9 +288,18 @@ serve(async (req) => {
         const userId = student.user_id;
         const grade = student.grade;
 
+        // Calculate week boundaries for weekly data
+        const now = new Date();
+        const weekBoundaries: string[] = [];
+        for (let i = 0; i < 8; i++) {
+          const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+          weekBoundaries.push(d.toISOString());
+        }
+
         const [
           videosRes, viewsRes, homeworkRes, hwSubsRes, examsRes, attemptsRes,
-          pointsRes, rankRes, notificationsRes, parentNotificationsRes
+          pointsRes, rankRes, notificationsRes, parentNotificationsRes,
+          allViewsRes, classAttemptsRes
         ] = await Promise.all([
           supabaseAdmin.from("videos").select("id, subject, title").eq("grade", grade),
           supabaseAdmin.from("video_views").select("video_id").eq("user_id", userId),
@@ -302,6 +311,10 @@ serve(async (req) => {
           supabaseAdmin.rpc("get_student_rank", { p_user_id: userId }),
           supabaseAdmin.from("student_notifications").select("title, body, created_at, is_read, type").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
           supabaseAdmin.from("parent_notifications").select("id, title, body, created_at, is_read").eq("parent_phone", parentPhone).eq("student_user_id", userId).order("created_at", { ascending: false }).limit(30),
+          // All views with timestamps for weekly chart
+          supabaseAdmin.from("video_views").select("video_id, viewed_at").eq("user_id", userId).gte("viewed_at", weekBoundaries[7]).order("viewed_at", { ascending: true }),
+          // Class average: all exam attempts for this grade (last 50 students)
+          supabaseAdmin.from("exam_attempts").select("user_id, score, total, exam_id").in("exam_id", []),
         ]);
 
         const videos = videosRes.data || [];
