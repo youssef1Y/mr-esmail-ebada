@@ -3,36 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-async function sendSMS(phone: string, message: string) {
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
-  const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER")!;
-
-  let intlPhone = phone;
-  if (phone.startsWith("0")) intlPhone = "+2" + phone;
-  else if (!phone.startsWith("+")) intlPhone = "+" + phone;
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const body = new URLSearchParams({ To: intlPhone, From: fromPhone, Body: message });
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + btoa(`${accountSid}:${authToken}`),
-    },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Twilio SMS error:", errText);
-    throw new Error("Failed to send SMS");
-  }
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,7 +17,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify admin
+    // Verify admin if called via HTTP
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -64,14 +36,12 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const targetPhone = body.target_phone; // optional: send to specific parent
+    const targetPhone = body.target_phone;
 
-    // Get week boundaries
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekAgoISO = weekAgo.toISOString();
 
-    // Get all parent accounts (or specific one)
     let parentQuery = supabase.from("parent_accounts").select("id, phone, full_name");
     if (targetPhone) parentQuery = parentQuery.eq("phone", targetPhone);
     const { data: parents } = await parentQuery;
@@ -87,7 +57,6 @@ serve(async (req) => {
 
     for (const parent of parents) {
       try {
-        // Get linked students
         const { data: students } = await supabase
           .from("profiles")
           .select("user_id, full_name, grade")
@@ -95,16 +64,9 @@ serve(async (req) => {
 
         if (!students || students.length === 0) continue;
 
-        let reportLines: string[] = [
-          `📊 التقرير الأسبوعي`,
-          `أهلاً ${parent.full_name}`,
-          `---`,
-        ];
-
         for (const student of students) {
           const uid = student.user_id;
 
-          // Parallel fetch weekly data
           const [viewsRes, hwSubsRes, examAttemptsRes, pointsRes, rankRes] = await Promise.all([
             supabase.from("video_views").select("id").eq("user_id", uid).gte("viewed_at", weekAgoISO),
             supabase.from("video_homework_submissions").select("score, total").eq("user_id", uid).gte("submitted_at", weekAgoISO),
@@ -119,7 +81,6 @@ serve(async (req) => {
           const totalPoints = (pointsRes.data || []).reduce((sum: number, p: any) => sum + p.points, 0);
           const rank = rankRes.data?.[0] || { rank: 0, total_students: 0 };
 
-          // Calculate averages
           const hwAvg = weeklyHw.length > 0
             ? Math.round(weeklyHw.reduce((s: number, h: any) => s + ((h.score || 0) / (h.total || 1)) * 100, 0) / weeklyHw.length)
             : 0;
@@ -127,41 +88,61 @@ serve(async (req) => {
             ? Math.round(weeklyExams.reduce((s: number, e: any) => s + ((e.score || 0) / (e.total || 1)) * 100, 0) / weeklyExams.length)
             : 0;
 
-          // Pending homework
+          // Pending homework count
           const { data: allHw } = await supabase.from("homework").select("id").eq("grade", student.grade);
           const { data: doneHw } = await supabase.from("homework_submissions").select("homework_id").eq("user_id", uid);
           const doneSet = new Set((doneHw || []).map((h: any) => h.homework_id));
           const pendingCount = (allHw || []).filter((h: any) => !doneSet.has(h.id)).length;
 
-          reportLines.push(`👤 ${student.full_name} (${student.grade})`);
-          reportLines.push(`📹 فيديوهات هذا الأسبوع: ${weeklyViews}`);
-          reportLines.push(`📝 واجبات مسلّمة: ${weeklyHw.length} (متوسط: ${hwAvg}%)`);
-          reportLines.push(`📋 امتحانات: ${weeklyExams.length} (متوسط: ${examAvg}%)`);
-          reportLines.push(`⭐ النقاط: ${totalPoints} | الترتيب: ${rank.rank}/${rank.total_students}`);
-          if (pendingCount > 0) {
-            reportLines.push(`⚠️ واجبات متأخرة: ${pendingCount}`);
-          }
-          reportLines.push(`---`);
-        }
+          // Build report text
+          const lines = [
+            `📊 التقرير الأسبوعي - ${student.full_name}`,
+            `📹 فيديوهات: ${weeklyViews}`,
+            `📝 واجبات: ${weeklyHw.length} (متوسط: ${hwAvg}%)`,
+            `📋 امتحانات: ${weeklyExams.length} (متوسط: ${examAvg}%)`,
+            `⭐ النقاط: ${totalPoints} | الترتيب: ${rank.rank}/${rank.total_students}`,
+          ];
+          if (pendingCount > 0) lines.push(`⚠️ واجبات متأخرة: ${pendingCount}`);
 
-        reportLines.push(`منصة الأستاذ إسماعيل أحمد عباده`);
+          const reportBody = lines.join("\n");
 
-        const message = reportLines.join("\n");
+          // Save as parent notification
+          await supabase.from("parent_notifications").insert({
+            parent_phone: parent.phone,
+            student_user_id: uid,
+            title: `📊 التقرير الأسبوعي - ${student.full_name}`,
+            body: reportBody,
+          });
 
-        await sendSMS(parent.phone, message);
-        sentCount++;
-
-        // Also store notification for each student
-        for (const student of students) {
+          // Notify student
           await supabase.from("student_notifications").insert({
-            user_id: student.user_id,
+            user_id: uid,
             title: "تم إرسال التقرير الأسبوعي",
             body: "تم إرسال تقرير أدائك الأسبوعي لولي أمرك",
             type: "report",
           });
         }
+
+        // Send push notification to parent
+        try {
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+          const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+          await fetch(`${SUPABASE_URL}/functions/v1/send-parent-push`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANON_KEY}`, apikey: ANON_KEY },
+            body: JSON.stringify({
+              parent_phone: parent.phone,
+              title: "📊 التقرير الأسبوعي",
+              body: "تقرير أداء ابنك الأسبوعي جاهز. افتح التطبيق لمراجعته.",
+            }),
+          });
+        } catch (e) {
+          console.error("Push error:", e);
+        }
+
+        sentCount++;
       } catch (err) {
-        console.error(`Error sending to ${parent.phone}:`, err);
+        console.error(`Error for ${parent.phone}:`, err);
         errors.push(parent.phone);
       }
     }

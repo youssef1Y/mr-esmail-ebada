@@ -7,10 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, LogOut, BookOpen, Video, ClipboardList, FileText, Trophy, Star,
-  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell, BellRing
+  AlertTriangle, CheckCircle2, Clock, GraduationCap, RefreshCw, Bell, BellRing,
+  TrendingUp, BarChart3, Eye
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParentPushNotifications } from "@/hooks/use-parent-push";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, Legend, RadialBarChart, RadialBar
+} from "recharts";
 
 interface SubjectProgress {
   subject: string;
@@ -21,6 +26,21 @@ interface SubjectProgress {
   examsTotal: number;
   examsDone: number;
   overallPercent: number;
+}
+
+interface WeeklyProgress {
+  week: string;
+  videos: number;
+  hwAvg: number | null;
+  examAvg: number | null;
+}
+
+interface ClassComparison {
+  studentExamAvg: number;
+  classExamAvg: number;
+  studentHwAvg: number;
+  classHwAvg: number;
+  videoWatchPercent: number;
 }
 
 interface StudentData {
@@ -42,6 +62,8 @@ interface StudentData {
   homeworkResults: { title: string; subject: string; score: number | null; submitted_at: string }[];
   rank: { rank: number; total_students: number; total_points: number };
   totalPoints: number;
+  weeklyProgress: WeeklyProgress[];
+  classComparison: ClassComparison;
   notifications: { title: string; body: string; created_at: string; is_read: boolean; type: string }[];
   parentMessages: { id: string; title: string; body: string; created_at: string; is_read: boolean }[];
 }
@@ -72,8 +94,6 @@ const ParentDashboard = () => {
           session_token: session.session_token,
         },
       });
-      console.log("📦 Raw response from server:", JSON.stringify(data, null, 2));
-      console.log("📦 Error from invoke:", error);
 
       if (error || data?.error) {
         toast({ title: "خطأ", description: data?.error || "فشل تحميل البيانات", variant: "destructive" });
@@ -85,24 +105,20 @@ const ParentDashboard = () => {
         return;
       }
 
-      console.log("📦 data.students array:", JSON.stringify(data.students, null, 2));
-      
-      const safeStudents = (data.students || []).map((s: any) => {
-        console.log("📦 Single student raw:", JSON.stringify(s, null, 2));
-        return {
-          profile: s.profile || {},
-          subjectProgress: s.subjectProgress || [],
-          pendingHomework: s.pendingHomework || [],
-          pendingExams: s.pendingExams || [],
-          examResults: s.examResults || [],
-          homeworkResults: s.homeworkResults || [],
-          rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
-          totalPoints: s.totalPoints || 0,
-          notifications: s.notifications || [],
-          parentMessages: s.parentMessages || [],
-        };
-      });
-      console.log("📦 Safe students:", JSON.stringify(safeStudents, null, 2));
+      const safeStudents = (data.students || []).map((s: any) => ({
+        profile: s.profile || {},
+        subjectProgress: s.subjectProgress || [],
+        pendingHomework: s.pendingHomework || [],
+        pendingExams: s.pendingExams || [],
+        examResults: s.examResults || [],
+        homeworkResults: s.homeworkResults || [],
+        rank: s.rank || { rank: 0, total_students: 0, total_points: 0 },
+        totalPoints: s.totalPoints || 0,
+        weeklyProgress: s.weeklyProgress || [],
+        classComparison: s.classComparison || { studentExamAvg: 0, classExamAvg: 0, studentHwAvg: 0, classHwAvg: 0, videoWatchPercent: 0 },
+        notifications: s.notifications || [],
+        parentMessages: s.parentMessages || [],
+      }));
       setStudents(safeStudents);
     } catch {
       toast({ title: "خطأ", description: "فشل الاتصال بالخادم", variant: "destructive" });
@@ -245,14 +261,15 @@ const ParentDashboard = () => {
                 </div>
 
                 {/* Tabs */}
-                <Tabs defaultValue="progress" className="space-y-4">
-                  <TabsList className="w-full grid grid-cols-5 h-auto">
-                    <TabsTrigger value="progress" className="text-xs py-2">📊 التقدم</TabsTrigger>
-                    <TabsTrigger value="results" className="text-xs py-2">📝 النتائج</TabsTrigger>
-                    <TabsTrigger value="pending" className="text-xs py-2">⏳ المتأخر</TabsTrigger>
-                    <TabsTrigger value="notifications" className="text-xs py-2">🔔 إشعارات</TabsTrigger>
-                    <TabsTrigger value="parent_messages" className="text-xs py-2 relative">
-                      ✉️ رسائل المعلم
+                <Tabs defaultValue="reports" className="space-y-4">
+                  <TabsList className="w-full grid grid-cols-6 h-auto">
+                    <TabsTrigger value="reports" className="text-[10px] sm:text-xs py-2">📈 التقارير</TabsTrigger>
+                    <TabsTrigger value="progress" className="text-[10px] sm:text-xs py-2">📊 التقدم</TabsTrigger>
+                    <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2">📝 النتائج</TabsTrigger>
+                    <TabsTrigger value="pending" className="text-[10px] sm:text-xs py-2">⏳ المتأخر</TabsTrigger>
+                    <TabsTrigger value="notifications" className="text-[10px] sm:text-xs py-2">🔔 إشعارات</TabsTrigger>
+                    <TabsTrigger value="parent_messages" className="text-[10px] sm:text-xs py-2 relative">
+                      ✉️ رسائل
                       {(student.parentMessages?.filter(m => !m.is_read).length || 0) > 0 && (
                         <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
                           {student.parentMessages.filter(m => !m.is_read).length}
@@ -260,6 +277,113 @@ const ParentDashboard = () => {
                       )}
                     </TabsTrigger>
                   </TabsList>
+
+                  {/* ===== REPORTS TAB (NEW) ===== */}
+                  <TabsContent value="reports">
+                    <div className="space-y-4">
+                      {/* Video Watch Percentage */}
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-primary" /> نسبة مشاهدة الفيديوهات
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4">
+                            <div className="relative w-24 h-24 flex-shrink-0">
+                              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
+                                <circle
+                                  cx="50" cy="50" r="42" fill="none"
+                                  stroke="hsl(var(--primary))" strokeWidth="10"
+                                  strokeDasharray={`${(student.classComparison?.videoWatchPercent || 0) * 2.64} 264`}
+                                  strokeLinecap="round"
+                                  className="transition-all duration-1000"
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-xl font-bold text-primary">{student.classComparison?.videoWatchPercent || 0}%</span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-muted-foreground">
+                                {(student.classComparison?.videoWatchPercent || 0) >= 80
+                                  ? "ممتاز! ابنك شاهد معظم الفيديوهات 🎉"
+                                  : (student.classComparison?.videoWatchPercent || 0) >= 50
+                                  ? "جيد، لكن في فيديوهات لسه مشافهاش 📚"
+                                  : "يحتاج يشاهد المزيد من الفيديوهات ⚠️"}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Weekly Progress Chart */}
+                      {student.weeklyProgress && student.weeklyProgress.length > 0 && (
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-primary" /> التقدم الأسبوعي
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-56 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={student.weeklyProgress} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                  <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                                  <YAxis tick={{ fontSize: 10 }} />
+                                  <Tooltip
+                                    contentStyle={{ fontSize: 12, direction: "rtl", borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                                    formatter={(value: any, name: string) => {
+                                      const labels: Record<string, string> = { videos: "فيديوهات", hwAvg: "متوسط الواجبات %", examAvg: "متوسط الامتحانات %" };
+                                      return [value ?? "-", labels[name] || name];
+                                    }}
+                                  />
+                                  <Legend formatter={(value: string) => {
+                                    const labels: Record<string, string> = { videos: "فيديوهات", hwAvg: "واجبات %", examAvg: "امتحانات %" };
+                                    return labels[value] || value;
+                                  }} wrapperStyle={{ fontSize: 11 }} />
+                                  <Bar dataKey="videos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="videos" />
+                                  <Bar dataKey="hwAvg" fill="#f59e0b" radius={[4, 4, 0, 0]} name="hwAvg" />
+                                  <Bar dataKey="examAvg" fill="#10b981" radius={[4, 4, 0, 0]} name="examAvg" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Class Comparison */}
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-primary" /> مقارنة بمتوسط الصف
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-5">
+                            <ComparisonBar
+                              label="متوسط الامتحانات"
+                              studentValue={student.classComparison?.studentExamAvg || 0}
+                              classValue={student.classComparison?.classExamAvg || 0}
+                              suffix="%"
+                            />
+                            <ComparisonBar
+                              label="متوسط الواجبات"
+                              studentValue={student.classComparison?.studentHwAvg || 0}
+                              classValue={student.classComparison?.classHwAvg || 0}
+                              suffix="/10"
+                            />
+                          </div>
+                          <div className="flex items-center gap-4 mt-4 text-[10px] text-muted-foreground justify-center">
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary inline-block" /> ابنك</span>
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40 inline-block" /> متوسط الصف</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
 
                   {/* Progress Tab */}
                   <TabsContent value="progress">
@@ -299,7 +423,6 @@ const ParentDashboard = () => {
                   {/* Results Tab */}
                   <TabsContent value="results">
                     <div className="space-y-4">
-                      {/* Exam Results */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
@@ -327,7 +450,6 @@ const ParentDashboard = () => {
                         </CardContent>
                       </Card>
 
-                      {/* Homework Results */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
@@ -489,5 +611,38 @@ const StatCard = ({ icon: Icon, label, value, color }: { icon: any; label: strin
     </CardContent>
   </Card>
 );
+
+const ComparisonBar = ({ label, studentValue, classValue, suffix }: { label: string; studentValue: number; classValue: number; suffix: string }) => {
+  const max = Math.max(studentValue, classValue, 1);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-12 text-muted-foreground">ابنك</span>
+          <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden relative">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-1000 flex items-center justify-end px-2"
+              style={{ width: `${Math.max((studentValue / max) * 100, 8)}%` }}
+            >
+              <span className="text-[10px] text-primary-foreground font-bold">{studentValue}{suffix}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-12 text-muted-foreground">الصف</span>
+          <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden relative">
+            <div
+              className="h-full bg-muted-foreground/40 rounded-full transition-all duration-1000 flex items-center justify-end px-2"
+              style={{ width: `${Math.max((classValue / max) * 100, 8)}%` }}
+            >
+              <span className="text-[10px] text-foreground font-bold">{classValue}{suffix}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ParentDashboard;
