@@ -181,65 +181,29 @@ serve(async (req) => {
       .eq("grade", profile?.grade || "")
       .order("created_at", { ascending: false });
 
-    // === SERVER-SIDE SUMMARY DETECTION ===
-    // If user asks for summary, try to generate it BEFORE the AI responds
+    // === SERVER-SIDE SUMMARY DETECTION (deterministic) ===
     const isSummaryRequest = detectSummaryRequest(messages || []);
-    let freshSummaryVideoId: string | null = null;
-    let freshSummary: string | null = null;
 
-    if (isSummaryRequest && allGradeVideos && allGradeVideos.length > 0) {
-      const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
-      
-      // Find which video the user wants summarized
-      // Check if they mention a specific video title
-      let targetVideo: any = null;
-      
-      for (const v of allGradeVideos) {
-        if (lastUserMsg.includes(v.title.toLowerCase()) || lastUserMsg.includes(v.title)) {
-          targetVideo = v;
-          break;
-        }
-      }
-      
-      // If no specific video mentioned, check for "آخر درس" (last lesson) or just pick the last watched
+    if (isSummaryRequest) {
+      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
+      const targetVideo = resolveSummaryVideoTarget(
+        lastUserMsg,
+        allGradeVideos || [],
+        watchedIds,
+        lastWatchedVideoId
+      );
+
       if (!targetVideo) {
-        if (lastUserMsg.includes("آخر") || lastUserMsg.includes("اخر")) {
-          // Find the last watched video
-          const { data: lastView } = await adminClient
-            .from("video_views")
-            .select("video_id")
-            .eq("user_id", user.id)
-            .order("viewed_at", { ascending: false })
-            .limit(1)
-            .single();
-          
-          if (lastView) {
-            targetVideo = allGradeVideos.find((v: any) => v.id === lastView.video_id);
-          }
-        } else {
-          // Try to match any watched video
-          const watchedVideos = allGradeVideos.filter((v: any) => watchedIds.includes(v.id));
-          if (watchedVideos.length === 1) {
-            targetVideo = watchedVideos[0];
-          } else if (watchedVideos.length > 0) {
-            // Pick the most recently watched
-            const { data: lastView } = await adminClient
-              .from("video_views")
-              .select("video_id")
-              .eq("user_id", user.id)
-              .order("viewed_at", { ascending: false })
-              .limit(1)
-              .single();
-            if (lastView) {
-              targetVideo = watchedVideos.find((v: any) => v.id === lastView.video_id);
-            }
-          }
-        }
+        return createSseTextResponse(`يا ${firstName} 😊 اكتب اسم الدرس اللي عايز تلخيصه أو قول: لخصلي آخر درس شفته.`);
       }
 
-      // If we found a target video that's been watched and has no cached summary, generate one now
-      if (targetVideo && watchedIds.includes(targetVideo.id) && !summariesMap.has(targetVideo.id)) {
-        console.log("Auto-triggering summarization for video:", targetVideo.title, targetVideo.id);
+      if (!watchedIds.includes(targetVideo.id)) {
+        return createSseTextResponse(`لسه مشوفتش الفيديو ده يا ${firstName}! روح اتفرج عليه الأول وبعدين ارجعلي ألخصهولك 😊`);
+      }
+
+      let targetSummary = summariesMap.get(targetVideo.id) || null;
+
+      if (!targetSummary) {
         try {
           const sumResp = await fetch(`${SUPABASE_URL}/functions/v1/summarize-video`, {
             method: "POST",
@@ -253,11 +217,9 @@ serve(async (req) => {
 
           if (sumResp.ok) {
             const sumData = await sumResp.json();
-            if (sumData.summary) {
-              freshSummaryVideoId = targetVideo.id;
-              freshSummary = sumData.summary;
-              summariesMap.set(targetVideo.id, sumData.summary);
-              console.log("Summary generated successfully for:", targetVideo.title);
+            if (sumData?.summary) {
+              targetSummary = sumData.summary;
+              summariesMap.set(targetVideo.id, targetSummary);
             }
           } else {
             console.error("Summary generation failed:", sumResp.status, await sumResp.text());
@@ -266,6 +228,14 @@ serve(async (req) => {
           console.error("Summary generation error:", sumErr);
         }
       }
+
+      if (!targetSummary) {
+        return createSseTextResponse(`للأسف معرفتش ألخص الفيديو ده دلوقتي يا ${firstName}، جرّب تاني بعد شوية.`);
+      }
+
+      return createSseTextResponse(
+        `أكيد يا ${firstName} 💙\n\n**ملخص فيديو "${targetVideo.title}"**\n\n${targetSummary}\n\nلو حابب، أقدر أحوّل الملخص لأسئلة مراجعة سريعة.`
+      );
     }
 
     // Build video context with watched status AND summaries
