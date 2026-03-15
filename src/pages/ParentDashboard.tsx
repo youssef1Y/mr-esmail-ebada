@@ -125,6 +125,7 @@ const ParentDashboard = () => {
         classComparison: s.classComparison || { studentExamAvg: 0, classExamAvg: 0, studentHwAvg: 0, classHwAvg: 0, videoWatchPercent: 0 },
         notifications: s.notifications || [],
         parentMessages: s.parentMessages || [],
+        watchedVideosThisWeek: s.watchedVideosThisWeek || [],
       }));
       setStudents(safeStudents);
     } catch {
