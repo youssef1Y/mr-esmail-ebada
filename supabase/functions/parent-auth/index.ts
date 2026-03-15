@@ -460,6 +460,16 @@ serve(async (req) => {
         const watchedCount = views.size;
         const videoWatchPercent = totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0;
 
+        // === Watched videos this week ===
+        const weekViews = weekViewsRes.data || [];
+        const videoMap = new Map(videos.map((v: any) => [v.id, v]));
+        const watchedVideosThisWeek = weekViews
+          .filter((wv: any) => videoMap.has(wv.video_id))
+          .map((wv: any) => {
+            const v = videoMap.get(wv.video_id);
+            return { title: v.title, subject: v.subject, viewed_at: wv.viewed_at };
+          });
+
         studentDataList.push({
           profile: {
             user_id: student.user_id,
@@ -489,6 +499,7 @@ serve(async (req) => {
           },
           notifications: notificationsRes.data || [],
           parentMessages: parentNotificationsRes.data || [],
+          watchedVideosThisWeek,
         });
       }
 
