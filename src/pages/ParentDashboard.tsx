@@ -43,6 +43,12 @@ interface ClassComparison {
   videoWatchPercent: number;
 }
 
+interface WatchedVideo {
+  title: string;
+  subject: string;
+  viewed_at: string;
+}
+
 interface StudentData {
   profile: {
     user_id: string;
@@ -66,6 +72,7 @@ interface StudentData {
   classComparison: ClassComparison;
   notifications: { title: string; body: string; created_at: string; is_read: boolean; type: string }[];
   parentMessages: { id: string; title: string; body: string; created_at: string; is_read: boolean }[];
+  watchedVideosThisWeek: WatchedVideo[];
 }
 
 const ParentDashboard = () => {
