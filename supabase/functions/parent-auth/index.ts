@@ -417,6 +417,30 @@ serve(async (req) => {
           }
         }
 
+        // Pending items as arrays
+        const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({
+          title: h.title, subject: h.subject, due_date: h.due_date,
+        }));
+        const pendingExams = exams.filter((e: any) => !attempts.has(e.id)).map((e: any) => ({
+          title: e.title, subject: e.subject,
+        }));
+
+        // Exam results (only submitted)
+        const examResults = exams
+          .filter((e: any) => attempts.has(e.id))
+          .map((e: any) => {
+            const att = attempts.get(e.id);
+            return { title: e.title, subject: e.subject, score: att.score, total: att.total, submitted_at: att.submitted_at };
+          });
+
+        // Homework results (only submitted)
+        const homeworkResults = homework
+          .filter((h: any) => hwSubs.has(h.id))
+          .map((h: any) => {
+            const sub = hwSubs.get(h.id);
+            return { title: h.title, subject: h.subject, score: sub.score, submitted_at: sub.submitted_at };
+          });
+
         // Student's own averages
         const studentExamAvg = examResults.length > 0 
           ? Math.round(examResults.reduce((s: number, e: any) => s + ((e.score || 0) / Math.max(e.total || 1, 1)) * 100, 0) / examResults.length) 
@@ -430,30 +454,6 @@ serve(async (req) => {
         const totalVideos = videos.length;
         const watchedCount = views.size;
         const videoWatchPercent = totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0;
-
-        // Pending items as arrays
-        const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({
-          title: h.title, subject: h.subject, due_date: h.due_date,
-        }));
-        const pendingExams = exams.filter((e: any) => !attempts.has(e.id)).map((e: any) => ({
-          title: e.title, subject: e.subject,
-        }));
-
-        // Exam results (only submitted)
-        const examResults2 = exams
-          .filter((e: any) => attempts.has(e.id))
-          .map((e: any) => {
-            const att = attempts.get(e.id);
-            return { title: e.title, subject: e.subject, score: att.score, total: att.total, submitted_at: att.submitted_at };
-          });
-
-        // Homework results (only submitted)
-        const homeworkResults2 = homework
-          .filter((h: any) => hwSubs.has(h.id))
-          .map((h: any) => {
-            const sub = hwSubs.get(h.id);
-            return { title: h.title, subject: h.subject, score: sub.score, submitted_at: sub.submitted_at };
-          });
 
         studentDataList.push({
           profile: {
