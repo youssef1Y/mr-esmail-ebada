@@ -16,6 +16,83 @@ function detectSummaryRequest(messages: any[]): boolean {
   return keywords.some(k => text.includes(k));
 }
 
+function normalizeArabicText(text: string): string {
+  return (text || "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveSummaryVideoTarget(
+  messageText: string,
+  allVideos: any[],
+  watchedIds: string[],
+  lastWatchedVideoId: string | null
+) {
+  if (!allVideos || allVideos.length === 0) return null;
+
+  const normalizedMsg = normalizeArabicText(messageText);
+  const watchedSet = new Set(watchedIds);
+  const watchedVideos = allVideos.filter((v: any) => watchedSet.has(v.id));
+
+  const scoreVideo = (video: any) => {
+    const titleNorm = normalizeArabicText(video.title || "");
+    if (!titleNorm) return 0;
+    if (normalizedMsg.includes(titleNorm)) return 4;
+
+    const titleWords = titleNorm.split(" ").filter((w: string) => w.length > 2);
+    let hitCount = 0;
+    for (const w of titleWords) {
+      if (normalizedMsg.includes(w)) hitCount += 1;
+    }
+    if (hitCount >= 2) return 3;
+    if (hitCount === 1) return 2;
+    return 0;
+  };
+
+  const watchedMatches = watchedVideos
+    .map((v: any) => ({ v, score: scoreVideo(v) }))
+    .filter((x: any) => x.score > 0)
+    .sort((a: any, b: any) => b.score - a.score);
+
+  if (watchedMatches.length > 0) return watchedMatches[0].v;
+
+  const allMatches = allVideos
+    .map((v: any) => ({ v, score: scoreVideo(v) }))
+    .filter((x: any) => x.score > 0)
+    .sort((a: any, b: any) => b.score - a.score);
+
+  if (allMatches.length > 0) return allMatches[0].v;
+
+  if (lastWatchedVideoId) {
+    const lastWatched = allVideos.find((v: any) => v.id === lastWatchedVideoId);
+    if (lastWatched) return lastWatched;
+  }
+
+  return watchedVideos[0] || allVideos[0] || null;
+}
+
+function createSseTextResponse(text: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`)
+      );
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
