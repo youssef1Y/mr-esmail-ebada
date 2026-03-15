@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Download, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -7,17 +7,18 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
 export const InstallPWABanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [sessionDismissed, setSessionDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if already dismissed
-    if (localStorage.getItem("pwa-install-dismissed")) return;
-
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    // If already installed as standalone, don't show
+    if (isStandalone()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -26,26 +27,49 @@ export const InstallPWABanner = () => {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+
+    // Listen for app installed event
+    const installedHandler = () => {
+      setShowBanner(false);
+      setDeferredPrompt(null);
+    };
+    window.addEventListener("appinstalled", installedHandler);
+
+    // Re-check standalone mode periodically (for uninstall detection)
+    const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+    const standaloneChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setShowBanner(false);
+      }
+    };
+    standaloneQuery.addEventListener("change", standaloneChange);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+      standaloneQuery.removeEventListener("change", standaloneChange);
+    };
   }, []);
 
-  const handleInstall = async () => {
+  const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowBanner(false);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setShowBanner(false);
+      }
+    } catch (err) {
+      console.error("Install prompt error:", err);
     }
     setDeferredPrompt(null);
-  };
+  }, [deferredPrompt]);
 
   const handleDismiss = () => {
-    setShowBanner(false);
-    setDismissed(true);
-    localStorage.setItem("pwa-install-dismissed", "true");
+    setSessionDismissed(true);
   };
 
-  if (!showBanner || dismissed) return null;
+  if (!showBanner || sessionDismissed || isStandalone()) return null;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-500">
@@ -60,7 +84,7 @@ export const InstallPWABanner = () => {
               ثبّت المنصة كتطبيق على جهازك لتجربة أسرع وإشعارات فورية
             </p>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleInstall} className="gap-1.5 flex-1">
+              <Button size="sm" onClick={handleInstall} className="gap-1.5 flex-1" disabled={!deferredPrompt}>
                 <Download className="w-3.5 h-3.5" />
                 تثبيت التطبيق
               </Button>
@@ -80,7 +104,7 @@ export const InstallPWAButton = () => {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (isStandalone()) {
       setIsInstalled(true);
       return;
     }
@@ -91,13 +115,28 @@ export const InstallPWAButton = () => {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => setIsInstalled(true));
+
+    const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsInstalled(e.matches);
+    };
+    standaloneQuery.addEventListener("change", onChange);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      standaloneQuery.removeEventListener("change", onChange);
+    };
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    try {
+      await deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+    } catch (err) {
+      console.error("Install prompt error:", err);
+    }
     setDeferredPrompt(null);
   };
 
