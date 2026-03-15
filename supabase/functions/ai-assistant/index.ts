@@ -188,7 +188,9 @@ serve(async (req) => {
     const isSummaryRequest = detectSummaryRequest(messages || []);
 
     if (isSummaryRequest) {
-      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
+      const lastUserMsg = Array.isArray(messages) && messages.length > 0
+        ? messages[messages.length - 1].content || ""
+        : "";
       const targetVideo = resolveSummaryVideoTarget(
         lastUserMsg,
         allGradeVideos || [],
