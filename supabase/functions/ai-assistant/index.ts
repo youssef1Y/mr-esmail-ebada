@@ -166,11 +166,16 @@ serve(async (req) => {
     ]);
 
     const profile = profileRes.data;
-    const watchedIds = (viewsRes.data || []).map((v: any) => v.video_id);
+    const views = viewsRes.data || [];
+    const watchedIds = Array.from(new Set(views.map((v: any) => v.video_id)));
+    const lastWatchedVideoId = views[0]?.video_id ?? null;
     const rank = rankRes.data?.[0] || { rank: 0, total_points: 0, total_students: 0 };
     const points = pointsRes.data || [];
     const keys = keysRes.data;
     const summariesMap = new Map((summariesRes.data || []).map((s: any) => [s.video_id, s.summary]));
+    const studentName = profile?.full_name || "الطالب";
+    const firstName = studentName.split(' ')[0];
+    const isSubscribed = profile?.is_subscribed || false;
 
     // Fetch ALL videos for this grade
     const { data: allGradeVideos } = await adminClient
