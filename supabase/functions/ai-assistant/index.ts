@@ -155,7 +155,7 @@ serve(async (req) => {
     // Regular chat flow - fetch all data in parallel
     const [profileRes, viewsRes, rankRes, homeworkRes, examRes, scheduleRes, pointsRes, keysRes, summariesRes] = await Promise.all([
       adminClient.from("profiles").select("full_name, grade, is_subscribed, madhab, school, governorate, parent_phone, student_phone, subscription_expires_at").eq("user_id", user.id).single(),
-      adminClient.from("video_views").select("video_id").eq("user_id", user.id),
+      adminClient.from("video_views").select("video_id, viewed_at").eq("user_id", user.id).order("viewed_at", { ascending: false }),
       adminClient.rpc("get_student_rank", { p_user_id: user.id }),
       adminClient.from("homework").select("title, subject, due_date, description").order("created_at", { ascending: false }).limit(10),
       adminClient.from("exam_attempts").select("score, total, submitted_at, exam_id, exams(title, subject)").eq("user_id", user.id).order("submitted_at", { ascending: false }).limit(10),
