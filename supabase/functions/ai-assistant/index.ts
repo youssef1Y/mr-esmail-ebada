@@ -275,9 +275,6 @@ serve(async (req) => {
       `- ${p.points > 0 ? "+" : ""}${p.points} نقطة: ${p.reason} (${new Date(p.created_at).toLocaleDateString("ar-EG")})`
     ).join("\n") || "لا توجد نقاط بعد";
 
-    const studentName = profile?.full_name || "الطالب";
-    const firstName = studentName.split(' ')[0];
-    const isSubscribed = profile?.is_subscribed || false;
 
 
     const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
