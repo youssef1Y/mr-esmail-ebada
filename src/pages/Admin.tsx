@@ -102,7 +102,7 @@ interface ExamAttemptWithDetails {
   student_madhab: string | null;
 }
 
-// Admin Reports Tab Component - Send messages to parents
+// Admin Reports Tab Component - Send messages to parents + watched videos
 const AdminReportsTab = ({ toast }: { toast: any }) => {
   const [students, setStudents] = useState<{ user_id: string; full_name: string; grade: string; parent_phone: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +113,13 @@ const AdminReportsTab = ({ toast }: { toast: any }) => {
   const [msgBody, setMsgBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sentMessages, setSentMessages] = useState<any[]>([]);
+  
+  // Watched videos state
+  const [watchedStudent, setWatchedStudent] = useState<{ user_id: string; full_name: string; grade: string } | null>(null);
+  const [watchedVideos, setWatchedVideos] = useState<{ title: string; subject: string; viewed_at: string }[]>([]);
+  const [watchedLoading, setWatchedLoading] = useState(false);
+  const [watchedSearch, setWatchedSearch] = useState("");
+  const [watchedGrade, setWatchedGrade] = useState("");
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -127,6 +134,28 @@ const AdminReportsTab = ({ toast }: { toast: any }) => {
   };
 
   useEffect(() => { fetchStudents(); fetchSentMessages(); }, []);
+
+  const fetchWatchedVideos = async (student: { user_id: string; full_name: string; grade: string }) => {
+    setWatchedStudent(student);
+    setWatchedLoading(true);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    
+    const [viewsRes, videosRes] = await Promise.all([
+      supabase.from("video_views").select("video_id, viewed_at").eq("user_id", student.user_id).gte("viewed_at", weekAgo).order("viewed_at", { ascending: false }),
+      supabase.from("videos").select("id, title, subject").eq("grade", student.grade),
+    ]);
+
+    const videoMap = new Map((videosRes.data || []).map((v: any) => [v.id, v]));
+    const result = (viewsRes.data || [])
+      .filter((vv: any) => videoMap.has(vv.video_id))
+      .map((vv: any) => {
+        const v = videoMap.get(vv.video_id);
+        return { title: v.title, subject: v.subject, viewed_at: vv.viewed_at };
+      });
+    
+    setWatchedVideos(result);
+    setWatchedLoading(false);
+  };
 
   const sendToParent = async () => {
     if (!selectedStudent || !msgTitle || !msgBody) {
@@ -179,6 +208,12 @@ const AdminReportsTab = ({ toast }: { toast: any }) => {
     return matchesGrade && matchesSearch;
   });
 
+  const filteredWatchedStudents = students.filter(s => {
+    const matchesGrade = !watchedGrade || s.grade === watchedGrade;
+    const matchesSearch = !watchedSearch || s.full_name.includes(watchedSearch);
+    return matchesGrade && matchesSearch;
+  });
+
   const deleteMsg = async (id: string) => {
     await (supabase.from("parent_notifications" as any) as any).delete().eq("id", id);
     fetchSentMessages();
@@ -187,6 +222,81 @@ const AdminReportsTab = ({ toast }: { toast: any }) => {
 
   return (
     <div className="space-y-4">
+      {/* Watched Videos Section */}
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <h2 className="text-lg font-bold font-amiri flex items-center gap-2 mb-4">
+          <Video className="w-5 h-5" /> الفيديوهات المشاهدة هذا الأسبوع
+        </h2>
+        
+        {watchedStudent ? (
+          <div className="space-y-3">
+            <div className="bg-primary/10 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm">{watchedStudent.full_name}</p>
+                <p className="text-xs text-muted-foreground">{watchedStudent.grade}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => { setWatchedStudent(null); setWatchedVideos([]); }}>تغيير</Button>
+            </div>
+            
+            {watchedLoading ? (
+              <p className="text-center text-muted-foreground text-sm py-4">جاري التحميل...</p>
+            ) : watchedVideos.length === 0 ? (
+              <div className="text-center py-6">
+                <Video className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">لم يشاهد أي فيديو هذا الأسبوع</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">إجمالي: <span className="font-bold text-primary">{watchedVideos.length}</span> فيديو</p>
+                <div className="max-h-72 overflow-y-auto space-y-2">
+                  {watchedVideos.map((v, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-muted/50 rounded-lg p-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Eye className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{v.title}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {v.subject} • {new Date(v.viewed_at).toLocaleDateString("ar-EG", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <select value={watchedGrade} onChange={e => setWatchedGrade(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm w-48">
+                <option value="">كل الصفوف</option>
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <Input placeholder="بحث بالاسم..." value={watchedSearch} onChange={e => setWatchedSearch(e.target.value)} className="flex-1" />
+            </div>
+            <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
+              {loading ? (
+                <p className="text-center text-muted-foreground text-sm py-4">جاري التحميل...</p>
+              ) : filteredWatchedStudents.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-4">لا يوجد طلاب</p>
+              ) : (
+                filteredWatchedStudents.slice(0, 50).map(s => (
+                  <button key={s.user_id} onClick={() => fetchWatchedVideos(s)} className="w-full text-right p-2 hover:bg-muted/50 border-b border-border last:border-0 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{s.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{s.grade}</p>
+                    </div>
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Send Message Section */}
       <div className="bg-card rounded-2xl border border-border p-6">
         <h2 className="text-lg font-bold font-amiri flex items-center gap-2 mb-4">
           <Send className="w-5 h-5" /> إرسال رسالة لولي الأمر
