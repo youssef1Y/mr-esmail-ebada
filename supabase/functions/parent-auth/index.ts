@@ -354,6 +354,83 @@ serve(async (req) => {
         const totalPoints = (pointsRes.data || []).reduce((s: number, p: any) => s + p.points, 0);
         const rankData = rankRes.data?.[0] || { rank: 0, total_students: 0, total_points: 0 };
 
+        // === Weekly progress data (last 8 weeks) ===
+        const allViews = allViewsRes.data || [];
+        const allHwSubs = hwSubsRes.data || [];
+        const allExamAttempts = attemptsRes.data || [];
+        
+        const weeklyProgress = [];
+        for (let i = 7; i >= 1; i--) {
+          const weekStart = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+          const weekEnd = new Date(now.getTime() - (i - 1) * 7 * 24 * 60 * 60 * 1000);
+          const wStartISO = weekStart.toISOString();
+          const wEndISO = weekEnd.toISOString();
+          
+          const weekViews = allViews.filter((v: any) => v.viewed_at >= wStartISO && v.viewed_at < wEndISO).length;
+          const weekHw = allHwSubs.filter((h: any) => h.submitted_at >= wStartISO && h.submitted_at < wEndISO);
+          const weekExams = allExamAttempts.filter((e: any) => e.submitted_at >= wStartISO && e.submitted_at < wEndISO);
+          
+          const hwAvg = weekHw.length > 0 
+            ? Math.round(weekHw.reduce((s: number, h: any) => s + ((h.score || 0) / Math.max(h.total || 1, 1)) * 100, 0) / weekHw.length) 
+            : null;
+          const examAvg = weekExams.length > 0 
+            ? Math.round(weekExams.reduce((s: number, e: any) => s + ((e.score || 0) / Math.max(e.total || 1, 1)) * 100, 0) / weekExams.length) 
+            : null;
+          
+          const weekLabel = `${weekStart.getDate()}/${weekStart.getMonth() + 1}`;
+          weeklyProgress.push({ week: weekLabel, videos: weekViews, hwAvg, examAvg });
+        }
+
+        // === Class average for comparison ===
+        // Get all students in same grade exam results
+        const examIds = exams.map((e: any) => e.id);
+        let classAvgExam = 0;
+        let classAvgHw = 0;
+        if (examIds.length > 0) {
+          const { data: classExams } = await supabaseAdmin
+            .from("exam_attempts")
+            .select("user_id, score, total")
+            .in("exam_id", examIds)
+            .limit(500);
+          
+          if (classExams && classExams.length > 0) {
+            classAvgExam = Math.round(
+              classExams.reduce((s: number, e: any) => s + ((e.score || 0) / Math.max(e.total || 1, 1)) * 100, 0) / classExams.length
+            );
+          }
+        }
+        
+        // Class average homework
+        const hwIds = homework.map((h: any) => h.id);
+        if (hwIds.length > 0) {
+          const { data: classHw } = await supabaseAdmin
+            .from("homework_submissions")
+            .select("score")
+            .in("homework_id", hwIds)
+            .not("score", "is", null)
+            .limit(500);
+          
+          if (classHw && classHw.length > 0) {
+            classAvgHw = Math.round(
+              classHw.reduce((s: number, h: any) => s + (h.score || 0), 0) / classHw.length
+            );
+          }
+        }
+
+        // Student's own averages
+        const studentExamAvg = examResults.length > 0 
+          ? Math.round(examResults.reduce((s: number, e: any) => s + ((e.score || 0) / Math.max(e.total || 1, 1)) * 100, 0) / examResults.length) 
+          : 0;
+        const scoredHw = homeworkResults.filter((h: any) => h.score !== null);
+        const studentHwAvg = scoredHw.length > 0 
+          ? Math.round(scoredHw.reduce((s: number, h: any) => s + (h.score || 0), 0) / scoredHw.length) 
+          : 0;
+
+        // Video watch percentage
+        const totalVideos = videos.length;
+        const watchedCount = views.size;
+        const videoWatchPercent = totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0;
+
         // Pending items as arrays
         const pendingHomework = homework.filter((h: any) => !hwSubs.has(h.id)).map((h: any) => ({
           title: h.title, subject: h.subject, due_date: h.due_date,
@@ -363,7 +440,7 @@ serve(async (req) => {
         }));
 
         // Exam results (only submitted)
-        const examResults = exams
+        const examResults2 = exams
           .filter((e: any) => attempts.has(e.id))
           .map((e: any) => {
             const att = attempts.get(e.id);
@@ -371,7 +448,7 @@ serve(async (req) => {
           });
 
         // Homework results (only submitted)
-        const homeworkResults = homework
+        const homeworkResults2 = homework
           .filter((h: any) => hwSubs.has(h.id))
           .map((h: any) => {
             const sub = hwSubs.get(h.id);
@@ -393,8 +470,8 @@ serve(async (req) => {
           subjectProgress,
           pendingHomework,
           pendingExams,
-          examResults,
-          homeworkResults,
+          examResults: examResults2,
+          homeworkResults: homeworkResults2,
           rank: { rank: rankData.rank || 0, total_students: rankData.total_students || 0, total_points: rankData.total_points || totalPoints },
           totalPoints,
           notifications: notificationsRes.data || [],
