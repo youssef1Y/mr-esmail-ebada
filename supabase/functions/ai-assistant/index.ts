@@ -276,12 +276,6 @@ serve(async (req) => {
     const firstName = studentName.split(' ')[0];
     const isSubscribed = profile?.is_subscribed || false;
 
-    // Add fresh summary note to context if we just generated one
-    let freshSummaryNote = "";
-    if (freshSummary && freshSummaryVideoId) {
-      const videoTitle = allGradeVideos?.find((v: any) => v.id === freshSummaryVideoId)?.title || "";
-      freshSummaryNote = `\n\n🔔 تنبيه: تم للتو تلخيص فيديو "${videoTitle}" بنجاح. الملخص موجود أعلاه في قائمة الفيديوهات. اعرضه للطالب بشكل منظم وجميل.`;
-    }
 
     const systemPrompt = `أنت "مساعد المنصة" 🎓 - المساعد الذكي لمنصة الأستاذ إسماعيل أحمد عباده التعليمية.
 
