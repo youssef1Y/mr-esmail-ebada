@@ -270,8 +270,9 @@ const ParentDashboard = () => {
 
                 {/* Tabs */}
                 <Tabs defaultValue="reports" className="space-y-4">
-                  <TabsList className="w-full grid grid-cols-6 h-auto">
+                  <TabsList className="w-full grid grid-cols-7 h-auto">
                     <TabsTrigger value="reports" className="text-[10px] sm:text-xs py-2">📈 التقارير</TabsTrigger>
+                    <TabsTrigger value="watched" className="text-[10px] sm:text-xs py-2">🎬 مشاهدات</TabsTrigger>
                     <TabsTrigger value="progress" className="text-[10px] sm:text-xs py-2">📊 التقدم</TabsTrigger>
                     <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2">📝 النتائج</TabsTrigger>
                     <TabsTrigger value="pending" className="text-[10px] sm:text-xs py-2">⏳ المتأخر</TabsTrigger>
