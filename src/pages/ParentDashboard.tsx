@@ -43,6 +43,12 @@ interface ClassComparison {
   videoWatchPercent: number;
 }
 
+interface WatchedVideo {
+  title: string;
+  subject: string;
+  viewed_at: string;
+}
+
 interface StudentData {
   profile: {
     user_id: string;
@@ -66,6 +72,7 @@ interface StudentData {
   classComparison: ClassComparison;
   notifications: { title: string; body: string; created_at: string; is_read: boolean; type: string }[];
   parentMessages: { id: string; title: string; body: string; created_at: string; is_read: boolean }[];
+  watchedVideosThisWeek: WatchedVideo[];
 }
 
 const ParentDashboard = () => {
@@ -118,6 +125,7 @@ const ParentDashboard = () => {
         classComparison: s.classComparison || { studentExamAvg: 0, classExamAvg: 0, studentHwAvg: 0, classHwAvg: 0, videoWatchPercent: 0 },
         notifications: s.notifications || [],
         parentMessages: s.parentMessages || [],
+        watchedVideosThisWeek: s.watchedVideosThisWeek || [],
       }));
       setStudents(safeStudents);
     } catch {
@@ -262,8 +270,9 @@ const ParentDashboard = () => {
 
                 {/* Tabs */}
                 <Tabs defaultValue="reports" className="space-y-4">
-                  <TabsList className="w-full grid grid-cols-6 h-auto">
+                  <TabsList className="w-full grid grid-cols-7 h-auto">
                     <TabsTrigger value="reports" className="text-[10px] sm:text-xs py-2">📈 التقارير</TabsTrigger>
+                    <TabsTrigger value="watched" className="text-[10px] sm:text-xs py-2">🎬 مشاهدات</TabsTrigger>
                     <TabsTrigger value="progress" className="text-[10px] sm:text-xs py-2">📊 التقدم</TabsTrigger>
                     <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2">📝 النتائج</TabsTrigger>
                     <TabsTrigger value="pending" className="text-[10px] sm:text-xs py-2">⏳ المتأخر</TabsTrigger>
@@ -383,6 +392,44 @@ const ParentDashboard = () => {
                         </CardContent>
                       </Card>
                     </div>
+                  </TabsContent>
+
+                  {/* ===== WATCHED VIDEOS TAB ===== */}
+                  <TabsContent value="watched">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Video className="w-4 h-4 text-primary" /> الفيديوهات المشاهدة هذا الأسبوع
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">آخر 7 أيام</p>
+                      </CardHeader>
+                      <CardContent>
+                        {(student.watchedVideosThisWeek || []).length === 0 ? (
+                          <div className="text-center py-8">
+                            <Video className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">لم يشاهد أي فيديو هذا الأسبوع</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground mb-3">
+                              إجمالي: <span className="font-bold text-primary">{student.watchedVideosThisWeek.length}</span> فيديو
+                            </p>
+                            {student.watchedVideosThisWeek.map((v, i) => (
+                              <div key={i} className="flex items-center gap-3 bg-muted/50 rounded-lg p-3">
+                                <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Video className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{v.title}</p>
+                                  <p className="text-[10px] text-muted-foreground">{v.subject} • {new Date(v.viewed_at).toLocaleDateString("ar-EG", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                                </div>
+                                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Progress Tab */}

@@ -296,10 +296,13 @@ serve(async (req) => {
           weekBoundaries.push(d.toISOString());
         }
 
+        // Week start for "watched this week"
+        const weekStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
         const [
           videosRes, viewsRes, homeworkRes, hwSubsRes, examsRes, attemptsRes,
           pointsRes, rankRes, notificationsRes, parentNotificationsRes,
-          allViewsRes, classAttemptsRes
+          allViewsRes, classAttemptsRes, weekViewsRes
         ] = await Promise.all([
           supabaseAdmin.from("videos").select("id, subject, title").eq("grade", grade),
           supabaseAdmin.from("video_views").select("video_id").eq("user_id", userId),
@@ -315,6 +318,8 @@ serve(async (req) => {
           supabaseAdmin.from("video_views").select("video_id, viewed_at").eq("user_id", userId).gte("viewed_at", weekBoundaries[7]).order("viewed_at", { ascending: true }),
           // Class average: all exam attempts for this grade (last 50 students)
           supabaseAdmin.from("exam_attempts").select("user_id, score, total, exam_id").in("exam_id", []),
+          // Videos watched this week with timestamps
+          supabaseAdmin.from("video_views").select("video_id, viewed_at").eq("user_id", userId).gte("viewed_at", weekStartDate.toISOString()).order("viewed_at", { ascending: false }),
         ]);
 
         const videos = videosRes.data || [];
@@ -455,6 +460,16 @@ serve(async (req) => {
         const watchedCount = views.size;
         const videoWatchPercent = totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0;
 
+        // === Watched videos this week ===
+        const weekViews = weekViewsRes.data || [];
+        const videoMap = new Map(videos.map((v: any) => [v.id, v]));
+        const watchedVideosThisWeek = weekViews
+          .filter((wv: any) => videoMap.has(wv.video_id))
+          .map((wv: any) => {
+            const v = videoMap.get(wv.video_id);
+            return { title: v.title, subject: v.subject, viewed_at: wv.viewed_at };
+          });
+
         studentDataList.push({
           profile: {
             user_id: student.user_id,
@@ -484,6 +499,7 @@ serve(async (req) => {
           },
           notifications: notificationsRes.data || [],
           parentMessages: parentNotificationsRes.data || [],
+          watchedVideosThisWeek,
         });
       }
 
