@@ -72,11 +72,21 @@ export function usePushNotifications() {
         return;
       }
 
-      // Subscription exists in browser - always re-persist to keep DB in sync
-      setIsSubscribed(true);
+      // Check if the subscription was created with the current VAPID key
+      // by trying to persist it - if the key changed, unsubscribe old and re-subscribe
       const persisted = await persistSubscription(subscription);
-      if (!persisted) {
-        console.warn("Push: Could not persist existing subscription, but keeping browser subscription active");
+      if (persisted) {
+        setIsSubscribed(true);
+      } else {
+        // Try to re-subscribe with current key
+        console.log("Push: Re-subscribing with current VAPID key");
+        await subscription.unsubscribe();
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+        });
+        const rePersisted = await persistSubscription(newSub);
+        setIsSubscribed(rePersisted);
       }
     } catch (err) {
       console.error("Push check error:", err);
