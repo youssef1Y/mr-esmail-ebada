@@ -26,6 +26,7 @@ export function usePushNotifications() {
 
     const subJson = subscription.toJSON();
     if (!subJson.endpoint || !subJson.keys?.p256dh || !subJson.keys?.auth) {
+      console.error("Push: Invalid subscription object");
       return false;
     }
 
@@ -41,7 +42,19 @@ export function usePushNotifications() {
 
     if (upsertError) {
       console.error("Failed to save push subscription:", upsertError);
-      return false;
+      // Try insert instead of upsert as fallback
+      const { error: insertError } = await supabase.from("push_subscriptions" as any).insert({
+        user_id: session.user.id,
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      });
+      if (insertError) {
+        // If duplicate key error, it's already saved - that's fine
+        if (insertError.code === "23505") return true;
+        console.error("Failed to insert push subscription:", insertError);
+        return false;
+      }
     }
 
     return true;
@@ -49,6 +62,8 @@ export function usePushNotifications() {
 
   const checkExistingSubscription = useCallback(async () => {
     try {
+      if (!("serviceWorker" in navigator)) return;
+      
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
 
@@ -57,11 +72,14 @@ export function usePushNotifications() {
         return;
       }
 
-      // Subscription exists in browser - mark as subscribed
-      // Try to persist but don't unsubscribe on failure
+      // Subscription exists in browser - always re-persist to keep DB in sync
       setIsSubscribed(true);
-      await persistSubscription(subscription);
-    } catch {
+      const persisted = await persistSubscription(subscription);
+      if (!persisted) {
+        console.warn("Push: Could not persist existing subscription, but keeping browser subscription active");
+      }
+    } catch (err) {
+      console.error("Push check error:", err);
       setIsSubscribed(false);
     }
   }, [persistSubscription]);
@@ -84,8 +102,10 @@ export function usePushNotifications() {
       if (perm !== "granted") return false;
 
       const registration = await navigator.serviceWorker.ready;
+      
+      // Always try to get fresh subscription
       let subscription = await registration.pushManager.getSubscription();
-
+      
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -95,7 +115,8 @@ export function usePushNotifications() {
 
       const persisted = await persistSubscription(subscription);
       if (!persisted) {
-        await subscription.unsubscribe();
+        // Don't unsubscribe from browser - just report failure
+        console.error("Push: Failed to persist subscription to server");
         setIsSubscribed(false);
         return false;
       }
@@ -132,4 +153,3 @@ export function usePushNotifications() {
 
   return { isSupported, isSubscribed, permission, subscribe, unsubscribe };
 }
-

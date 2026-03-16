@@ -109,8 +109,10 @@ export const PushNotificationBanner = () => {
   const [showBlocked, setShowBlocked] = useState(false);
 
   useEffect(() => {
-    const wasDismissed = localStorage.getItem("push_banner_dismissed");
-    if (wasDismissed) setDismissed(true);
+    // Only dismiss for current session, not permanently
+    // This ensures the banner shows again if the user returns later
+    const sessionDismissed = sessionStorage.getItem("push_banner_dismissed_session");
+    if (sessionDismissed) setDismissed(true);
   }, []);
 
   if (!isSupported || isSubscribed || dismissed) return null;
@@ -130,7 +132,8 @@ export const PushNotificationBanner = () => {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem("push_banner_dismissed", "true");
+    // Only session-based dismiss, so it reappears next visit
+    sessionStorage.setItem("push_banner_dismissed_session", "true");
   };
 
   return (
