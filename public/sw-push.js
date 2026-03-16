@@ -1,11 +1,18 @@
 // Custom service worker for push notifications
-// This file will be copied to /public and imported by the PWA service worker
+// Imported by the PWA service worker via importScripts
 
 self.addEventListener("push", (event) => {
-  if (!event.data) return;
+  console.log("[SW Push] Received push event");
+  
+  if (!event.data) {
+    console.log("[SW Push] No data in push event");
+    return;
+  }
 
   try {
     const data = event.data.json();
+    console.log("[SW Push] Data:", data.title);
+    
     const options = {
       body: data.body || "",
       icon: data.icon || "/pwa-192x192.png",
@@ -13,6 +20,9 @@ self.addEventListener("push", (event) => {
       dir: "rtl",
       lang: "ar",
       vibrate: [200, 100, 200],
+      tag: "notification-" + Date.now(),
+      renotify: true,
+      requireInteraction: true,
       data: {
         url: data.url || "/dashboard",
       },
@@ -25,7 +35,16 @@ self.addEventListener("push", (event) => {
       self.registration.showNotification(data.title || "منصة أ. إسماعيل", options)
     );
   } catch (e) {
-    console.error("Push event error:", e);
+    console.error("[SW Push] Error:", e);
+    // Fallback: show generic notification
+    event.waitUntil(
+      self.registration.showNotification("منصة أ. إسماعيل", {
+        body: "لديك إشعار جديد",
+        icon: "/pwa-192x192.png",
+        dir: "rtl",
+        lang: "ar",
+      })
+    );
   }
 });
 

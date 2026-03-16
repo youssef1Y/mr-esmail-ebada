@@ -18,17 +18,21 @@ async function invokePush(payload: PushPayload) {
     return false;
   }
 
+  console.log("Push result:", data);
   return true;
 }
 
 export async function sendPushToGrade(title: string, body: string, targetGrades?: string[]) {
   try {
-    await invokePush({
+    const result = await invokePush({
       title,
       body,
       target_grades: targetGrades,
       target_audience: "all",
     });
+    if (!result) {
+      console.error("Push to grade failed silently");
+    }
   } catch (err) {
     console.error("Auto push notification error:", err);
   }
@@ -39,11 +43,14 @@ export async function sendPushToUsers(title: string, body: string, targetUserIds
     const uniqueUserIds = [...new Set(targetUserIds.filter(Boolean))];
     if (uniqueUserIds.length === 0) return;
 
-    await invokePush({
+    const result = await invokePush({
       title,
       body,
       target_user_ids: uniqueUserIds,
     });
+    if (!result) {
+      console.error("Push to users failed silently");
+    }
   } catch (err) {
     console.error("Targeted push notification error:", err);
   }

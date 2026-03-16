@@ -23,6 +23,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Push: No auth header");
       return new Response(JSON.stringify({ error: "غير مصرح" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -58,6 +59,7 @@ serve(async (req) => {
       .eq("role", "admin");
 
     if (!roles || roles.length === 0) {
+      console.error("Push: User is not admin:", user.id);
       return new Response(JSON.stringify({ error: "غير مصرح - أدمن فقط" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -65,6 +67,8 @@ serve(async (req) => {
     }
 
     const { title, body, target_grades, target_audience, target_user_ids }: PushRequestBody = await req.json();
+
+    console.log("Push request:", { title, target_grades, target_audience, target_user_ids_count: target_user_ids?.length });
 
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "العنوان والمحتوى مطلوبان" }), {
@@ -77,6 +81,7 @@ serve(async (req) => {
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
     if (!vapidPublicKey || !vapidPrivateKey) {
+      console.error("Push: VAPID keys not configured");
       return new Response(JSON.stringify({ error: "VAPID keys not configured" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -118,6 +123,8 @@ serve(async (req) => {
       userIds = profiles?.map((p) => p.user_id) || [];
     }
 
+    console.log("Push: Target users count:", userIds.length);
+
     if (userIds.length === 0) {
       return new Response(JSON.stringify({ sent: 0, failed: 0 }), {
         status: 200,
@@ -125,12 +132,21 @@ serve(async (req) => {
       });
     }
 
-    const { data: subscriptions } = await supabaseAdmin
-      .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth")
-      .in("user_id", userIds);
+    // Fetch subscriptions in batches if needed (supabase default limit is 1000)
+    let allSubscriptions: any[] = [];
+    const batchSize = 500;
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const batch = userIds.slice(i, i + batchSize);
+      const { data: subs } = await supabaseAdmin
+        .from("push_subscriptions")
+        .select("id, endpoint, p256dh, auth, user_id")
+        .in("user_id", batch);
+      if (subs) allSubscriptions = allSubscriptions.concat(subs);
+    }
 
-    if (!subscriptions || subscriptions.length === 0) {
+    console.log("Push: Total subscriptions found:", allSubscriptions.length);
+
+    if (allSubscriptions.length === 0) {
       return new Response(JSON.stringify({ sent: 0, failed: 0, message: "لا توجد اشتراكات Push" }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -149,7 +165,8 @@ serve(async (req) => {
     let failed = 0;
     const expiredIds: string[] = [];
 
-    for (const sub of subscriptions) {
+    // Send in parallel with concurrency limit
+    const sendPromises = allSubscriptions.map(async (sub) => {
       try {
         await webpush.sendNotification(
           {
@@ -161,18 +178,24 @@ serve(async (req) => {
         sent++;
       } catch (err: any) {
         failed++;
+        console.error(`Push send failed for ${sub.user_id}:`, err?.statusCode, err?.body || err?.message);
         if (err.statusCode === 404 || err.statusCode === 410) {
           expiredIds.push(sub.id);
         }
       }
-    }
+    });
+
+    await Promise.allSettled(sendPromises);
 
     if (expiredIds.length > 0) {
       await supabaseAdmin
         .from("push_subscriptions")
         .delete()
         .in("id", expiredIds);
+      console.log("Push: Cleaned expired subscriptions:", expiredIds.length);
     }
+
+    console.log("Push result:", { sent, failed, expired_cleaned: expiredIds.length });
 
     return new Response(
       JSON.stringify({ sent, failed, expired_cleaned: expiredIds.length }),
