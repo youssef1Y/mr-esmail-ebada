@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, X, Smartphone } from "lucide-react";
+import { Download, X, Smartphone, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,14 +11,30 @@ const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as any).standalone === true;
 
+const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+const isSafari = () =>
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export const InstallPWABanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [sessionDismissed, setSessionDismissed] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
 
   useEffect(() => {
-    // If already installed as standalone, don't show
     if (isStandalone()) return;
+
+    // For iOS Safari, show manual guide
+    if (isIOS()) {
+      const dismissed = sessionStorage.getItem("pwa-ios-dismissed");
+      if (!dismissed) {
+        setShowBanner(true);
+        setShowIOSGuide(true);
+      }
+      return;
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -28,19 +44,15 @@ export const InstallPWABanner = () => {
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Listen for app installed event
     const installedHandler = () => {
       setShowBanner(false);
       setDeferredPrompt(null);
     };
     window.addEventListener("appinstalled", installedHandler);
 
-    // Re-check standalone mode periodically (for uninstall detection)
     const standaloneQuery = window.matchMedia("(display-mode: standalone)");
     const standaloneChange = (e: MediaQueryListEvent) => {
-      if (e.matches) {
-        setShowBanner(false);
-      }
+      if (e.matches) setShowBanner(false);
     };
     standaloneQuery.addEventListener("change", standaloneChange);
 
@@ -67,6 +79,9 @@ export const InstallPWABanner = () => {
 
   const handleDismiss = () => {
     setSessionDismissed(true);
+    if (showIOSGuide) {
+      sessionStorage.setItem("pwa-ios-dismissed", "1");
+    }
   };
 
   if (!showBanner || sessionDismissed || isStandalone()) return null;
@@ -80,14 +95,27 @@ export const InstallPWABanner = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-sm mb-1">حمّل التطبيق على موبايلك 📱</h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              ثبّت المنصة كتطبيق على جهازك لتجربة أسرع وإشعارات فورية
-            </p>
+            {showIOSGuide ? (
+              <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                <p>لتثبيت التطبيق على جهازك:</p>
+                <p className="flex items-center gap-1">
+                  ١. اضغط على أيقونة المشاركة <Share className="w-3 h-3 inline" /> أسفل الشاشة
+                </p>
+                <p>٢. اختر <strong>"إضافة إلى الشاشة الرئيسية"</strong></p>
+                <p>٣. اضغط <strong>"إضافة"</strong></p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mb-3">
+                ثبّت المنصة كتطبيق على جهازك لتجربة أسرع وإشعارات فورية
+              </p>
+            )}
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleInstall} className="gap-1.5 flex-1" disabled={!deferredPrompt}>
-                <Download className="w-3.5 h-3.5" />
-                تثبيت التطبيق
-              </Button>
+              {!showIOSGuide && (
+                <Button size="sm" onClick={handleInstall} className="gap-1.5 flex-1" disabled={!deferredPrompt}>
+                  <Download className="w-3.5 h-3.5" />
+                  تثبيت التطبيق
+                </Button>
+              )}
               <Button size="sm" variant="ghost" onClick={handleDismiss} className="px-2">
                 <X className="w-4 h-4" />
               </Button>
@@ -118,9 +146,7 @@ export const InstallPWAButton = () => {
     window.addEventListener("appinstalled", () => setIsInstalled(true));
 
     const standaloneQuery = window.matchMedia("(display-mode: standalone)");
-    const onChange = (e: MediaQueryListEvent) => {
-      setIsInstalled(e.matches);
-    };
+    const onChange = (e: MediaQueryListEvent) => setIsInstalled(e.matches);
     standaloneQuery.addEventListener("change", onChange);
 
     return () => {
