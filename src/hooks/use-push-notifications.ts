@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // This is a PUBLIC key, safe to expose in frontend
-const VAPID_PUBLIC_KEY = "BHusL3WHNweuAEJsiqvzu6-W25TzK7OoMwubLecyn6dswWaeXmNyldGQb3SFBSNn7fcRkgQVe0RTVj_TlmwGruw";
+const VAPID_PUBLIC_KEY = "BOMiwUCg5785RAFwt4LEhE-QcKv_xg26rW8SaIm9Y07RJxNv-VgrblD3sOTcpn4Ay5jL-LeSMIZdjXXZ1raLq70";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -72,11 +72,21 @@ export function usePushNotifications() {
         return;
       }
 
-      // Subscription exists in browser - always re-persist to keep DB in sync
-      setIsSubscribed(true);
+      // Check if the subscription was created with the current VAPID key
+      // by trying to persist it - if the key changed, unsubscribe old and re-subscribe
       const persisted = await persistSubscription(subscription);
-      if (!persisted) {
-        console.warn("Push: Could not persist existing subscription, but keeping browser subscription active");
+      if (persisted) {
+        setIsSubscribed(true);
+      } else {
+        // Try to re-subscribe with current key
+        console.log("Push: Re-subscribing with current VAPID key");
+        await subscription.unsubscribe();
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+        });
+        const rePersisted = await persistSubscription(newSub);
+        setIsSubscribed(rePersisted);
       }
     } catch (err) {
       console.error("Push check error:", err);
