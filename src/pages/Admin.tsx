@@ -1827,9 +1827,15 @@ const Admin = () => {
                     {/* Grade/Feedback editing */}
                     {editingSubmission === s.id ? (
                       <div className="space-y-3 border-t border-border pt-3">
-                        <div>
-                          <Label className="text-xs">الدرجة</Label>
-                          <Input type="number" min="0" max="10" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="أدخل الدرجة (من 0 إلى 10)" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">الدرجة</Label>
+                            <Input type="number" min="0" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="الدرجة" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">من (الدرجة الكلية)</Label>
+                            <Input type="number" min="1" value={editTotal} onChange={e => setEditTotal(e.target.value)} placeholder="مثلاً 20، 50، 100" />
+                          </div>
                         </div>
                         <div>
                           <Label className="text-xs">ملاحظات</Label>
@@ -1845,7 +1851,7 @@ const Admin = () => {
                             <Star className="w-3 h-3" />
                             حفظ
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingSubmission(null)}>إلغاء</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setEditingSubmission(null); setEditTotal(""); }}>إلغاء</Button>
                         </div>
                       </div>
                     ) : (
