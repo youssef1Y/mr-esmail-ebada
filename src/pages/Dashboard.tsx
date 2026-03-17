@@ -134,6 +134,8 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+  const [hwPdfFile, setHwPdfFile] = useState<File | null>(null);
+  const [hwUploading, setHwUploading] = useState(false);
 
   const fetchHomework = async () => {
     const { data } = await supabase.from("homework").select("*").order("created_at", { ascending: false });
@@ -147,18 +149,34 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       toast({ title: "خطأ", description: "أكمل الحقول المطلوبة", variant: "destructive" });
       return;
     }
+    setHwUploading(true);
+    let pdfUrl: string | null = null;
+    if (hwPdfFile) {
+      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setHwUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
     const { error } = await supabase.from("homework").insert({
       title: newHw.title,
       description: newHw.description || null,
       grade: newHw.grade,
       subject: newHw.subject,
       due_date: newHw.due_date || null,
-    });
+      pdf_url: pdfUrl,
+    } as any);
+    setHwUploading(false);
     if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
       sendPushToGrade("📋 واجب جديد", `تم إضافة واجب جديد: ${newHw.title} - ${newHw.subject}`, [newHw.grade]);
       setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      setHwPdfFile(null);
       setShowAdd(false);
       fetchHomework();
     }
@@ -194,8 +212,21 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
             <Label className="text-xs">الموعد النهائي (اختياري)</Label>
             <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
           </div>
+          <div>
+            <Label className="text-xs">ملف PDF (اختياري)</Label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <Upload className="w-4 h-4" />
+                {hwPdfFile ? hwPdfFile.name : "اختر ملف PDF"}
+                <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
+              </label>
+              {hwPdfFile && <button onClick={() => setHwPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+            </div>
+          </div>
           <div className="flex gap-2">
-            <Button onClick={addHomework} size="sm" className="flex-1">حفظ</Button>
+            <Button onClick={addHomework} size="sm" className="flex-1" disabled={hwUploading}>
+              {hwUploading ? "جاري الرفع..." : "حفظ"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
           </div>
         </div>
@@ -1210,6 +1241,8 @@ const Dashboard = () => {
   const [showAddExam, setShowAddExam] = useState(false);
   const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+  const [examPdfFile, setExamPdfFile] = useState<File | null>(null);
+  const [examUploading, setExamUploading] = useState(false);
 
   // Exam results state
   const [viewingExamResults, setViewingExamResults] = useState<string | null>(null);
@@ -1482,9 +1515,23 @@ const Dashboard = () => {
       return;
     }
     const validQuestions = examQuestions.filter(q => q.question_text.trim());
-    if (validQuestions.length === 0) {
-      toast({ title: "خطأ", description: "أضف سؤال واحد على الأقل", variant: "destructive" });
+    if (validQuestions.length === 0 && !examPdfFile) {
+      toast({ title: "خطأ", description: "أضف سؤال واحد على الأقل أو ارفع ملف PDF", variant: "destructive" });
       return;
+    }
+
+    setExamUploading(true);
+    let pdfUrl: string | null = null;
+    if (examPdfFile) {
+      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setExamUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
     }
 
     const { data: exam, error } = await supabase.from("exams").insert({
@@ -1493,24 +1540,29 @@ const Dashboard = () => {
       subject: newExam.subject,
       video_id: newExam.video_id || null,
       access_type: newExam.access_type,
-    }).select().single();
+      pdf_url: pdfUrl,
+    } as any).select().single();
 
-    if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); return; }
+    if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); setExamUploading(false); return; }
 
-    const questionsToInsert = validQuestions.map((q, i) => ({
-      exam_id: exam.id,
-      question_text: q.question_text,
-      question_type: q.question_type,
-      options: q.question_type === "mcq" ? q.options.filter(o => o.trim()) : null,
-      correct_answer: q.question_type === "mcq" ? q.correct_answer : null,
-      sort_order: i,
-    }));
+    if (validQuestions.length > 0) {
+      const questionsToInsert = validQuestions.map((q, i) => ({
+        exam_id: exam.id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        options: q.question_type === "mcq" ? q.options.filter(o => o.trim()) : null,
+        correct_answer: q.question_type === "mcq" ? q.correct_answer : null,
+        sort_order: i,
+      }));
+      await supabase.from("exam_questions").insert(questionsToInsert);
+    }
 
-    await supabase.from("exam_questions").insert(questionsToInsert);
+    setExamUploading(false);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
     sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+    setExamPdfFile(null);
     setShowAddExam(false);
     fetchExams();
   };
@@ -2486,8 +2538,22 @@ const Dashboard = () => {
                         </div>
                       </div>
 
+                      <div>
+                        <Label className="text-xs">ملف PDF (اختياري)</Label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                            <Upload className="w-4 h-4" />
+                            {examPdfFile ? examPdfFile.name : "اختر ملف PDF"}
+                            <input type="file" accept=".pdf" className="hidden" onChange={e => setExamPdfFile(e.target.files?.[0] || null)} />
+                          </label>
+                          {examPdfFile && <button onClick={() => setExamPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
-                        <Button onClick={addExam} size="sm" className="flex-1">حفظ الامتحان</Button>
+                        <Button onClick={addExam} size="sm" className="flex-1" disabled={examUploading}>
+                          {examUploading ? "جاري الرفع..." : "حفظ الامتحان"}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => setShowAddExam(false)}>إلغاء</Button>
                       </div>
                     </div>
