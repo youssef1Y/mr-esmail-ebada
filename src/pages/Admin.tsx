@@ -1328,6 +1328,13 @@ const Admin = () => {
                     </select>
                   </div>
                 )}
+                <div>
+                  <Label>متاح لـ</Label>
+                  <div className="flex gap-2 mt-1">
+                    <button onClick={() => setNewVideo({ ...newVideo, access_type: "all" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>كل الطلاب</button>
+                    <button onClick={() => setNewVideo({ ...newVideo, access_type: "subscribers_only" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "subscribers_only" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>المشتركين فقط</button>
+                  </div>
+                </div>
                 {/* Video Homework Section */}
                 <div className="border-t border-border pt-4 mt-4">
                   <div className="flex items-center gap-2 mb-3">
