@@ -1862,6 +1862,7 @@ const Admin = () => {
                         onClick={() => {
                           setEditingSubmission(s.id);
                           setEditScore(s.score?.toString() || "");
+                          setEditTotal((s as any).total?.toString() || "");
                           setEditFeedback(s.feedback || "");
                         }}
                       >
