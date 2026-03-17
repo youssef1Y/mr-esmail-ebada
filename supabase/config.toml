@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.summarize-video]
 verify_jwt = false
+
+[functions.subscription-action]
+verify_jwt = false
