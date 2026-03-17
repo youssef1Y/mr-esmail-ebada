@@ -14,6 +14,7 @@ interface HomeworkItem {
   subject: string;
   due_date: string | null;
   created_at: string;
+  pdf_url: string | null;
 }
 
 interface Submission {
