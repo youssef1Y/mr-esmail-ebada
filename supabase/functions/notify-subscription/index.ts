@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "npm:resend@4.0.0";
+import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
 const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "esmail.ahmed590@gmail.com";
 
@@ -8,6 +9,23 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+async function generateToken(requestId: string, action: string): Promise<string> {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${requestId}:${action}`)
+  );
+  return new TextDecoder().decode(hexEncode(new Uint8Array(signature)));
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,9 +55,8 @@ serve(async (req) => {
       });
     }
 
-    const { fullName, grade, senderPhone, transferNumber, amount, receiptPath } = await req.json();
+    const { fullName, grade, senderPhone, transferNumber, amount, receiptPath, requestId } = await req.json();
 
-    // HTML-escape helper to prevent injection
     const esc = (s: string) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
     if (!fullName || !senderPhone || !transferNumber) {
@@ -49,7 +66,7 @@ serve(async (req) => {
       });
     }
 
-    // Generate signed URL for receipt image if available
+    // Generate signed URL for receipt image
     let receiptUrl = "";
     if (receiptPath) {
       const adminClient = createClient(
@@ -58,7 +75,7 @@ serve(async (req) => {
       );
       const { data: signedData } = await adminClient.storage
         .from("receipts")
-        .createSignedUrl(receiptPath, 60 * 60 * 24 * 7); // 7 days
+        .createSignedUrl(receiptPath, 60 * 60 * 24 * 7);
       if (signedData?.signedUrl) {
         receiptUrl = signedData.signedUrl;
       }
@@ -71,6 +88,32 @@ serve(async (req) => {
     const submissionTime = now.toLocaleTimeString("ar-EG", {
       hour: "2-digit", minute: "2-digit",
     });
+
+    // Generate action buttons if requestId is provided
+    let actionButtonsHtml = "";
+    if (requestId) {
+      const baseUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/subscription-action`;
+      const approveToken = await generateToken(requestId, "approve");
+      const rejectToken = await generateToken(requestId, "reject");
+
+      const approveUrl = `${baseUrl}?id=${requestId}&action=approve&token=${approveToken}`;
+      const rejectUrl = `${baseUrl}?id=${requestId}&action=reject&token=${rejectToken}`;
+
+      actionButtonsHtml = `
+        <div style="margin-top: 28px; text-align: center;">
+          <h3 style="color: #333; margin-bottom: 16px; font-size: 16px;">⚡ إجراء سريع من الإيميل:</h3>
+          <a href="${approveUrl}" target="_blank" 
+             style="display: inline-block; background: #2d6a4f; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; margin: 0 8px;">
+            ✅ قبول الطلب
+          </a>
+          <a href="${rejectUrl}" target="_blank" 
+             style="display: inline-block; background: #e53935; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; margin: 0 8px;">
+            ❌ رفض الطلب
+          </a>
+          <p style="color: #999; font-size: 12px; margin-top: 12px;">أو يمكنك إدارة الطلب من لوحة التحكم</p>
+        </div>
+      `;
+    }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (resendKey) {
@@ -99,10 +142,11 @@ serve(async (req) => {
                   <img src="${receiptUrl}" alt="إيصال التحويل" style="max-width: 100%; max-height: 500px; border: 1px solid #ddd; border-radius: 8px;" />
                 </div>`
               : '<p style="margin-top: 16px; color: #999;">⚠️ لم يتم رفع إيصال</p>'}
+            ${actionButtonsHtml}
           </div>
         `,
       });
-      console.log("Email sent successfully to admin");
+      console.log("Email sent successfully to admin with action buttons");
     } else {
       console.error("RESEND_API_KEY not configured");
     }
