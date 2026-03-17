@@ -224,6 +224,53 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
     setBulkQuestions([]); setShowBulk(false); fetchQuestions();
   };
 
+  const handlePdfUpload = async () => {
+    if (!pdfGrade || !pdfSubject) {
+      toast({ title: "خطأ", description: "اختر الصف والمادة أولاً", variant: "destructive" });
+      return;
+    }
+    if (!pdfFile) {
+      toast({ title: "خطأ", description: "اختر ملف PDF أولاً", variant: "destructive" });
+      return;
+    }
+
+    setPdfParsing(true);
+    setPdfResult(null);
+
+    try {
+      // Upload PDF to documents bucket
+      const path = `question-bank/${Date.now()}_${pdfFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("documents").upload(path, pdfFile);
+      if (uploadError) {
+        toast({ title: "خطأ", description: "فشل رفع الملف", variant: "destructive" });
+        setPdfParsing(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+      const pdfUrl = urlData.publicUrl;
+
+      // Call parse-pdf-questions edge function
+      const { data, error } = await supabase.functions.invoke("parse-pdf-questions", {
+        body: { pdf_url: pdfUrl, grade: pdfGrade, subject: pdfSubject, lesson: pdfLesson || null },
+      });
+
+      if (error || !data?.success) {
+        toast({ title: "خطأ", description: data?.error || "فشل تحليل الملف", variant: "destructive" });
+      } else {
+        toast({ title: `تم استخراج وحفظ ${data.count} سؤال ✅` });
+        setPdfResult(data);
+        setPdfFile(null);
+        fetchQuestions();
+      }
+    } catch (e) {
+      console.error("PDF parse error:", e);
+      toast({ title: "خطأ", description: "حدث خطأ غير متوقع", variant: "destructive" });
+    }
+
+    setPdfParsing(false);
+  };
+
   const filtered = questions.filter(q =>
     !searchQuery || q.question_text.includes(searchQuery) || (q.lesson || "").includes(searchQuery)
   );
