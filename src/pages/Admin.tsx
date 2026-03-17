@@ -504,7 +504,7 @@ const Admin = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "", access_type: "all" });
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [videoHomeworkEnabled, setVideoHomeworkEnabled] = useState(false);
   const [videoHomeworkDesc, setVideoHomeworkDesc] = useState("");
@@ -903,7 +903,7 @@ const Admin = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject };
+    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type };
     if (newVideo.subject === "الفقه" && newVideo.madhab) {
       videoData.madhab = newVideo.madhab;
     }
@@ -923,7 +923,7 @@ const Admin = () => {
       toast({ title: "تم إضافة الفيديو" });
       // Send push notification for new video
       sendPushToGrade(`فيديو جديد: ${newVideo.title}`, `تم إضافة فيديو جديد في ${newVideo.subject}`, [newVideo.grade]);
-      setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
+      setNewVideo({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "", access_type: "all" });
       setVideoHomeworkEnabled(false);
       setVideoHomeworkDesc("");
       setVideoHomeworkQuestions([]);
@@ -1328,6 +1328,13 @@ const Admin = () => {
                     </select>
                   </div>
                 )}
+                <div>
+                  <Label>متاح لـ</Label>
+                  <div className="flex gap-2 mt-1">
+                    <button onClick={() => setNewVideo({ ...newVideo, access_type: "all" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>كل الطلاب</button>
+                    <button onClick={() => setNewVideo({ ...newVideo, access_type: "subscribers_only" })} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newVideo.access_type === "subscribers_only" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>المشتركين فقط</button>
+                  </div>
+                </div>
                 {/* Video Homework Section */}
                 <div className="border-t border-border pt-4 mt-4">
                   <div className="flex items-center gap-2 mb-3">
