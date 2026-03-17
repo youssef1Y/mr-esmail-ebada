@@ -54,6 +54,15 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [bulkQuestions, setBulkQuestions] = useState<any[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
 
+  // PDF Upload
+  const [showPdf, setShowPdf] = useState(false);
+  const [pdfGrade, setPdfGrade] = useState("");
+  const [pdfSubject, setPdfSubject] = useState("");
+  const [pdfLesson, setPdfLesson] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const [pdfResult, setPdfResult] = useState<any>(null);
+
   // Filters
   const [filterGrade, setFilterGrade] = useState("");
   const [filterSubject, setFilterSubject] = useState("");
