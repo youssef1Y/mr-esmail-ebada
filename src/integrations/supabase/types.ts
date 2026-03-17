@@ -203,6 +203,7 @@ export type Database = {
           created_at: string
           grade: string
           id: string
+          pdf_url: string | null
           subject: string
           title: string
           video_id: string | null
@@ -212,6 +213,7 @@ export type Database = {
           created_at?: string
           grade: string
           id?: string
+          pdf_url?: string | null
           subject: string
           title: string
           video_id?: string | null
@@ -221,6 +223,7 @@ export type Database = {
           created_at?: string
           grade?: string
           id?: string
+          pdf_url?: string | null
           subject?: string
           title?: string
           video_id?: string | null
@@ -242,6 +245,7 @@ export type Database = {
           due_date: string | null
           grade: string
           id: string
+          pdf_url: string | null
           subject: string
           title: string
         }
@@ -251,6 +255,7 @@ export type Database = {
           due_date?: string | null
           grade: string
           id?: string
+          pdf_url?: string | null
           subject: string
           title: string
         }
@@ -260,6 +265,7 @@ export type Database = {
           due_date?: string | null
           grade?: string
           id?: string
+          pdf_url?: string | null
           subject?: string
           title?: string
         }
@@ -274,6 +280,7 @@ export type Database = {
           image_urls: string[] | null
           score: number | null
           submitted_at: string
+          total: number | null
           user_id: string
         }
         Insert: {
@@ -284,6 +291,7 @@ export type Database = {
           image_urls?: string[] | null
           score?: number | null
           submitted_at?: string
+          total?: number | null
           user_id: string
         }
         Update: {
@@ -294,6 +302,7 @@ export type Database = {
           image_urls?: string[] | null
           score?: number | null
           submitted_at?: string
+          total?: number | null
           user_id?: string
         }
         Relationships: [
