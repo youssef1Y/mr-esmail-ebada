@@ -69,6 +69,10 @@ const Register = () => {
       toast({ title: "بيانات ناقصة", description: "رقم الطالب مطلوب", variant: "destructive" });
       return;
     }
+    if (normalizedParentPhone && normalizedParentPhone === normalizedStudentPhone) {
+      toast({ title: "خطأ في البيانات", description: "رقم ولي الأمر لازم يكون مختلف عن رقم الطالب", variant: "destructive" });
+      return;
+    }
 
     setLoading(true);
     const email = `${normalizedStudentPhone}@ismail-ebada.platform`;
