@@ -1241,6 +1241,8 @@ const Dashboard = () => {
   const [showAddExam, setShowAddExam] = useState(false);
   const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+  const [examPdfFile, setExamPdfFile] = useState<File | null>(null);
+  const [examUploading, setExamUploading] = useState(false);
 
   // Exam results state
   const [viewingExamResults, setViewingExamResults] = useState<string | null>(null);
