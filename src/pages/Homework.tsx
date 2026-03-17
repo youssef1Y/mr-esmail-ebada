@@ -141,7 +141,13 @@ const Homework = () => {
           <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedHw(null)}>
             <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <h2 className="font-bold text-lg mb-1">{selectedHw.title}</h2>
-              {selectedHw.description && <p className="text-sm text-muted-foreground mb-4">{selectedHw.description}</p>}
+              {selectedHw.description && <p className="text-sm text-muted-foreground mb-2">{selectedHw.description}</p>}
+              {(selectedHw as any).pdf_url && (
+                <a href={(selectedHw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
+                  <FileText className="w-4 h-4" />
+                  عرض ملف PDF الواجب
+                </a>
+              )}
 
               <div className="space-y-4">
                 <div>
