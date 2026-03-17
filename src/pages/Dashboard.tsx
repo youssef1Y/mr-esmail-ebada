@@ -212,8 +212,21 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
             <Label className="text-xs">الموعد النهائي (اختياري)</Label>
             <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
           </div>
+          <div>
+            <Label className="text-xs">ملف PDF (اختياري)</Label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <Upload className="w-4 h-4" />
+                {hwPdfFile ? hwPdfFile.name : "اختر ملف PDF"}
+                <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
+              </label>
+              {hwPdfFile && <button onClick={() => setHwPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+            </div>
+          </div>
           <div className="flex gap-2">
-            <Button onClick={addHomework} size="sm" className="flex-1">حفظ</Button>
+            <Button onClick={addHomework} size="sm" className="flex-1" disabled={hwUploading}>
+              {hwUploading ? "جاري الرفع..." : "حفظ"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>إلغاء</Button>
           </div>
         </div>
