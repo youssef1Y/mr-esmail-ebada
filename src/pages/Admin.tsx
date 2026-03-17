@@ -1761,13 +1761,70 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold font-amiri">تسليمات الواجبات</h2>
-              <Button variant="outline" size="sm" onClick={fetchHomeworkSubmissions} className="gap-1">
-                <RefreshCw className="w-3 h-3" />
-                تحديث
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowAddHomework(!showAddHomework)} className="gap-1">
+                  <Plus className="w-3 h-3" />
+                  إضافة واجب
+                </Button>
+                <Button variant="outline" size="sm" onClick={fetchHomeworkSubmissions} className="gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  تحديث
+                </Button>
+              </div>
             </div>
 
-            {/* Filters */}
+            {/* Add Homework Form */}
+            {showAddHomework && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <h3 className="font-bold text-sm">إنشاء واجب جديد</h3>
+                <div>
+                  <Label className="text-xs">عنوان الواجب *</Label>
+                  <Input value={newHw.title} onChange={e => setNewHw({ ...newHw, title: e.target.value })} placeholder="عنوان الواجب" />
+                </div>
+                <div>
+                  <Label className="text-xs">الوصف</Label>
+                  <textarea value={newHw.description} onChange={e => setNewHw({ ...newHw, description: e.target.value })} placeholder="وصف الواجب..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px]" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">الصف *</Label>
+                    <select value={newHw.grade} onChange={e => setNewHw({ ...newHw, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر الصف</option>
+                      {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">المادة *</Label>
+                    <select value={newHw.subject} onChange={e => setNewHw({ ...newHw, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر المادة</option>
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">تاريخ التسليم (اختياري)</Label>
+                  <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">ملف PDF (اختياري)</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {hwPdfFile ? hwPdfFile.name : "اختر ملف PDF"}
+                      <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {hwPdfFile && <Button variant="ghost" size="sm" onClick={() => setHwPdfFile(null)}>✕</Button>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={createHomework} disabled={hwCreating} className="flex-1 gap-1">
+                    {hwCreating ? <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Plus className="w-3 h-3" />}
+                    إنشاء الواجب
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddHomework(false)}>إلغاء</Button>
+                </div>
+              </div>
+            )}
             <div className="bg-card rounded-xl border border-border p-4 space-y-3">
               <div>
                 <Label className="text-xs">بحث بالاسم أو رقم الموبايل</Label>
