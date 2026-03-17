@@ -531,7 +531,17 @@ const Admin = () => {
   const [examSearchQuery, setExamSearchQuery] = useState("");
   const [examLoadingData, setExamLoadingData] = useState(false);
 
-  // Messages state
+  // Homework creation state
+  const [showAddHomework, setShowAddHomework] = useState(false);
+  const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+  const [hwPdfFile, setHwPdfFile] = useState<File | null>(null);
+  const [hwCreating, setHwCreating] = useState(false);
+
+  // Exam creation state
+  const [showAddExam, setShowAddExam] = useState(false);
+  const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", access_type: "all" });
+  const [examPdfFile, setExamPdfFile] = useState<File | null>(null);
+  const [examCreating, setExamCreating] = useState(false);
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [selectedConvo, setSelectedConvo] = useState<string | null>(null);
