@@ -970,16 +970,28 @@ const Admin = () => {
     }));
   };
 
+  const [editTotal, setEditTotal] = useState("");
+
   const saveSubmissionGrade = async (submissionId: string) => {
     const scoreNum = editScore ? parseInt(editScore) : null;
-    if (scoreNum !== null && (scoreNum < 0 || scoreNum > 10)) {
-      toast({ title: "خطأ", description: "الدرجة يجب أن تكون بين 0 و 10", variant: "destructive" });
+    const totalNum = editTotal ? parseInt(editTotal) : null;
+    if (scoreNum !== null && scoreNum < 0) {
+      toast({ title: "خطأ", description: "الدرجة يجب أن تكون 0 أو أكثر", variant: "destructive" });
+      return;
+    }
+    if (totalNum !== null && totalNum <= 0) {
+      toast({ title: "خطأ", description: "الدرجة الكلية يجب أن تكون أكبر من 0", variant: "destructive" });
+      return;
+    }
+    if (scoreNum !== null && totalNum !== null && scoreNum > totalNum) {
+      toast({ title: "خطأ", description: "الدرجة لا يمكن أن تكون أكبر من الدرجة الكلية", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("homework_submissions").update({
       score: scoreNum,
+      total: totalNum,
       feedback: editFeedback || null,
-    }).eq("id", submissionId);
+    } as any).eq("id", submissionId);
 
     if (error) {
       console.error("Update submission error:", error);
@@ -988,6 +1000,7 @@ const Admin = () => {
       toast({ title: "تم حفظ الدرجة والملاحظات" });
       setEditingSubmission(null);
       setEditScore("");
+      setEditTotal("");
       setEditFeedback("");
       fetchHomeworkSubmissions();
     }
