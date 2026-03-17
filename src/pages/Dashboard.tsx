@@ -134,6 +134,8 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+  const [hwPdfFile, setHwPdfFile] = useState<File | null>(null);
+  const [hwUploading, setHwUploading] = useState(false);
 
   const fetchHomework = async () => {
     const { data } = await supabase.from("homework").select("*").order("created_at", { ascending: false });
