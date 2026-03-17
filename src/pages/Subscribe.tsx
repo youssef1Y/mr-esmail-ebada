@@ -70,13 +70,13 @@ const Subscribe = () => {
       return;
     }
 
-    const { error } = await supabase.from("subscription_requests").insert({
+    const { data: insertedRequest, error } = await supabase.from("subscription_requests").insert({
       user_id: user.id,
       transfer_number: normalizedTransferNumber,
       sender_phone: normalizedSenderPhone,
       receipt_url: receiptPath,
       amount: subscriptionPrice,
-    });
+    }).select("id").single();
 
     if (error) {
       setSubmitting(false);
@@ -92,6 +92,7 @@ const Subscribe = () => {
         transferNumber: normalizedTransferNumber,
         amount: subscriptionPrice,
         receiptPath,
+        requestId: insertedRequest?.id,
       },
     });
 
