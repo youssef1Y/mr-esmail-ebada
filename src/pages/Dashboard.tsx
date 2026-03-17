@@ -15,6 +15,7 @@ import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
+import { usePrayerNotifications } from "@/hooks/use-prayer-notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1154,6 +1155,7 @@ const ContactSection = ({ userId, toast }: { userId: string; toast: any }) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  usePrayerNotifications();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
