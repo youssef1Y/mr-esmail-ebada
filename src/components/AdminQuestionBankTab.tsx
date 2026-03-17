@@ -287,8 +287,9 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </h2>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={fetchQuestions} className="gap-1"><RefreshCw className="w-3 h-3" /> تحديث</Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
-            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowPdf(!showPdf); setShowBulk(false); setShowAdd(false); }} className="gap-1"><FileText className="w-3 h-3" /> رفع PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); setShowPdf(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
+            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setShowPdf(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
           </div>
         </div>
 
