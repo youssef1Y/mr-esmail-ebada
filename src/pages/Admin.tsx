@@ -1748,9 +1748,9 @@ const Admin = () => {
                         <p className="text-xs text-muted-foreground">تاريخ التسليم: {new Date(s.submitted_at).toLocaleDateString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {s.score !== null && (
+                         {s.score !== null && (
                           <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-bold">
-                            {s.score} درجة
+                            {s.score}{(s as any).total ? `/${(s as any).total}` : ""} درجة
                           </span>
                         )}
                         {hwViewMode === "graded" && (
