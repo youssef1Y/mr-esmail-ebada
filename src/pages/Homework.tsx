@@ -228,6 +228,12 @@ const Homework = () => {
                           الموعد النهائي: {new Date(hw.due_date).toLocaleDateString("ar-EG")}
                         </p>
                       )}
+                      {(hw as any).pdf_url && (
+                        <a href={(hw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                          <FileText className="w-3 h-3" />
+                          عرض ملف PDF
+                        </a>
+                      )}
                     </div>
                     {sub ? (
                       <div className="text-center">
