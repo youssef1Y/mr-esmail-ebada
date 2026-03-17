@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet } from "lucide-react";
+import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,15 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [bulkLesson, setBulkLesson] = useState("");
   const [bulkQuestions, setBulkQuestions] = useState<any[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  // PDF Upload
+  const [showPdf, setShowPdf] = useState(false);
+  const [pdfGrade, setPdfGrade] = useState("");
+  const [pdfSubject, setPdfSubject] = useState("");
+  const [pdfLesson, setPdfLesson] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const [pdfResult, setPdfResult] = useState<any>(null);
 
   // Filters
   const [filterGrade, setFilterGrade] = useState("");
@@ -215,6 +224,53 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
     setBulkQuestions([]); setShowBulk(false); fetchQuestions();
   };
 
+  const handlePdfUpload = async () => {
+    if (!pdfGrade || !pdfSubject) {
+      toast({ title: "خطأ", description: "اختر الصف والمادة أولاً", variant: "destructive" });
+      return;
+    }
+    if (!pdfFile) {
+      toast({ title: "خطأ", description: "اختر ملف PDF أولاً", variant: "destructive" });
+      return;
+    }
+
+    setPdfParsing(true);
+    setPdfResult(null);
+
+    try {
+      // Upload PDF to documents bucket
+      const path = `question-bank/${Date.now()}_${pdfFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("documents").upload(path, pdfFile);
+      if (uploadError) {
+        toast({ title: "خطأ", description: "فشل رفع الملف", variant: "destructive" });
+        setPdfParsing(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+      const pdfUrl = urlData.publicUrl;
+
+      // Call parse-pdf-questions edge function
+      const { data, error } = await supabase.functions.invoke("parse-pdf-questions", {
+        body: { pdf_url: pdfUrl, grade: pdfGrade, subject: pdfSubject, lesson: pdfLesson || null },
+      });
+
+      if (error || !data?.success) {
+        toast({ title: "خطأ", description: data?.error || "فشل تحليل الملف", variant: "destructive" });
+      } else {
+        toast({ title: `تم استخراج وحفظ ${data.count} سؤال ✅` });
+        setPdfResult(data);
+        setPdfFile(null);
+        fetchQuestions();
+      }
+    } catch (e) {
+      console.error("PDF parse error:", e);
+      toast({ title: "خطأ", description: "حدث خطأ غير متوقع", variant: "destructive" });
+    }
+
+    setPdfParsing(false);
+  };
+
   const filtered = questions.filter(q =>
     !searchQuery || q.question_text.includes(searchQuery) || (q.lesson || "").includes(searchQuery)
   );
@@ -231,8 +287,9 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </h2>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={fetchQuestions} className="gap-1"><RefreshCw className="w-3 h-3" /> تحديث</Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
-            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowPdf(!showPdf); setShowBulk(false); setShowAdd(false); }} className="gap-1"><FileText className="w-3 h-3" /> رفع PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); setShowPdf(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
+            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setShowPdf(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
           </div>
         </div>
 
@@ -251,6 +308,50 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
             <Input placeholder="بحث..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
           </div>
         </div>
+
+        {/* ===== PDF UPLOAD ===== */}
+        {showPdf && (
+          <div className="bg-muted rounded-xl p-4 mb-4 space-y-3">
+            <h3 className="font-bold text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> رفع PDF واستخراج الأسئلة بالذكاء الاصطناعي</h3>
+            <p className="text-xs text-muted-foreground">ارفع ملف PDF يحتوي على أسئلة وسيتم استخراجها تلقائياً وإضافتها لبنك الأسئلة</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">الصف *</Label>
+                <select value={pdfGrade} onChange={e => setPdfGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر الصف</option>
+                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">المادة *</Label>
+                <select value={pdfSubject} onChange={e => setPdfSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر المادة</option>
+                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">الدرس (اختياري)</Label>
+                <Input value={pdfLesson} onChange={e => setPdfLesson(e.target.value)} placeholder="اسم الدرس" />
+              </div>
+            </div>
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-primary/50 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-colors">
+              <FileText className="w-8 h-8 text-primary mb-2" />
+              <span className="text-sm text-primary font-medium">{pdfFile ? pdfFile.name : "اختر ملف PDF"}</span>
+              <input type="file" accept=".pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) setPdfFile(e.target.files[0]); }} />
+            </label>
+            {pdfResult && (
+              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 text-sm">
+                <p className="font-bold text-green-700 dark:text-green-400">✅ تم استخراج {pdfResult.count} سؤال بنجاح</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={handlePdfUpload} disabled={pdfParsing || !pdfFile} className="flex-1 gap-1">
+                {pdfParsing ? "جاري التحليل..." : "استخراج الأسئلة"}
+              </Button>
+              <Button variant="outline" onClick={() => { setShowPdf(false); setPdfFile(null); setPdfResult(null); }}>إلغاء</Button>
+            </div>
+          </div>
+        )}
 
         {/* ===== ADD MULTIPLE QUESTIONS ===== */}
         {showAdd && (

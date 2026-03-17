@@ -970,16 +970,28 @@ const Admin = () => {
     }));
   };
 
+  const [editTotal, setEditTotal] = useState("");
+
   const saveSubmissionGrade = async (submissionId: string) => {
     const scoreNum = editScore ? parseInt(editScore) : null;
-    if (scoreNum !== null && (scoreNum < 0 || scoreNum > 10)) {
-      toast({ title: "خطأ", description: "الدرجة يجب أن تكون بين 0 و 10", variant: "destructive" });
+    const totalNum = editTotal ? parseInt(editTotal) : null;
+    if (scoreNum !== null && scoreNum < 0) {
+      toast({ title: "خطأ", description: "الدرجة يجب أن تكون 0 أو أكثر", variant: "destructive" });
+      return;
+    }
+    if (totalNum !== null && totalNum <= 0) {
+      toast({ title: "خطأ", description: "الدرجة الكلية يجب أن تكون أكبر من 0", variant: "destructive" });
+      return;
+    }
+    if (scoreNum !== null && totalNum !== null && scoreNum > totalNum) {
+      toast({ title: "خطأ", description: "الدرجة لا يمكن أن تكون أكبر من الدرجة الكلية", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("homework_submissions").update({
       score: scoreNum,
+      total: totalNum,
       feedback: editFeedback || null,
-    }).eq("id", submissionId);
+    } as any).eq("id", submissionId);
 
     if (error) {
       console.error("Update submission error:", error);
@@ -988,6 +1000,7 @@ const Admin = () => {
       toast({ title: "تم حفظ الدرجة والملاحظات" });
       setEditingSubmission(null);
       setEditScore("");
+      setEditTotal("");
       setEditFeedback("");
       fetchHomeworkSubmissions();
     }
@@ -1735,9 +1748,9 @@ const Admin = () => {
                         <p className="text-xs text-muted-foreground">تاريخ التسليم: {new Date(s.submitted_at).toLocaleDateString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {s.score !== null && (
+                         {s.score !== null && (
                           <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-bold">
-                            {s.score} درجة
+                            {s.score}{(s as any).total ? `/${(s as any).total}` : ""} درجة
                           </span>
                         )}
                         {hwViewMode === "graded" && (
@@ -1814,9 +1827,15 @@ const Admin = () => {
                     {/* Grade/Feedback editing */}
                     {editingSubmission === s.id ? (
                       <div className="space-y-3 border-t border-border pt-3">
-                        <div>
-                          <Label className="text-xs">الدرجة</Label>
-                          <Input type="number" min="0" max="10" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="أدخل الدرجة (من 0 إلى 10)" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">الدرجة</Label>
+                            <Input type="number" min="0" value={editScore} onChange={e => setEditScore(e.target.value)} placeholder="الدرجة" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">من (الدرجة الكلية)</Label>
+                            <Input type="number" min="1" value={editTotal} onChange={e => setEditTotal(e.target.value)} placeholder="مثلاً 20، 50، 100" />
+                          </div>
                         </div>
                         <div>
                           <Label className="text-xs">ملاحظات</Label>
@@ -1832,7 +1851,7 @@ const Admin = () => {
                             <Star className="w-3 h-3" />
                             حفظ
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingSubmission(null)}>إلغاء</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setEditingSubmission(null); setEditTotal(""); }}>إلغاء</Button>
                         </div>
                       </div>
                     ) : (
@@ -1843,6 +1862,7 @@ const Admin = () => {
                         onClick={() => {
                           setEditingSubmission(s.id);
                           setEditScore(s.score?.toString() || "");
+                          setEditTotal((s as any).total?.toString() || "");
                           setEditFeedback(s.feedback || "");
                         }}
                       >
