@@ -309,6 +309,50 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </div>
         </div>
 
+        {/* ===== PDF UPLOAD ===== */}
+        {showPdf && (
+          <div className="bg-muted rounded-xl p-4 mb-4 space-y-3">
+            <h3 className="font-bold text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> رفع PDF واستخراج الأسئلة بالذكاء الاصطناعي</h3>
+            <p className="text-xs text-muted-foreground">ارفع ملف PDF يحتوي على أسئلة وسيتم استخراجها تلقائياً وإضافتها لبنك الأسئلة</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">الصف *</Label>
+                <select value={pdfGrade} onChange={e => setPdfGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر الصف</option>
+                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">المادة *</Label>
+                <select value={pdfSubject} onChange={e => setPdfSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر المادة</option>
+                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">الدرس (اختياري)</Label>
+                <Input value={pdfLesson} onChange={e => setPdfLesson(e.target.value)} placeholder="اسم الدرس" />
+              </div>
+            </div>
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-primary/50 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-colors">
+              <FileText className="w-8 h-8 text-primary mb-2" />
+              <span className="text-sm text-primary font-medium">{pdfFile ? pdfFile.name : "اختر ملف PDF"}</span>
+              <input type="file" accept=".pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) setPdfFile(e.target.files[0]); }} />
+            </label>
+            {pdfResult && (
+              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 text-sm">
+                <p className="font-bold text-green-700 dark:text-green-400">✅ تم استخراج {pdfResult.count} سؤال بنجاح</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={handlePdfUpload} disabled={pdfParsing || !pdfFile} className="flex-1 gap-1">
+                {pdfParsing ? "جاري التحليل..." : "استخراج الأسئلة"}
+              </Button>
+              <Button variant="outline" onClick={() => { setShowPdf(false); setPdfFile(null); setPdfResult(null); }}>إلغاء</Button>
+            </div>
+          </div>
+        )}
+
         {/* ===== ADD MULTIPLE QUESTIONS ===== */}
         {showAdd && (
           <div className="bg-muted rounded-xl p-4 mb-4 space-y-4">
