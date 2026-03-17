@@ -2022,11 +2022,69 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold font-amiri">نتائج الامتحانات</h2>
-              <Button variant="outline" size="sm" onClick={fetchExamAttempts} className="gap-1">
-                <RefreshCw className="w-3 h-3" />
-                تحديث
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowAddExam(!showAddExam)} className="gap-1">
+                  <Plus className="w-3 h-3" />
+                  إضافة امتحان
+                </Button>
+                <Button variant="outline" size="sm" onClick={fetchExamAttempts} className="gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  تحديث
+                </Button>
+              </div>
             </div>
+
+            {/* Add Exam Form */}
+            {showAddExam && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <h3 className="font-bold text-sm">إنشاء امتحان جديد</h3>
+                <div>
+                  <Label className="text-xs">عنوان الامتحان *</Label>
+                  <Input value={newExam.title} onChange={e => setNewExam({ ...newExam, title: e.target.value })} placeholder="عنوان الامتحان" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">الصف *</Label>
+                    <select value={newExam.grade} onChange={e => setNewExam({ ...newExam, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر الصف</option>
+                      {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">المادة *</Label>
+                    <select value={newExam.subject} onChange={e => setNewExam({ ...newExam, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر المادة</option>
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">الإتاحة</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" variant={newExam.access_type === "all" ? "default" : "outline"} onClick={() => setNewExam({ ...newExam, access_type: "all" })}>كل الطلاب</Button>
+                    <Button type="button" size="sm" variant={newExam.access_type === "subscribers_only" ? "default" : "outline"} onClick={() => setNewExam({ ...newExam, access_type: "subscribers_only" })}>المشتركين فقط</Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">ملف PDF (اختياري)</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {examPdfFile ? examPdfFile.name : "اختر ملف PDF"}
+                      <input type="file" accept=".pdf" className="hidden" onChange={e => setExamPdfFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {examPdfFile && <Button variant="ghost" size="sm" onClick={() => setExamPdfFile(null)}>✕</Button>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={createExam} disabled={examCreating} className="flex-1 gap-1">
+                    {examCreating ? <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Plus className="w-3 h-3" />}
+                    إنشاء الامتحان
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddExam(false)}>إلغاء</Button>
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className="bg-card rounded-xl border border-border p-4 space-y-3">
