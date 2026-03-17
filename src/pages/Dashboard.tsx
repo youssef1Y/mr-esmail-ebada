@@ -2538,8 +2538,22 @@ const Dashboard = () => {
                         </div>
                       </div>
 
+                      <div>
+                        <Label className="text-xs">ملف PDF (اختياري)</Label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                            <Upload className="w-4 h-4" />
+                            {examPdfFile ? examPdfFile.name : "اختر ملف PDF"}
+                            <input type="file" accept=".pdf" className="hidden" onChange={e => setExamPdfFile(e.target.files?.[0] || null)} />
+                          </label>
+                          {examPdfFile && <button onClick={() => setExamPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
-                        <Button onClick={addExam} size="sm" className="flex-1">حفظ الامتحان</Button>
+                        <Button onClick={addExam} size="sm" className="flex-1" disabled={examUploading}>
+                          {examUploading ? "جاري الرفع..." : "حفظ الامتحان"}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => setShowAddExam(false)}>إلغاء</Button>
                       </div>
                     </div>
