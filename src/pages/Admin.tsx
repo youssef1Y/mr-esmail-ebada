@@ -903,7 +903,7 @@ const Admin = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject };
+    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type };
     if (newVideo.subject === "الفقه" && newVideo.madhab) {
       videoData.madhab = newVideo.madhab;
     }
