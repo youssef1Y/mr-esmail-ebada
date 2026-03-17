@@ -1515,9 +1515,23 @@ const Dashboard = () => {
       return;
     }
     const validQuestions = examQuestions.filter(q => q.question_text.trim());
-    if (validQuestions.length === 0) {
-      toast({ title: "خطأ", description: "أضف سؤال واحد على الأقل", variant: "destructive" });
+    if (validQuestions.length === 0 && !examPdfFile) {
+      toast({ title: "خطأ", description: "أضف سؤال واحد على الأقل أو ارفع ملف PDF", variant: "destructive" });
       return;
+    }
+
+    setExamUploading(true);
+    let pdfUrl: string | null = null;
+    if (examPdfFile) {
+      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setExamUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
     }
 
     const { data: exam, error } = await supabase.from("exams").insert({
@@ -1526,24 +1540,29 @@ const Dashboard = () => {
       subject: newExam.subject,
       video_id: newExam.video_id || null,
       access_type: newExam.access_type,
-    }).select().single();
+      pdf_url: pdfUrl,
+    } as any).select().single();
 
-    if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); return; }
+    if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); setExamUploading(false); return; }
 
-    const questionsToInsert = validQuestions.map((q, i) => ({
-      exam_id: exam.id,
-      question_text: q.question_text,
-      question_type: q.question_type,
-      options: q.question_type === "mcq" ? q.options.filter(o => o.trim()) : null,
-      correct_answer: q.question_type === "mcq" ? q.correct_answer : null,
-      sort_order: i,
-    }));
+    if (validQuestions.length > 0) {
+      const questionsToInsert = validQuestions.map((q, i) => ({
+        exam_id: exam.id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        options: q.question_type === "mcq" ? q.options.filter(o => o.trim()) : null,
+        correct_answer: q.question_type === "mcq" ? q.correct_answer : null,
+        sort_order: i,
+      }));
+      await supabase.from("exam_questions").insert(questionsToInsert);
+    }
 
-    await supabase.from("exam_questions").insert(questionsToInsert);
+    setExamUploading(false);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
     sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
+    setExamPdfFile(null);
     setShowAddExam(false);
     fetchExams();
   };
