@@ -1026,7 +1026,79 @@ const Admin = () => {
     }
   };
 
-  const filteredProfiles = profiles.filter(p => {
+  const createHomework = async () => {
+    if (!newHw.title || !newHw.grade || !newHw.subject) {
+      toast({ title: "بيانات ناقصة", description: "العنوان والصف والمادة مطلوبين", variant: "destructive" });
+      return;
+    }
+    setHwCreating(true);
+    let pdfUrl: string | null = null;
+    if (hwPdfFile) {
+      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setHwCreating(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from("homework").insert({
+      title: newHw.title,
+      description: newHw.description || null,
+      grade: newHw.grade,
+      subject: newHw.subject,
+      due_date: newHw.due_date || null,
+      pdf_url: pdfUrl,
+    } as any);
+    setHwCreating(false);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إنشاء الواجب", variant: "destructive" });
+    } else {
+      toast({ title: "تم إنشاء الواجب بنجاح ✅" });
+      setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      setHwPdfFile(null);
+      setShowAddHomework(false);
+    }
+  };
+
+  const createExam = async () => {
+    if (!newExam.title || !newExam.grade || !newExam.subject) {
+      toast({ title: "بيانات ناقصة", description: "العنوان والصف والمادة مطلوبين", variant: "destructive" });
+      return;
+    }
+    setExamCreating(true);
+    let pdfUrl: string | null = null;
+    if (examPdfFile) {
+      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setExamCreating(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from("exams").insert({
+      title: newExam.title,
+      grade: newExam.grade,
+      subject: newExam.subject,
+      access_type: newExam.access_type,
+      pdf_url: pdfUrl,
+    } as any);
+    setExamCreating(false);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إنشاء الامتحان", variant: "destructive" });
+    } else {
+      toast({ title: "تم إنشاء الامتحان بنجاح ✅" });
+      setNewExam({ title: "", grade: "", subject: "", access_type: "all" });
+      setExamPdfFile(null);
+      setShowAddExam(false);
+    }
+  };
+
     if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
     if (filterGrade && p.grade !== filterGrade) return false;
     if (filterSubscription === "subscribed" && !p.is_subscribed) return false;
