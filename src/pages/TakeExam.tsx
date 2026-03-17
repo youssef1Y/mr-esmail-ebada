@@ -19,6 +19,7 @@ interface Exam {
   title: string;
   grade: string;
   subject: string;
+  pdf_url?: string | null;
 }
 
 const TakeExam = () => {
