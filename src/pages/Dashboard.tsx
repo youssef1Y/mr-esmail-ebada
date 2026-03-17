@@ -15,6 +15,7 @@ import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
+import { usePrayerNotifications } from "@/hooks/use-prayer-notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
