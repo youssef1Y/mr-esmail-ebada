@@ -1155,6 +1155,7 @@ const ContactSection = ({ userId, toast }: { userId: string; toast: any }) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  usePrayerNotifications();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
