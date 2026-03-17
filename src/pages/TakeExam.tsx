@@ -159,6 +159,12 @@ const TakeExam = () => {
             <h1 className="text-2xl font-bold font-amiri mb-1">{exam.title}</h1>
             <p className="text-sm text-muted-foreground">{exam.grade} · {exam.subject}</p>
             <p className="text-xs text-muted-foreground mt-1">{questions.length} سؤال</p>
+            {exam.pdf_url && (
+              <a href={exam.pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2">
+                <BookOpen className="w-4 h-4" />
+                عرض ملف PDF الامتحان
+              </a>
+            )}
           </div>
         )}
 
