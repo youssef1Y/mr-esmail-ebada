@@ -504,7 +504,7 @@ const Admin = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [videoGrade, setVideoGrade] = useState("");
   const [videoSubject, setVideoSubject] = useState("");
-  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "" });
+  const [newVideo, setNewVideo] = useState({ title: "", description: "", video_url: "", grade: "", subject: "", madhab: "", access_type: "all" });
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [videoHomeworkEnabled, setVideoHomeworkEnabled] = useState(false);
   const [videoHomeworkDesc, setVideoHomeworkDesc] = useState("");
