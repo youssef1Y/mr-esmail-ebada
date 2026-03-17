@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download, Trophy } from "lucide-react";
+import { Shield, BookOpen, Bell, Video, Users, LogOut, ChevronRight, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, FileText, ClipboardList, Eye, Star, MessageSquare, MessageCircle, BarChart3, Newspaper, CalendarDays, Download, Trophy, Upload } from "lucide-react";
 import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
@@ -531,7 +531,17 @@ const Admin = () => {
   const [examSearchQuery, setExamSearchQuery] = useState("");
   const [examLoadingData, setExamLoadingData] = useState(false);
 
-  // Messages state
+  // Homework creation state
+  const [showAddHomework, setShowAddHomework] = useState(false);
+  const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+  const [hwPdfFile, setHwPdfFile] = useState<File | null>(null);
+  const [hwCreating, setHwCreating] = useState(false);
+
+  // Exam creation state
+  const [showAddExam, setShowAddExam] = useState(false);
+  const [newExam, setNewExam] = useState({ title: "", grade: "", subject: "", access_type: "all" });
+  const [examPdfFile, setExamPdfFile] = useState<File | null>(null);
+  const [examCreating, setExamCreating] = useState(false);
   const [msgConversations, setMsgConversations] = useState<{ user_id: string; student_name: string; student_grade: string; last_message: string; last_time: string; unread_count: number }[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [selectedConvo, setSelectedConvo] = useState<string | null>(null);
@@ -1013,6 +1023,79 @@ const Admin = () => {
     } else {
       toast({ title: "تم حذف التسليم" });
       setHwSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    }
+  };
+
+  const createHomework = async () => {
+    if (!newHw.title || !newHw.grade || !newHw.subject) {
+      toast({ title: "بيانات ناقصة", description: "العنوان والصف والمادة مطلوبين", variant: "destructive" });
+      return;
+    }
+    setHwCreating(true);
+    let pdfUrl: string | null = null;
+    if (hwPdfFile) {
+      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setHwCreating(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from("homework").insert({
+      title: newHw.title,
+      description: newHw.description || null,
+      grade: newHw.grade,
+      subject: newHw.subject,
+      due_date: newHw.due_date || null,
+      pdf_url: pdfUrl,
+    } as any);
+    setHwCreating(false);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إنشاء الواجب", variant: "destructive" });
+    } else {
+      toast({ title: "تم إنشاء الواجب بنجاح ✅" });
+      setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      setHwPdfFile(null);
+      setShowAddHomework(false);
+    }
+  };
+
+  const createExam = async () => {
+    if (!newExam.title || !newExam.grade || !newExam.subject) {
+      toast({ title: "بيانات ناقصة", description: "العنوان والصف والمادة مطلوبين", variant: "destructive" });
+      return;
+    }
+    setExamCreating(true);
+    let pdfUrl: string | null = null;
+    if (examPdfFile) {
+      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setExamCreating(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from("exams").insert({
+      title: newExam.title,
+      grade: newExam.grade,
+      subject: newExam.subject,
+      access_type: newExam.access_type,
+      pdf_url: pdfUrl,
+    } as any);
+    setExamCreating(false);
+    if (error) {
+      toast({ title: "خطأ", description: "فشل إنشاء الامتحان", variant: "destructive" });
+    } else {
+      toast({ title: "تم إنشاء الامتحان بنجاح ✅" });
+      setNewExam({ title: "", grade: "", subject: "", access_type: "all" });
+      setExamPdfFile(null);
+      setShowAddExam(false);
     }
   };
 
@@ -1678,13 +1761,70 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold font-amiri">تسليمات الواجبات</h2>
-              <Button variant="outline" size="sm" onClick={fetchHomeworkSubmissions} className="gap-1">
-                <RefreshCw className="w-3 h-3" />
-                تحديث
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowAddHomework(!showAddHomework)} className="gap-1">
+                  <Plus className="w-3 h-3" />
+                  إضافة واجب
+                </Button>
+                <Button variant="outline" size="sm" onClick={fetchHomeworkSubmissions} className="gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  تحديث
+                </Button>
+              </div>
             </div>
 
-            {/* Filters */}
+            {/* Add Homework Form */}
+            {showAddHomework && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <h3 className="font-bold text-sm">إنشاء واجب جديد</h3>
+                <div>
+                  <Label className="text-xs">عنوان الواجب *</Label>
+                  <Input value={newHw.title} onChange={e => setNewHw({ ...newHw, title: e.target.value })} placeholder="عنوان الواجب" />
+                </div>
+                <div>
+                  <Label className="text-xs">الوصف</Label>
+                  <textarea value={newHw.description} onChange={e => setNewHw({ ...newHw, description: e.target.value })} placeholder="وصف الواجب..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm min-h-[60px]" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">الصف *</Label>
+                    <select value={newHw.grade} onChange={e => setNewHw({ ...newHw, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر الصف</option>
+                      {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">المادة *</Label>
+                    <select value={newHw.subject} onChange={e => setNewHw({ ...newHw, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر المادة</option>
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">تاريخ التسليم (اختياري)</Label>
+                  <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">ملف PDF (اختياري)</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {hwPdfFile ? hwPdfFile.name : "اختر ملف PDF"}
+                      <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {hwPdfFile && <Button variant="ghost" size="sm" onClick={() => setHwPdfFile(null)}>✕</Button>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={createHomework} disabled={hwCreating} className="flex-1 gap-1">
+                    {hwCreating ? <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Plus className="w-3 h-3" />}
+                    إنشاء الواجب
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddHomework(false)}>إلغاء</Button>
+                </div>
+              </div>
+            )}
             <div className="bg-card rounded-xl border border-border p-4 space-y-3">
               <div>
                 <Label className="text-xs">بحث بالاسم أو رقم الموبايل</Label>
@@ -1882,11 +2022,69 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold font-amiri">نتائج الامتحانات</h2>
-              <Button variant="outline" size="sm" onClick={fetchExamAttempts} className="gap-1">
-                <RefreshCw className="w-3 h-3" />
-                تحديث
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowAddExam(!showAddExam)} className="gap-1">
+                  <Plus className="w-3 h-3" />
+                  إضافة امتحان
+                </Button>
+                <Button variant="outline" size="sm" onClick={fetchExamAttempts} className="gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  تحديث
+                </Button>
+              </div>
             </div>
+
+            {/* Add Exam Form */}
+            {showAddExam && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <h3 className="font-bold text-sm">إنشاء امتحان جديد</h3>
+                <div>
+                  <Label className="text-xs">عنوان الامتحان *</Label>
+                  <Input value={newExam.title} onChange={e => setNewExam({ ...newExam, title: e.target.value })} placeholder="عنوان الامتحان" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">الصف *</Label>
+                    <select value={newExam.grade} onChange={e => setNewExam({ ...newExam, grade: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر الصف</option>
+                      {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">المادة *</Label>
+                    <select value={newExam.subject} onChange={e => setNewExam({ ...newExam, subject: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">اختر المادة</option>
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">الإتاحة</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" variant={newExam.access_type === "all" ? "default" : "outline"} onClick={() => setNewExam({ ...newExam, access_type: "all" })}>كل الطلاب</Button>
+                    <Button type="button" size="sm" variant={newExam.access_type === "subscribers_only" ? "default" : "outline"} onClick={() => setNewExam({ ...newExam, access_type: "subscribers_only" })}>المشتركين فقط</Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">ملف PDF (اختياري)</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {examPdfFile ? examPdfFile.name : "اختر ملف PDF"}
+                      <input type="file" accept=".pdf" className="hidden" onChange={e => setExamPdfFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {examPdfFile && <Button variant="ghost" size="sm" onClick={() => setExamPdfFile(null)}>✕</Button>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={createExam} disabled={examCreating} className="flex-1 gap-1">
+                    {examCreating ? <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <Plus className="w-3 h-3" />}
+                    إنشاء الامتحان
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddExam(false)}>إلغاء</Button>
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className="bg-card rounded-xl border border-border p-4 space-y-3">
