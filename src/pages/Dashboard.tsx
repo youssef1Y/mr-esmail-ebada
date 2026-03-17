@@ -149,18 +149,34 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       toast({ title: "خطأ", description: "أكمل الحقول المطلوبة", variant: "destructive" });
       return;
     }
+    setHwUploading(true);
+    let pdfUrl: string | null = null;
+    if (hwPdfFile) {
+      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
+        setHwUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      pdfUrl = urlData.publicUrl;
+    }
     const { error } = await supabase.from("homework").insert({
       title: newHw.title,
       description: newHw.description || null,
       grade: newHw.grade,
       subject: newHw.subject,
       due_date: newHw.due_date || null,
-    });
+      pdf_url: pdfUrl,
+    } as any);
+    setHwUploading(false);
     if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
       sendPushToGrade("📋 واجب جديد", `تم إضافة واجب جديد: ${newHw.title} - ${newHw.subject}`, [newHw.grade]);
       setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      setHwPdfFile(null);
       setShowAdd(false);
       fetchHomework();
     }
