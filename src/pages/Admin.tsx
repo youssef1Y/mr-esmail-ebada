@@ -1099,6 +1099,7 @@ const Admin = () => {
     }
   };
 
+  const filteredProfiles = profiles.filter(p => {
     if (searchQuery && !p.full_name.includes(searchQuery) && !p.student_phone.includes(searchQuery)) return false;
     if (filterGrade && p.grade !== filterGrade) return false;
     if (filterSubscription === "subscribed" && !p.is_subscribed) return false;
