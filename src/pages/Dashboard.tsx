@@ -152,7 +152,8 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
     setHwUploading(true);
     let pdfUrl: string | null = null;
     if (hwPdfFile) {
-      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const ext = hwPdfFile.name.split('.').pop() || 'pdf';
+      const fileName = `homework/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
       if (upErr) {
         toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
