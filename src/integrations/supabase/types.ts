@@ -126,6 +126,7 @@ export type Database = {
       }
       exam_attempts: {
         Row: {
+          ai_feedback: string | null
           exam_id: string
           id: string
           score: number | null
@@ -134,6 +135,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_feedback?: string | null
           exam_id: string
           id?: string
           score?: number | null
@@ -142,6 +144,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_feedback?: string | null
           exam_id?: string
           id?: string
           score?: number | null
@@ -200,6 +203,7 @@ export type Database = {
       exams: {
         Row: {
           access_type: string
+          answer_key_url: string | null
           created_at: string
           grade: string
           id: string
@@ -210,6 +214,7 @@ export type Database = {
         }
         Insert: {
           access_type?: string
+          answer_key_url?: string | null
           created_at?: string
           grade: string
           id?: string
@@ -220,6 +225,7 @@ export type Database = {
         }
         Update: {
           access_type?: string
+          answer_key_url?: string | null
           created_at?: string
           grade?: string
           id?: string
@@ -240,31 +246,49 @@ export type Database = {
       }
       homework: {
         Row: {
+          answer_key_url: string | null
+          book_name: string | null
           created_at: string
           description: string | null
           due_date: string | null
           grade: string
+          homework_type: string
           id: string
+          lesson_number: string | null
+          page_from: number | null
+          page_to: number | null
           pdf_url: string | null
           subject: string
           title: string
         }
         Insert: {
+          answer_key_url?: string | null
+          book_name?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           grade: string
+          homework_type?: string
           id?: string
+          lesson_number?: string | null
+          page_from?: number | null
+          page_to?: number | null
           pdf_url?: string | null
           subject: string
           title: string
         }
         Update: {
+          answer_key_url?: string | null
+          book_name?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           grade?: string
+          homework_type?: string
           id?: string
+          lesson_number?: string | null
+          page_from?: number | null
+          page_to?: number | null
           pdf_url?: string | null
           subject?: string
           title?: string
@@ -273,6 +297,8 @@ export type Database = {
       }
       homework_submissions: {
         Row: {
+          ai_feedback: string | null
+          ai_score: number | null
           content: string | null
           feedback: string | null
           homework_id: string
@@ -284,6 +310,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_feedback?: string | null
+          ai_score?: number | null
           content?: string | null
           feedback?: string | null
           homework_id: string
@@ -295,6 +323,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_feedback?: string | null
+          ai_score?: number | null
           content?: string | null
           feedback?: string | null
           homework_id?: string
