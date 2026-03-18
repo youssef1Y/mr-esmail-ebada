@@ -73,7 +73,17 @@ serve(async (req) => {
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
-    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    // Process in chunks to avoid "Maximum call stack size exceeded"
+    const bytes = new Uint8Array(pdfBuffer);
+    const chunkSize = 8192;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
+    }
+    const pdfBase64 = btoa(binary);
 
     // Use Lovable AI to extract questions from PDF
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
