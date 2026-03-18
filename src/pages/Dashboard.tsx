@@ -1524,7 +1524,8 @@ const Dashboard = () => {
     setExamUploading(true);
     let pdfUrl: string | null = null;
     if (examPdfFile) {
-      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const ext = examPdfFile.name.split('.').pop() || 'pdf';
+      const fileName = `exams/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
       if (upErr) {
         toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
