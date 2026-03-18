@@ -240,6 +240,14 @@ const Homework = () => {
                       <h3 className="font-bold text-sm">{hw.title}</h3>
                       <p className="text-xs text-muted-foreground">{hw.subject}</p>
                       {hw.description && <p className="text-xs text-muted-foreground mt-1">{hw.description}</p>}
+                      {(hw as any).homework_type === "book" && (
+                        <div className="text-xs text-muted-foreground mt-1 bg-muted/50 rounded px-2 py-1">
+                          📖 حل كتاب {(hw as any).book_name || ""}
+                          {(hw as any).page_from && ` من ص${(hw as any).page_from}`}
+                          {(hw as any).page_to && ` لص${(hw as any).page_to}`}
+                          {(hw as any).lesson_number && ` - درس ${(hw as any).lesson_number}`}
+                        </div>
+                      )}
                       {hw.due_date && (
                         <p className={`text-xs mt-1 flex items-center gap-1 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
                           <Clock className="w-3 h-3" />
