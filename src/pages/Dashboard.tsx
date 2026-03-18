@@ -133,8 +133,9 @@ const gradeSubjects: Record<string, { title: string; icon: any; description: str
 const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subjects: string[]; toast: any }) => {
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "" });
+  const [newHw, setNewHw] = useState({ title: "", description: "", grade: "", subject: "", due_date: "", homework_type: "regular", book_name: "", page_from: "", page_to: "", lesson_number: "" });
   const [hwPdfFile, setHwPdfFile] = useState<File | null>(null);
+  const [hwAnswerKeyFile, setHwAnswerKeyFile] = useState<File | null>(null);
   const [hwUploading, setHwUploading] = useState(false);
 
   const fetchHomework = async () => {
@@ -151,8 +152,11 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
     }
     setHwUploading(true);
     let pdfUrl: string | null = null;
+    let answerKeyUrl: string | null = null;
+
     if (hwPdfFile) {
-      const fileName = `homework/${Date.now()}_${hwPdfFile.name}`;
+      const ext = hwPdfFile.name.split('.').pop() || 'pdf';
+      const fileName = `homework/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwPdfFile);
       if (upErr) {
         toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
@@ -162,21 +166,55 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
       pdfUrl = urlData.publicUrl;
     }
-    const { error } = await supabase.from("homework").insert({
+
+    if (hwAnswerKeyFile) {
+      const ext = hwAnswerKeyFile.name.split('.').pop() || 'pdf';
+      const fileName = `answer-keys/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(fileName, hwAnswerKeyFile);
+      if (upErr) {
+        toast({ title: "خطأ في رفع الإجابات", description: upErr.message, variant: "destructive" });
+        setHwUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      answerKeyUrl = urlData.publicUrl;
+    }
+
+    const insertData: any = {
       title: newHw.title,
       description: newHw.description || null,
       grade: newHw.grade,
       subject: newHw.subject,
       due_date: newHw.due_date || null,
       pdf_url: pdfUrl,
-    } as any);
+      homework_type: newHw.homework_type,
+      answer_key_url: answerKeyUrl,
+    };
+
+    if (newHw.homework_type === "book") {
+      insertData.book_name = newHw.book_name || null;
+      insertData.page_from = newHw.page_from ? parseInt(newHw.page_from) : null;
+      insertData.page_to = newHw.page_to ? parseInt(newHw.page_to) : null;
+      insertData.lesson_number = newHw.lesson_number || null;
+    }
+
+    const { error } = await supabase.from("homework").insert(insertData);
     setHwUploading(false);
     if (error) { console.error("Insert homework error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة الواجب", variant: "destructive" }); }
     else {
       toast({ title: "تم إضافة الواجب" });
       sendPushToGrade("📋 واجب جديد", `تم إضافة واجب جديد: ${newHw.title} - ${newHw.subject}`, [newHw.grade]);
-      setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "" });
+      // Auto-extract questions from PDF if uploaded
+      if (pdfUrl) {
+        supabase.functions.invoke("parse-pdf-questions", {
+          body: { pdf_url: pdfUrl, grade: newHw.grade, subject: newHw.subject },
+        }).then(({ data, error }) => {
+          if (data?.count) toast({ title: `تم استخراج ${data.count} سؤال من الملف تلقائياً ✅` });
+        });
+      }
+      setNewHw({ title: "", description: "", grade: "", subject: "", due_date: "", homework_type: "regular", book_name: "", page_from: "", page_to: "", lesson_number: "" });
       setHwPdfFile(null);
+      setHwAnswerKeyFile(null);
       setShowAdd(false);
       fetchHomework();
     }
@@ -208,6 +246,25 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
               {subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          {/* Homework type selector */}
+          <div>
+            <Label className="text-xs">نوع الواجب</Label>
+            <select value={newHw.homework_type} onChange={e => setNewHw({ ...newHw, homework_type: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+              <option value="regular">واجب عادي</option>
+              <option value="book">حل كتاب / درس</option>
+            </select>
+          </div>
+          {/* Book-based homework fields */}
+          {newHw.homework_type === "book" && (
+            <div className="space-y-2 bg-background/50 rounded-lg p-3">
+              <Input value={newHw.book_name} onChange={e => setNewHw({ ...newHw, book_name: e.target.value })} placeholder="اسم الكتاب" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="number" value={newHw.page_from} onChange={e => setNewHw({ ...newHw, page_from: e.target.value })} placeholder="من صفحة" />
+                <Input type="number" value={newHw.page_to} onChange={e => setNewHw({ ...newHw, page_to: e.target.value })} placeholder="لصفحة" />
+              </div>
+              <Input value={newHw.lesson_number} onChange={e => setNewHw({ ...newHw, lesson_number: e.target.value })} placeholder="رقم أو اسم الدرس (اختياري)" />
+            </div>
+          )}
           <div>
             <Label className="text-xs">الموعد النهائي (اختياري)</Label>
             <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
@@ -221,6 +278,17 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
                 <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
               </label>
               {hwPdfFile && <button onClick={() => setHwPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">ملف الإجابات النموذجية (اختياري - للتصحيح التلقائي)</Label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <FileText className="w-4 h-4" />
+                {hwAnswerKeyFile ? hwAnswerKeyFile.name : "اختر ملف الإجابات"}
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setHwAnswerKeyFile(e.target.files?.[0] || null)} />
+              </label>
+              {hwAnswerKeyFile && <button onClick={() => setHwAnswerKeyFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -1523,7 +1591,8 @@ const Dashboard = () => {
     setExamUploading(true);
     let pdfUrl: string | null = null;
     if (examPdfFile) {
-      const fileName = `exams/${Date.now()}_${examPdfFile.name}`;
+      const ext = examPdfFile.name.split('.').pop() || 'pdf';
+      const fileName = `exams/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("documents").upload(fileName, examPdfFile);
       if (upErr) {
         toast({ title: "خطأ في رفع الملف", description: upErr.message, variant: "destructive" });
@@ -1560,6 +1629,14 @@ const Dashboard = () => {
     setExamUploading(false);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
     sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
+    // Auto-extract questions from PDF if uploaded
+    if (pdfUrl) {
+      supabase.functions.invoke("parse-pdf-questions", {
+        body: { pdf_url: pdfUrl, grade: newExam.grade, subject: newExam.subject },
+      }).then(({ data }) => {
+        if (data?.count) toast({ title: `تم استخراج ${data.count} سؤال من الملف تلقائياً ✅` });
+      });
+    }
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
     setExamPdfFile(null);

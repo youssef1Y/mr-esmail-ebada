@@ -239,7 +239,8 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
 
     try {
       // Upload PDF to documents bucket
-      const path = `question-bank/${Date.now()}_${pdfFile.name}`;
+      const ext = pdfFile.name.split('.').pop() || 'pdf';
+      const path = `question-bank/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("documents").upload(path, pdfFile);
       if (uploadError) {
         toast({ title: "خطأ", description: "فشل رفع الملف", variant: "destructive" });

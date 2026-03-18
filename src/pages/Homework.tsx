@@ -90,18 +90,36 @@ const Homework = () => {
       image_urls: imageUrls,
     });
 
-    // Points are awarded server-side only (admin or edge functions)
-
     setSubmitting(false);
     if (error) {
       console.error("Homework submission error:", error);
       toast({ title: "خطأ", description: "حدث خطأ أثناء تسليم الواجب", variant: "destructive" });
     } else {
-      toast({ title: "تم التسليم", description: "تم تسليم الواجب بنجاح" });
+      toast({ title: "تم التسليم", description: "تم تسليم الواجب بنجاح - جاري التصحيح التلقائي..." });
+      
+      // Trigger AI auto-grading if answer key exists
+      const hw = selectedHw as any;
+      if (hw.answer_key_url || hw.pdf_url) {
+        const { data: subs } = await supabase.from("homework_submissions")
+          .select("id").eq("homework_id", selectedHw.id).eq("user_id", user.id)
+          .order("submitted_at", { ascending: false }).limit(1);
+        if (subs && subs.length > 0) {
+          supabase.functions.invoke("grade-submission", {
+            body: { submission_id: subs[0].id, type: "homework" },
+          }).then(({ data }) => {
+            if (data?.success) {
+              toast({ title: "تم التصحيح التلقائي ✅", description: `درجتك: ${data.score}/${data.total}` });
+              // Refresh submissions
+              supabase.from("homework_submissions").select("*").eq("user_id", user!.id)
+                .then(({ data: s }) => { if (s) setSubmissions(s as Submission[]); });
+            }
+          });
+        }
+      }
+
       setSelectedHw(null);
       setAnswerText("");
       setAnswerImages([]);
-      // Refresh submissions
       const { data: subs } = await supabase.from("homework_submissions").select("*").eq("user_id", user.id);
       if (subs) setSubmissions(subs as Submission[]);
     }
@@ -222,6 +240,14 @@ const Homework = () => {
                       <h3 className="font-bold text-sm">{hw.title}</h3>
                       <p className="text-xs text-muted-foreground">{hw.subject}</p>
                       {hw.description && <p className="text-xs text-muted-foreground mt-1">{hw.description}</p>}
+                      {(hw as any).homework_type === "book" && (
+                        <div className="text-xs text-muted-foreground mt-1 bg-muted/50 rounded px-2 py-1">
+                          📖 حل كتاب {(hw as any).book_name || ""}
+                          {(hw as any).page_from && ` من ص${(hw as any).page_from}`}
+                          {(hw as any).page_to && ` لص${(hw as any).page_to}`}
+                          {(hw as any).lesson_number && ` - درس ${(hw as any).lesson_number}`}
+                        </div>
+                      )}
                       {hw.due_date && (
                         <p className={`text-xs mt-1 flex items-center gap-1 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
                           <Clock className="w-3 h-3" />
