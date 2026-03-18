@@ -30,6 +30,7 @@ const Login = () => {
       });
 
       if (error) {
+        console.error("Login error details:", error.message, error.status, error);
         let description = "رقم الهاتف أو كلمة المرور غير صحيحة";
         if (/invalid login/i.test(error.message)) {
           description = "رقم الهاتف أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
