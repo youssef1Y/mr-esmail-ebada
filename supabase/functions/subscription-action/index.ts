@@ -214,6 +214,10 @@ serve(async (req) => {
   }
 });
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function renderHTML(title: string, message: string): string {
   return `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
