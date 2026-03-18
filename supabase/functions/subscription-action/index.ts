@@ -176,7 +176,7 @@ serve(async (req) => {
         "يمكنك الآن الوصول لجميع المحتوى التعليمي. الاشتراك صالح لمدة 30 يوم."
       );
 
-      const studentName = profile?.full_name || "الطالب";
+    const studentName = escapeHtml(profile?.full_name || "الطالب");
       return new Response(
         renderHTML("✅ تم تفعيل الاشتراك بنجاح", `تم تفعيل اشتراك ${studentName} لمدة 30 يوم وتم إشعاره.`),
         { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } }
