@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key } from "lucide-react";
@@ -10,9 +10,9 @@ import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { DailyChallenges } from "@/components/DailyChallenges";
-import AdminScheduleTab from "@/components/AdminScheduleTab";
-import AdminCompetitionTab from "@/components/AdminCompetitionTab";
-import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
+const AdminScheduleTab = lazy(() => import("@/components/AdminScheduleTab"));
+const AdminCompetitionTab = lazy(() => import("@/components/AdminCompetitionTab"));
+const AdminQuestionBankTab = lazy(() => import("@/components/AdminQuestionBankTab"));
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { usePrayerNotifications } from "@/hooks/use-prayer-notifications";
