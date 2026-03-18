@@ -1629,6 +1629,14 @@ const Dashboard = () => {
     setExamUploading(false);
     toast({ title: "تم إنشاء الامتحان بنجاح" });
     sendPushToGrade("📝 امتحان جديد", `تم إضافة امتحان جديد: ${newExam.title} - ${newExam.subject}`, [newExam.grade]);
+    // Auto-extract questions from PDF if uploaded
+    if (pdfUrl) {
+      supabase.functions.invoke("parse-pdf-questions", {
+        body: { pdf_url: pdfUrl, grade: newExam.grade, subject: newExam.subject },
+      }).then(({ data }) => {
+        if (data?.count) toast({ title: `تم استخراج ${data.count} سؤال من الملف تلقائياً ✅` });
+      });
+    }
     setNewExam({ title: "", grade: "", subject: "", video_id: "", access_type: "all" });
     setExamQuestions([{ question_text: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: "" }]);
     setExamPdfFile(null);
