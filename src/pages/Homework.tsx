@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, ChevronRight, FileText, Upload, CheckCircle, Clock, Image as ImageIcon, X, Camera } from "lucide-react";
+import { BookOpen, ChevronRight, FileText, CheckCircle, Clock, Image as ImageIcon, X, Camera, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,13 +27,33 @@ interface Submission {
   submitted_at: string;
 }
 
+interface ExamItem {
+  id: string;
+  title: string;
+  grade: string;
+  subject: string;
+  pdf_url: string | null;
+  created_at: string;
+}
+
+interface ExamAttempt {
+  id: string;
+  exam_id: string;
+  score: number | null;
+  total: number | null;
+  submitted_at: string;
+}
+
 const Homework = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [grade, setGrade] = useState("");
+  const [activeTab, setActiveTab] = useState<"homework" | "exams">("homework");
   const [homeworkList, setHomeworkList] = useState<HomeworkItem[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [examList, setExamList] = useState<ExamItem[]>([]);
+  const [examAttempts, setExamAttempts] = useState<ExamAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHw, setSelectedHw] = useState<HomeworkItem | null>(null);
   const [answerText, setAnswerText] = useState("");
@@ -49,11 +69,16 @@ const Homework = () => {
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
       if (profile) {
         setGrade(profile.grade);
-        const { data: hw } = await supabase.from("homework").select("*").eq("grade", profile.grade).order("created_at", { ascending: false });
-        if (hw) setHomeworkList(hw as HomeworkItem[]);
-
-        const { data: subs } = await supabase.from("homework_submissions").select("*").eq("user_id", session.user.id);
-        if (subs) setSubmissions(subs as Submission[]);
+        const [hwRes, subsRes, examsRes, attemptsRes] = await Promise.all([
+          supabase.from("homework").select("*").eq("grade", profile.grade).order("created_at", { ascending: false }),
+          supabase.from("homework_submissions").select("*").eq("user_id", session.user.id),
+          supabase.from("exams").select("*").eq("grade", profile.grade).order("created_at", { ascending: false }),
+          supabase.from("exam_attempts").select("*").eq("user_id", session.user.id),
+        ]);
+        if (hwRes.data) setHomeworkList(hwRes.data as HomeworkItem[]);
+        if (subsRes.data) setSubmissions(subsRes.data as Submission[]);
+        if (examsRes.data) setExamList(examsRes.data as ExamItem[]);
+        if (attemptsRes.data) setExamAttempts(attemptsRes.data as ExamAttempt[]);
       }
       setLoading(false);
     };
@@ -61,6 +86,7 @@ const Homework = () => {
   }, [navigate]);
 
   const getSubmission = (hwId: string) => submissions.find(s => s.homework_id === hwId);
+  const getExamAttempt = (examId: string) => examAttempts.find(a => a.exam_id === examId);
 
   const handleSubmit = async () => {
     if (!user || !selectedHw) return;
@@ -77,7 +103,6 @@ const Homework = () => {
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
       const { error } = await supabase.storage.from("submissions").upload(path, file);
       if (!error) {
-        // Use signed URLs for private submissions bucket
         const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400);
         if (data) imageUrls.push(data.signedUrl);
       }
@@ -97,7 +122,6 @@ const Homework = () => {
     } else {
       toast({ title: "تم التسليم", description: "تم تسليم الواجب بنجاح - جاري التصحيح التلقائي..." });
       
-      // Trigger AI auto-grading if answer key exists
       const hw = selectedHw as any;
       if (hw.answer_key_url || hw.pdf_url) {
         const { data: subs } = await supabase.from("homework_submissions")
@@ -109,7 +133,6 @@ const Homework = () => {
           }).then(({ data }) => {
             if (data?.success) {
               toast({ title: "تم التصحيح التلقائي ✅", description: `درجتك: ${data.score}/${data.total}` });
-              // Refresh submissions
               supabase.from("homework_submissions").select("*").eq("user_id", user!.id)
                 .then(({ data: s }) => { if (s) setSubmissions(s as Submission[]); });
             }
@@ -141,7 +164,7 @@ const Homework = () => {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
               <BookOpen className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-sm">الواجبات المنزلية</span>
+            <span className="font-bold text-sm">الواجبات والامتحانات</span>
           </div>
           <Link to="/dashboard">
             <Button variant="ghost" size="sm" className="gap-1">
@@ -151,10 +174,34 @@ const Homework = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-2xl font-bold font-amiri text-center mb-6">الواجبات المنزلية</h1>
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
+        {/* Tabs */}
+        <div className="flex rounded-xl bg-muted p-1 mb-6">
+          <button
+            onClick={() => setActiveTab("homework")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "homework"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            الواجبات
+          </button>
+          <button
+            onClick={() => setActiveTab("exams")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "exams"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            الامتحانات
+          </button>
+        </div>
 
-        {/* Submit dialog */}
+        {/* Submit homework dialog */}
         {selectedHw && (
           <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedHw(null)}>
             <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -181,7 +228,6 @@ const Homework = () => {
                 <div>
                   <label className="text-sm font-medium mb-1 block">رفع صور الحل</label>
                   <div className="flex gap-2">
-                    {/* Camera capture */}
                     <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-primary/50 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-colors">
                       <Camera className="w-6 h-6 text-primary mb-1" />
                       <span className="text-xs text-primary font-medium">التقاط من الكاميرا</span>
@@ -189,7 +235,6 @@ const Homework = () => {
                         if (e.target.files) setAnswerImages(prev => [...prev, ...Array.from(e.target.files!)]);
                       }} />
                     </label>
-                    {/* Gallery pick */}
                     <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:bg-muted/50 transition-colors">
                       <ImageIcon className="w-6 h-6 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground">اختيار من المعرض</span>
@@ -223,77 +268,133 @@ const Homework = () => {
           </div>
         )}
 
-        {homeworkList.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">لا توجد واجبات حالياً</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {homeworkList.map(hw => {
-              const sub = getSubmission(hw.id);
-              const isOverdue = hw.due_date && new Date(hw.due_date) < new Date();
-              return (
-                <div key={hw.id} className="bg-card rounded-xl border border-border p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-sm">{hw.title}</h3>
-                      <p className="text-xs text-muted-foreground">{hw.subject}</p>
-                      {hw.description && <p className="text-xs text-muted-foreground mt-1">{hw.description}</p>}
-                      {(hw as any).homework_type === "book" && (
-                        <div className="text-xs text-muted-foreground mt-1 bg-muted/50 rounded px-2 py-1">
-                          📖 حل كتاب {(hw as any).book_name || ""}
-                          {(hw as any).page_from && ` من ص${(hw as any).page_from}`}
-                          {(hw as any).page_to && ` لص${(hw as any).page_to}`}
-                          {(hw as any).lesson_number && ` - درس ${(hw as any).lesson_number}`}
+        {/* Homework Tab */}
+        {activeTab === "homework" && (
+          <>
+            {homeworkList.length === 0 ? (
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">لا توجد واجبات حالياً</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {homeworkList.map(hw => {
+                  const sub = getSubmission(hw.id);
+                  const isOverdue = hw.due_date && new Date(hw.due_date) < new Date();
+                  return (
+                    <div key={hw.id} className="bg-card rounded-xl border border-border p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm">{hw.title}</h3>
+                          <p className="text-xs text-muted-foreground">{hw.subject}</p>
+                          {hw.description && <p className="text-xs text-muted-foreground mt-1">{hw.description}</p>}
+                          {(hw as any).homework_type === "book" && (
+                            <div className="text-xs text-muted-foreground mt-1 bg-muted/50 rounded px-2 py-1">
+                              📖 حل كتاب {(hw as any).book_name || ""}
+                              {(hw as any).page_from && ` من ص${(hw as any).page_from}`}
+                              {(hw as any).page_to && ` لص${(hw as any).page_to}`}
+                              {(hw as any).lesson_number && ` - درس ${(hw as any).lesson_number}`}
+                            </div>
+                          )}
+                          {hw.due_date && (
+                            <p className={`text-xs mt-1 flex items-center gap-1 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                              <Clock className="w-3 h-3" />
+                              الموعد النهائي: {new Date(hw.due_date).toLocaleDateString("ar-EG")}
+                            </p>
+                          )}
+                          {(hw as any).pdf_url && (
+                            <a href={(hw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                              <FileText className="w-3 h-3" />
+                              عرض ملف PDF
+                            </a>
+                          )}
                         </div>
-                      )}
-                      {hw.due_date && (
-                        <p className={`text-xs mt-1 flex items-center gap-1 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-                          <Clock className="w-3 h-3" />
-                          الموعد النهائي: {new Date(hw.due_date).toLocaleDateString("ar-EG")}
-                        </p>
-                      )}
-                      {(hw as any).pdf_url && (
-                        <a href={(hw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                          <FileText className="w-3 h-3" />
-                          عرض ملف PDF
-                        </a>
-                      )}
-                    </div>
-                    {sub ? (
-                      <div className="text-center">
-                        <CheckCircle className="w-5 h-5 text-primary mx-auto" />
-                        <span className="text-xs text-primary">تم التسليم</span>
-                        {sub.score !== null && (
-                          <p className="text-xs font-bold text-primary mt-0.5">{sub.score}/{(sub as any).total || "?"}</p>
+                        {sub ? (
+                          <div className="text-center">
+                            <CheckCircle className="w-5 h-5 text-primary mx-auto" />
+                            <span className="text-xs text-primary">تم التسليم</span>
+                            {sub.score !== null && (
+                              <p className="text-xs font-bold text-primary mt-0.5">{sub.score}/{(sub as any).total || "?"}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <Button size="sm" onClick={() => setSelectedHw(hw)} disabled={!!isOverdue}>
+                            {isOverdue ? "انتهى الوقت" : "تسليم الواجب"}
+                          </Button>
                         )}
                       </div>
-                    ) : (
-                      <Button size="sm" onClick={() => setSelectedHw(hw)} disabled={!!isOverdue}>
-                        {isOverdue ? "انتهى الوقت" : "تسليم الواجب"}
-                      </Button>
-                    )}
-                  </div>
-                  {sub?.feedback && (
-                    <div className="mt-2 bg-primary/5 rounded-lg p-2">
-                      <p className="text-xs font-medium">ملاحظات الأستاذ:</p>
-                      <p className="text-xs text-muted-foreground">{sub.feedback}</p>
+                      {sub?.feedback && (
+                        <div className="mt-2 bg-primary/5 rounded-lg p-2">
+                          <p className="text-xs font-medium">ملاحظات الأستاذ:</p>
+                          <p className="text-xs text-muted-foreground">{sub.feedback}</p>
+                        </div>
+                      )}
+                      {sub?.image_urls && sub.image_urls.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {sub.image_urls.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                              <img src={url} className="w-12 h-12 object-cover rounded-lg border border-border" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {sub?.image_urls && sub.image_urls.length > 0 && (
-                    <div className="flex gap-2 mt-2">
-                      {sub.image_urls.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                          <img src={url} className="w-12 h-12 object-cover rounded-lg border border-border" />
-                        </a>
-                      ))}
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Exams Tab */}
+        {activeTab === "exams" && (
+          <>
+            {examList.length === 0 ? (
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">لا توجد امتحانات حالياً</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {examList.map(exam => {
+                  const attempt = getExamAttempt(exam.id);
+                  return (
+                    <div key={exam.id} className="bg-card rounded-xl border border-border p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm">{exam.title}</h3>
+                          <p className="text-xs text-muted-foreground">{exam.subject}</p>
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(exam.created_at).toLocaleDateString("ar-EG")}
+                          </p>
+                          {exam.pdf_url && (
+                            <a href={exam.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                              <FileText className="w-3 h-3" />
+                              عرض ملف PDF
+                            </a>
+                          )}
+                        </div>
+                        {attempt ? (
+                          <div className="text-center">
+                            <CheckCircle className="w-5 h-5 text-primary mx-auto" />
+                            <span className="text-xs text-primary">تم الحل</span>
+                            {attempt.score !== null && (
+                              <p className="text-xs font-bold text-primary mt-0.5">{attempt.score}/{attempt.total || "?"}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <Button size="sm" onClick={() => navigate(`/exam/${exam.id}`)}>
+                            ابدأ الامتحان
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
