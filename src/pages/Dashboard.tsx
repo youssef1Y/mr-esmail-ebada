@@ -246,6 +246,25 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
               {subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          {/* Homework type selector */}
+          <div>
+            <Label className="text-xs">نوع الواجب</Label>
+            <select value={newHw.homework_type} onChange={e => setNewHw({ ...newHw, homework_type: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+              <option value="regular">واجب عادي</option>
+              <option value="book">حل كتاب / درس</option>
+            </select>
+          </div>
+          {/* Book-based homework fields */}
+          {newHw.homework_type === "book" && (
+            <div className="space-y-2 bg-background/50 rounded-lg p-3">
+              <Input value={newHw.book_name} onChange={e => setNewHw({ ...newHw, book_name: e.target.value })} placeholder="اسم الكتاب" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="number" value={newHw.page_from} onChange={e => setNewHw({ ...newHw, page_from: e.target.value })} placeholder="من صفحة" />
+                <Input type="number" value={newHw.page_to} onChange={e => setNewHw({ ...newHw, page_to: e.target.value })} placeholder="لصفحة" />
+              </div>
+              <Input value={newHw.lesson_number} onChange={e => setNewHw({ ...newHw, lesson_number: e.target.value })} placeholder="رقم أو اسم الدرس (اختياري)" />
+            </div>
+          )}
           <div>
             <Label className="text-xs">الموعد النهائي (اختياري)</Label>
             <Input type="date" value={newHw.due_date} onChange={e => setNewHw({ ...newHw, due_date: e.target.value })} />
@@ -259,6 +278,17 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
                 <input type="file" accept=".pdf" className="hidden" onChange={e => setHwPdfFile(e.target.files?.[0] || null)} />
               </label>
               {hwPdfFile && <button onClick={() => setHwPdfFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">ملف الإجابات النموذجية (اختياري - للتصحيح التلقائي)</Label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer bg-background border border-input rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <FileText className="w-4 h-4" />
+                {hwAnswerKeyFile ? hwAnswerKeyFile.name : "اختر ملف الإجابات"}
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setHwAnswerKeyFile(e.target.files?.[0] || null)} />
+              </label>
+              {hwAnswerKeyFile && <button onClick={() => setHwAnswerKeyFile(null)} className="text-destructive"><X className="w-4 h-4" /></button>}
             </div>
           </div>
           <div className="flex gap-2">
