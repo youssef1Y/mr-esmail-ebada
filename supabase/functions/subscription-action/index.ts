@@ -199,7 +199,7 @@ serve(async (req) => {
         "تم رفض طلب اشتراكك. يرجى مراجعة بيانات التحويل وإعادة المحاولة."
       );
 
-      const studentName = profile?.full_name || "الطالب";
+      const studentName = escapeHtml(profile?.full_name || "الطالب");
       return new Response(
         renderHTML("❌ تم رفض الطلب", `تم رفض طلب اشتراك ${studentName} وتم إشعاره.`),
         { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } }
