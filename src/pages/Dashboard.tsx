@@ -2825,17 +2825,23 @@ const Dashboard = () => {
 
               {/* Schedule */}
               {adminTab === "schedule" && (
-                <AdminScheduleTab toast={toast} />
+                <Suspense fallback={<div className="text-center py-6 text-muted-foreground">جاري التحميل...</div>}>
+                  <AdminScheduleTab toast={toast} />
+                </Suspense>
               )}
 
               {/* Competition */}
               {adminTab === "competition" && (
-                <AdminCompetitionTab toast={toast} />
+                <Suspense fallback={<div className="text-center py-6 text-muted-foreground">جاري التحميل...</div>}>
+                  <AdminCompetitionTab toast={toast} />
+                </Suspense>
               )}
 
               {/* Question Bank */}
               {adminTab === "question_bank" && (
-                <AdminQuestionBankTab toast={toast} />
+                <Suspense fallback={<div className="text-center py-6 text-muted-foreground">جاري التحميل...</div>}>
+                  <AdminQuestionBankTab toast={toast} />
+                </Suspense>
               )}
 
               {/* Grade Promotion */}
