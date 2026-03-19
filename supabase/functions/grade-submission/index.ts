@@ -262,6 +262,16 @@ serve(async (req) => {
         })
         .eq("id", submission_id);
 
+      // Notify student if perfect score (certificate available)
+      if (result.score >= result.total && result.total > 0) {
+        await supabaseAdmin.from("student_notifications").insert({
+          user_id: sub.user_id,
+          title: "🏆 شهادة جديدة متاحة!",
+          body: `مبروك! حصلت على الدرجة النهائية في واجب "${hw.title}". شهادتك جاهزة للتحميل من صفحة الشهادات.`,
+          type: "certificate",
+        });
+      }
+
       return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
