@@ -209,15 +209,34 @@ serve(async (req) => {
 
     await supabaseAdmin.from("exam_answers").insert(answersToInsert);
 
-    // Award points server-side
-    const pointsAwarded = Math.max(2, Math.round((score / (mcqCount || 1)) * 10));
-    await supabaseAdmin.from("student_points").insert({
-      user_id: userId,
-      points: pointsAwarded,
-      reason: `امتحان`,
-      source_type: "exam",
-      source_id: exam_id,
-    });
+    // Award points server-side: 100% = 10pts, >50% = 5pts, ≤50% = 0pts
+    const percentage = mcqCount > 0 ? score / mcqCount : 0;
+    let pointsAwarded = 0;
+    if (percentage >= 1) {
+      pointsAwarded = 10;
+    } else if (percentage > 0.5) {
+      pointsAwarded = 5;
+    }
+
+    if (pointsAwarded > 0) {
+      await supabaseAdmin.from("student_points").insert({
+        user_id: userId,
+        points: pointsAwarded,
+        reason: `امتحان`,
+        source_type: "exam",
+        source_id: exam_id,
+      });
+    }
+
+    // Notify student if perfect score (certificate available)
+    if (percentage >= 1 && mcqCount > 0) {
+      await supabaseAdmin.from("student_notifications").insert({
+        user_id: userId,
+        title: "🏆 شهادة جديدة متاحة!",
+        body: `مبروك! حصلت على الدرجة النهائية في امتحان "${exam.title || ""}". شهادتك جاهزة للتحميل من صفحة الشهادات.`,
+        type: "certificate",
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, score, total: mcqCount, details }), {
       status: 200,
