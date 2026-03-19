@@ -160,9 +160,19 @@ const TakeExam = () => {
             <p className="text-sm text-muted-foreground">{exam.grade} · {exam.subject}</p>
             <p className="text-xs text-muted-foreground mt-1">{questions.length} سؤال</p>
             {exam.pdf_url && (
-              <a href={exam.pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2">
-                <BookOpen className="w-4 h-4" />
-                عرض ملف PDF الامتحان
+              <a
+                href={exam.pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 mx-auto flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-4 py-3 transition-colors max-w-xs"
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold">عرض ملف الامتحان</p>
+                  <p className="text-[10px] text-primary/70">اضغط لفتح ملف PDF</p>
+                </div>
               </a>
             )}
           </div>
