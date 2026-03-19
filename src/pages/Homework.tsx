@@ -208,10 +208,17 @@ const Homework = () => {
               <h2 className="font-bold text-lg mb-1">{selectedHw.title}</h2>
               {selectedHw.description && <p className="text-sm text-muted-foreground mb-2">{selectedHw.description}</p>}
               {(selectedHw as any).pdf_url && (
-                <a href={(selectedHw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
-                  <FileText className="w-4 h-4" />
-                  عرض ملف PDF الواجب
-                </a>
+                <div className="mb-4">
+                  <p className="text-sm text-primary font-medium flex items-center gap-1 mb-1">
+                    <FileText className="w-4 h-4" />
+                    ملف الواجب
+                  </p>
+                  <iframe
+                    src={(selectedHw as any).pdf_url}
+                    className="w-full h-72 rounded-lg border border-border"
+                    title="ملف PDF الواجب"
+                  />
+                </div>
               )}
 
               <div className="space-y-4">
@@ -303,10 +310,17 @@ const Homework = () => {
                             </p>
                           )}
                           {(hw as any).pdf_url && (
-                            <a href={(hw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                              <FileText className="w-3 h-3" />
-                              عرض ملف PDF
-                            </a>
+                            <div className="mt-2">
+                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
+                                <FileText className="w-3 h-3" />
+                                ملف الواجب
+                              </p>
+                              <iframe
+                                src={(hw as any).pdf_url}
+                                className="w-full h-64 rounded-lg border border-border"
+                                title="ملف PDF الواجب"
+                              />
+                            </div>
                           )}
                         </div>
                         {sub ? (
@@ -369,10 +383,17 @@ const Homework = () => {
                             {new Date(exam.created_at).toLocaleDateString("ar-EG")}
                           </p>
                           {exam.pdf_url && (
-                            <a href={exam.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                              <FileText className="w-3 h-3" />
-                              عرض ملف PDF
-                            </a>
+                            <div className="mt-2">
+                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
+                                <FileText className="w-3 h-3" />
+                                ملف الامتحان
+                              </p>
+                              <iframe
+                                src={exam.pdf_url}
+                                className="w-full h-64 rounded-lg border border-border"
+                                title="ملف PDF الامتحان"
+                              />
+                            </div>
                           )}
                         </div>
                         {attempt ? (
