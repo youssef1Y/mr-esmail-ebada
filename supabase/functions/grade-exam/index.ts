@@ -104,7 +104,7 @@ serve(async (req) => {
     // Check exam access_type and enforce subscription
     const { data: exam, error: examError } = await supabaseAdmin
       .from("exams")
-      .select("access_type")
+      .select("access_type, title")
       .eq("id", exam_id)
       .single();
 
