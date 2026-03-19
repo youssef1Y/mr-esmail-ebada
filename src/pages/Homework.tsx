@@ -383,10 +383,17 @@ const Homework = () => {
                             {new Date(exam.created_at).toLocaleDateString("ar-EG")}
                           </p>
                           {exam.pdf_url && (
-                            <a href={exam.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                              <FileText className="w-3 h-3" />
-                              عرض ملف PDF
-                            </a>
+                            <div className="mt-2">
+                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
+                                <FileText className="w-3 h-3" />
+                                ملف الامتحان
+                              </p>
+                              <iframe
+                                src={exam.pdf_url}
+                                className="w-full h-64 rounded-lg border border-border"
+                                title="ملف PDF الامتحان"
+                              />
+                            </div>
                           )}
                         </div>
                         {attempt ? (
