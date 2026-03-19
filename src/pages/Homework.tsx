@@ -208,17 +208,21 @@ const Homework = () => {
               <h2 className="font-bold text-lg mb-1">{selectedHw.title}</h2>
               {selectedHw.description && <p className="text-sm text-muted-foreground mb-2">{selectedHw.description}</p>}
               {(selectedHw as any).pdf_url && (
-                <div className="mb-4">
-                  <p className="text-sm text-primary font-medium flex items-center gap-1 mb-1">
-                    <FileText className="w-4 h-4" />
-                    ملف الواجب
-                  </p>
-                  <iframe
-                    src={(selectedHw as any).pdf_url}
-                    className="w-full h-72 rounded-lg border border-border"
-                    title="ملف PDF الواجب"
-                  />
-                </div>
+                <a
+                  href={(selectedHw as any).pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-4 flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-3 py-3 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">عرض ملف الواجب</p>
+                    <p className="text-[11px] text-primary/70">اضغط لفتح ملف PDF</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 mr-auto rotate-180" />
+                </a>
               )}
 
               <div className="space-y-4">
@@ -310,17 +314,21 @@ const Homework = () => {
                             </p>
                           )}
                           {(hw as any).pdf_url && (
-                            <div className="mt-2">
-                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
-                                <FileText className="w-3 h-3" />
-                                ملف الواجب
-                              </p>
-                              <iframe
-                                src={(hw as any).pdf_url}
-                                className="w-full h-64 rounded-lg border border-border"
-                                title="ملف PDF الواجب"
-                              />
-                            </div>
+                            <a
+                              href={(hw as any).pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-3 py-2.5 transition-colors"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-4 h-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">عرض ملف الواجب</p>
+                                <p className="text-[10px] text-primary/70">اضغط لفتح ملف PDF</p>
+                              </div>
+                              <ChevronRight className="w-4 h-4 mr-auto rotate-180" />
+                            </a>
                           )}
                         </div>
                         {sub ? (
@@ -383,17 +391,21 @@ const Homework = () => {
                             {new Date(exam.created_at).toLocaleDateString("ar-EG")}
                           </p>
                           {exam.pdf_url && (
-                            <div className="mt-2">
-                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
-                                <FileText className="w-3 h-3" />
-                                ملف الامتحان
-                              </p>
-                              <iframe
-                                src={exam.pdf_url}
-                                className="w-full h-64 rounded-lg border border-border"
-                                title="ملف PDF الامتحان"
-                              />
-                            </div>
+                            <a
+                              href={exam.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-3 py-2.5 transition-colors"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-4 h-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">عرض ملف الامتحان</p>
+                                <p className="text-[10px] text-primary/70">اضغط لفتح ملف PDF</p>
+                              </div>
+                              <ChevronRight className="w-4 h-4 mr-auto rotate-180" />
+                            </a>
                           )}
                         </div>
                         {attempt ? (
