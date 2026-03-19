@@ -208,10 +208,17 @@ const Homework = () => {
               <h2 className="font-bold text-lg mb-1">{selectedHw.title}</h2>
               {selectedHw.description && <p className="text-sm text-muted-foreground mb-2">{selectedHw.description}</p>}
               {(selectedHw as any).pdf_url && (
-                <a href={(selectedHw as any).pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
-                  <FileText className="w-4 h-4" />
-                  عرض ملف PDF الواجب
-                </a>
+                <div className="mb-4">
+                  <p className="text-sm text-primary font-medium flex items-center gap-1 mb-1">
+                    <FileText className="w-4 h-4" />
+                    ملف الواجب
+                  </p>
+                  <iframe
+                    src={(selectedHw as any).pdf_url}
+                    className="w-full h-72 rounded-lg border border-border"
+                    title="ملف PDF الواجب"
+                  />
+                </div>
               )}
 
               <div className="space-y-4">
