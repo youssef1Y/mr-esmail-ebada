@@ -310,17 +310,21 @@ const Homework = () => {
                             </p>
                           )}
                           {(hw as any).pdf_url && (
-                            <div className="mt-2">
-                              <p className="text-xs text-primary font-medium flex items-center gap-1 mb-1">
-                                <FileText className="w-3 h-3" />
-                                ملف الواجب
-                              </p>
-                              <iframe
-                                src={(hw as any).pdf_url}
-                                className="w-full h-64 rounded-lg border border-border"
-                                title="ملف PDF الواجب"
-                              />
-                            </div>
+                            <a
+                              href={(hw as any).pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-3 py-2.5 transition-colors"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-4 h-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">عرض ملف الواجب</p>
+                                <p className="text-[10px] text-primary/70">اضغط لفتح ملف PDF</p>
+                              </div>
+                              <ChevronRight className="w-4 h-4 mr-auto rotate-180" />
+                            </a>
                           )}
                         </div>
                         {sub ? (
