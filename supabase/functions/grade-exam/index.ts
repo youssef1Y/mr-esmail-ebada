@@ -209,20 +209,14 @@ serve(async (req) => {
 
     await supabaseAdmin.from("exam_answers").insert(answersToInsert);
 
-    // Award points server-side: 100% = 10pts, >50% = 5pts, ≤50% = 0pts
-    const percentage = mcqCount > 0 ? score / mcqCount : 0;
-    let pointsAwarded = 0;
-    if (percentage >= 1) {
-      pointsAwarded = 10;
-    } else if (percentage > 0.5) {
-      pointsAwarded = 5;
-    }
+    // Award points = score (e.g. 9/10 = 9 points)
+    const pointsAwarded = score;
 
     if (pointsAwarded > 0) {
       await supabaseAdmin.from("student_points").insert({
         user_id: userId,
         points: pointsAwarded,
-        reason: `امتحان`,
+        reason: `امتحان - ${score}/${mcqCount}`,
         source_type: "exam",
         source_id: exam_id,
       });
