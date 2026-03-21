@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { compressImage } from "@/lib/image-compress";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
 const Subscribe = () => {
@@ -60,10 +61,11 @@ const Subscribe = () => {
 
     setSubmitting(true);
 
-    const ext = receiptFile.name.split(".").pop();
+    const compressed = await compressImage(receiptFile);
+    const ext = compressed.name.split(".").pop();
     const receiptPath = `${user.id}/${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage.from("receipts").upload(receiptPath, receiptFile);
+    const { error: uploadError } = await supabase.storage.from("receipts").upload(receiptPath, compressed, { contentType: compressed.type });
     if (uploadError) {
       setSubmitting(false);
       toast({ title: "خطأ", description: "فشل رفع صورة الإيصال", variant: "destructive" });
