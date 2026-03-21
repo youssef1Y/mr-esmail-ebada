@@ -159,9 +159,7 @@ const SubjectVideos = () => {
             }
           }
 
-          for (const v of filtered) {
-            supabase.from("video_views").insert({ video_id: v.id, user_id: session.user.id }).then(() => {});
-          }
+          // Video views are now recorded when the student actually plays a video
         }
       }
       setLoading(false);
