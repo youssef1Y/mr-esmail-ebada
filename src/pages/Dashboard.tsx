@@ -1819,7 +1819,9 @@ const Dashboard = () => {
       xhr.open("POST", `${supabaseUrl}/storage/v1/object/videos/${filePath}`);
       xhr.setRequestHeader("Authorization", `Bearer ${session?.access_token || ""}`);
       xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
       xhr.setRequestHeader("x-upsert", "false");
+      xhr.timeout = 0; // No timeout for large uploads
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
