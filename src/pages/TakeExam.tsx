@@ -87,23 +87,27 @@ const TakeExam = () => {
 
     setSubmitting(true);
 
-    // Upload images for essay questions
+    // Upload images for essay questions - compress & upload in parallel
     const imageUrlsMap: Record<string, string[]> = {};
-    for (const [qId, files] of Object.entries(answerImages)) {
-      if (files.length === 0) continue;
-      const urls: string[] = [];
-      for (const file of files) {
-        const ext = file.name.split(".").pop();
-        const path = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error } = await supabase.storage.from("submissions").upload(path, file);
-        if (!error) {
-          // Use signed URLs for private submissions bucket
-          const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400);
-          if (data) urls.push(data.signedUrl);
-        }
-      }
-      imageUrlsMap[qId] = urls;
-    }
+    const uploadTasks = Object.entries(answerImages)
+      .filter(([, files]) => files.length > 0)
+      .map(async ([qId, files]) => {
+        const compressed = await compressImages(files);
+        const urls = await Promise.all(
+          compressed.map(async (file) => {
+            const ext = file.name.split(".").pop();
+            const path = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            const { error } = await supabase.storage.from("submissions").upload(path, file, { contentType: file.type });
+            if (!error) {
+              const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400 * 7);
+              if (data) return data.signedUrl;
+            }
+            return null;
+          })
+        );
+        imageUrlsMap[qId] = urls.filter((u): u is string => u !== null);
+      });
+    await Promise.all(uploadTasks);
 
     try {
       const { data, error } = await supabase.functions.invoke("grade-exam", {

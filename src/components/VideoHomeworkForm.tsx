@@ -61,12 +61,17 @@ const VideoHomeworkForm = ({ homeworkId, description, questions, userId, onSubmi
     setSubmitting(true);
     try {
       const uploadedUrls: string[] = [];
-      for (const file of imageFiles) {
-        const ext = file.name.split(".").pop();
-        const path = `video-homework/${userId}/${homeworkId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error } = await supabase.storage.from("submissions").upload(path, file);
-        if (!error) uploadedUrls.push(path);
-      }
+      const compressed = await compressImages(imageFiles);
+      const results = await Promise.all(
+        compressed.map(async (file) => {
+          const ext = file.name.split(".").pop();
+          const path = `video-homework/${userId}/${homeworkId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error } = await supabase.storage.from("submissions").upload(path, file, { contentType: file.type });
+          if (!error) return path;
+          return null;
+        })
+      );
+      uploadedUrls.push(...results.filter((u): u is string => u !== null));
 
       // Submit via server-side grading function (prevents score injection)
       const answersArray = questions.map((q, i) => ({
