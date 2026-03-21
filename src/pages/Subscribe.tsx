@@ -61,10 +61,11 @@ const Subscribe = () => {
 
     setSubmitting(true);
 
-    const ext = receiptFile.name.split(".").pop();
+    const compressed = await compressImage(receiptFile);
+    const ext = compressed.name.split(".").pop();
     const receiptPath = `${user.id}/${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage.from("receipts").upload(receiptPath, receiptFile);
+    const { error: uploadError } = await supabase.storage.from("receipts").upload(receiptPath, compressed, { contentType: compressed.type });
     if (uploadError) {
       setSubmitting(false);
       toast({ title: "خطأ", description: "فشل رفع صورة الإيصال", variant: "destructive" });
