@@ -101,17 +101,16 @@ const SubjectVideos = () => {
       if (!session) { navigate("/auth/login"); return; }
       setUserId(session.user.id);
 
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin");
-      if (roles && roles.length > 0) setIsAdmin(true);
+      // Run role check and profile fetch in parallel
+      const [rolesResult, profileResult] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin"),
+        supabase.from("profiles").select("is_subscribed, madhab").eq("user_id", session.user.id).single(),
+      ]);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_subscribed, madhab")
-        .eq("user_id", session.user.id)
-        .single();
-      if (profile) setIsSubscribed(profile.is_subscribed);
-      const studentMadhab = profile?.madhab || "";
-      const isAdminUser = roles && roles.length > 0;
+      const isAdminUser = rolesResult.data && rolesResult.data.length > 0;
+      if (isAdminUser) setIsAdmin(true);
+      if (profileResult.data) setIsSubscribed(profileResult.data.is_subscribed);
+      const studentMadhab = profileResult.data?.madhab || "";
 
       if (subject && grade) {
         const { data } = await supabase
@@ -122,7 +121,7 @@ const SubjectVideos = () => {
           .order("sort_order", { ascending: true });
 
         if (data) {
-          let filtered = isAdminUser || profile?.is_subscribed
+          let filtered = isAdminUser || profileResult.data?.is_subscribed
             ? data
             : data.filter(v => v.access_type === "all");
 
@@ -132,6 +131,7 @@ const SubjectVideos = () => {
 
           setVideos(filtered as VideoItem[]);
 
+          // Fetch homework data
           const videoIds = filtered.map(v => v.id);
           if (videoIds.length > 0) {
             const { data: hwData } = await supabase
@@ -146,6 +146,7 @@ const SubjectVideos = () => {
               }
               setVideoHomework(hwMap);
 
+              // Fetch submissions for these homeworks
               const hwIds = (hwData as any[]).map((hw: any) => hw.id);
               const { data: subs } = await supabase
                 .from("video_homework_submissions" as any)
@@ -158,8 +159,6 @@ const SubjectVideos = () => {
               }
             }
           }
-
-          // Video views are now recorded when the student actually plays a video
         }
       }
       setLoading(false);
