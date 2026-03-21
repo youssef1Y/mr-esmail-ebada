@@ -492,29 +492,44 @@ const SubjectVideos = () => {
           </div>
         )}
 
-        {!isSubscribed && !isAdmin ? (
-          <div className="bg-card rounded-2xl border border-border p-10 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="font-bold font-amiri text-xl">اشترك للوصول إلى المحتوى</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              اشترك الآن للوصول لجميع الفيديوهات والشروحات والمحتوى الحصري لمادة {decodedSubject}
-            </p>
-            <Link to="/subscribe">
-              <Button size="lg" className="gap-2 mt-2">
-                اشترك الآن
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        ) : filteredVideos.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <p className="text-muted-foreground">
-              {searchQuery ? "لا توجد نتائج للبحث" : "لا توجد فيديوهات لهذه المادة حتى الآن"}
-            </p>
+        {filteredVideos.length === 0 ? (
+          <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-4">
+            {!isSubscribed && !isAdmin ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-bold font-amiri text-xl">اشترك للوصول إلى المحتوى</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  اشترك الآن للوصول لجميع الفيديوهات والشروحات والمحتوى الحصري لمادة {decodedSubject}
+                </p>
+                <Link to="/subscribe">
+                  <Button size="lg" className="gap-2 mt-2">
+                    اشترك الآن
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                {searchQuery ? "لا توجد نتائج للبحث" : "لا توجد فيديوهات لهذه المادة حتى الآن"}
+              </p>
+            )}
           </div>
         ) : (
+          <>
+          {!isSubscribed && !isAdmin && (
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20 p-4 mb-3 flex items-center gap-3">
+              <Lock className="w-5 h-5 text-primary flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold">بعض الفيديوهات للمشتركين فقط</p>
+                <p className="text-xs text-muted-foreground">اشترك للوصول لكل المحتوى</p>
+              </div>
+              <Link to="/subscribe">
+                <Button size="sm" variant="outline" className="text-xs">اشترك</Button>
+              </Link>
+            </div>
+          )}
           <StaggerContainer className="space-y-3" staggerDelay={0.08}>
             {filteredVideos.map((v, i) => {
               const locked = isVideoLocked(v.id);
