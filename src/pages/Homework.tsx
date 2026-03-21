@@ -4,6 +4,7 @@ import { BookOpen, ChevronRight, FileText, CheckCircle, Clock, Image as ImageIco
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { compressImages } from "@/lib/image-compress";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
 interface HomeworkItem {
