@@ -186,6 +186,11 @@ const SubjectVideos = () => {
   const resolveAndPlay = useCallback(async (videoId: string) => {
     if (isVideoLocked(videoId)) return;
     
+    // Record view when student actually plays
+    if (userId) {
+      supabase.from("video_views").insert({ video_id: videoId, user_id: userId }).then(() => {});
+    }
+
     if (resolvedUrls[videoId]) {
       setPlayingId(videoId);
       setTimeout(() => playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
@@ -201,7 +206,7 @@ const SubjectVideos = () => {
       setPlayingId(videoId);
       setTimeout(() => playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     }
-  }, [videos, resolvedUrls, resolvePlayableVideoUrls, isVideoLocked]);
+  }, [videos, resolvedUrls, resolvePlayableVideoUrls, isVideoLocked, userId]);
 
   // Refresh URL for currently playing video periodically
   useEffect(() => {
