@@ -113,22 +113,32 @@ const SubjectVideos = () => {
       const studentMadhab = profileResult.data?.madhab || "";
 
       if (subject && grade) {
-        const { data } = await supabase
+        const decodedSubject = decodeURIComponent(subject);
+        console.log("Fetching videos:", { grade, subject: decodedSubject });
+        
+        const { data, error: videosError } = await supabase
           .from("videos")
           .select("*")
           .eq("grade", grade)
-          .eq("subject", decodeURIComponent(subject))
+          .eq("subject", decodedSubject)
           .order("sort_order", { ascending: true });
+
+        if (videosError) {
+          console.error("Videos fetch error:", videosError);
+        }
+
+        console.log("Videos result:", { count: data?.length, data: data?.map(v => ({ id: v.id, title: v.title, access_type: v.access_type })) });
 
         if (data) {
           let filtered = isAdminUser || profileResult.data?.is_subscribed
             ? data
             : data.filter(v => v.access_type === "all");
 
-          if (decodeURIComponent(subject || "") === "الفقه" && !isAdminUser && studentMadhab) {
+          if (decodedSubject === "الفقه" && !isAdminUser && studentMadhab) {
             filtered = filtered.filter(v => !(v as any).madhab || (v as any).madhab === studentMadhab);
           }
 
+          console.log("Filtered videos:", { count: filtered.length });
           setVideos(filtered as VideoItem[]);
 
           // Fetch homework data
