@@ -3,6 +3,7 @@ import { CheckCircle2, Camera, ImageIcon, Send, Loader2, CheckCircle, XCircle, T
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { compressImages } from "@/lib/image-compress";
 
 interface MCQQuestion {
   question: string;
