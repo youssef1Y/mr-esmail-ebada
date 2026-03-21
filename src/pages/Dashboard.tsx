@@ -1385,23 +1385,20 @@ const Dashboard = () => {
     if (!sessionStorage.getItem("admin_selected_grade")) {
       setSelectedGrade(data.grade);
     }
-    fetchStudentNotifications(data.grade, data.is_subscribed);
-    fetchStudentExams(data.grade, data.is_subscribed);
-
     setLoading(false);
-    // Fetch unread personal notifications count
-    const { count } = await supabase
-      .from("student_notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("is_read", false);
-    setPersonalNotifCount(count || 0);
-    // Fetch student points for level
-    const { data: pointsData } = await supabase.from("student_points").select("points").eq("user_id", userId);
-    if (pointsData) {
-      const total = pointsData.reduce((sum, p) => sum + p.points, 0);
-      setStudentPoints(total);
-    }
+
+    // Run all secondary fetches in parallel
+    Promise.all([
+      fetchStudentNotifications(data.grade, data.is_subscribed),
+      fetchStudentExams(data.grade, data.is_subscribed),
+      supabase.from("student_notifications").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("is_read", false).then(({ count }) => setPersonalNotifCount(count || 0)),
+      supabase.from("student_points").select("points").eq("user_id", userId).then(({ data: pointsData }) => {
+        if (pointsData) {
+          const total = pointsData.reduce((sum, p) => sum + p.points, 0);
+          setStudentPoints(total);
+        }
+      }),
+    ]);
   };
 
   const fetchStudentNotifications = async (grade: string, isSubscribed: boolean) => {
