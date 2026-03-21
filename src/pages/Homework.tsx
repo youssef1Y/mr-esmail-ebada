@@ -99,15 +99,21 @@ const Homework = () => {
     setSubmitting(true);
     const imageUrls: string[] = [];
 
-    for (const file of answerImages) {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-      const { error } = await supabase.storage.from("submissions").upload(path, file);
-      if (!error) {
-        const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400);
-        if (data) imageUrls.push(data.signedUrl);
-      }
-    }
+    // Compress images first, then upload in parallel
+    const compressed = await compressImages(answerImages);
+    const uploadResults = await Promise.all(
+      compressed.map(async (file) => {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error } = await supabase.storage.from("submissions").upload(path, file, { contentType: file.type });
+        if (!error) {
+          const { data } = await supabase.storage.from("submissions").createSignedUrl(path, 86400 * 7);
+          if (data) return data.signedUrl;
+        }
+        return null;
+      })
+    );
+    imageUrls.push(...uploadResults.filter((u): u is string => u !== null));
 
     const { error } = await supabase.from("homework_submissions").insert({
       homework_id: selectedHw.id,
