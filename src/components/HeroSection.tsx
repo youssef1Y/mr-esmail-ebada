@@ -86,16 +86,13 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="flex flex-wrap justify-center gap-2 max-w-lg"
           >
-            {["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي", "التوحيد", "التفسير", "الحديث", "السيرة"].map((subject, i) => (
-              <motion.span
+            {["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي", "التوحيد", "التفسير", "الحديث", "السيرة"].map((subject) => (
+              <span
                 key={subject}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.7 + i * 0.05 }}
                 className="bg-primary-foreground/8 backdrop-blur-sm border border-primary-foreground/15 text-primary-foreground/80 text-xs px-3 py-1.5 rounded-full"
               >
                 {subject}
-              </motion.span>
+              </span>
             ))}
           </motion.div>
 
