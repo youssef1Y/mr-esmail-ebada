@@ -1473,7 +1473,10 @@ const Dashboard = () => {
   };
 
   const fetchStudentExams = async (grade: string, isSubscribed: boolean) => {
-    const { data } = await supabase.from("exams").select("*").eq("grade", grade).order("created_at", { ascending: false });
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+    const { data } = await supabase.from("exams").select("*").eq("grade", grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false });
     if (data) {
       const filtered = data.filter(e => {
         if (e.access_type === "subscribers_only" && !isSubscribed) return false;
