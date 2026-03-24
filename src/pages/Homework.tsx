@@ -75,9 +75,9 @@ const Homework = () => {
         const currentTerm = parseInt(termSetting?.value || "1") || 1;
 
         const [hwRes, subsRes, examsRes, attemptsRes] = await Promise.all([
-          supabase.from("homework").select("*").eq("grade", profile.grade).eq("term" as any, currentTerm).order("created_at", { ascending: false }),
+          supabase.from("homework").select("*").eq("grade", profile.grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false }),
           supabase.from("homework_submissions").select("*").eq("user_id", session.user.id),
-          supabase.from("exams").select("*").eq("grade", profile.grade).eq("term" as any, currentTerm).order("created_at", { ascending: false }),
+          supabase.from("exams").select("*").eq("grade", profile.grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false }),
           supabase.from("exam_attempts").select("*").eq("user_id", session.user.id),
         ]);
         if (hwRes.data) setHomeworkList(hwRes.data as HomeworkItem[]);

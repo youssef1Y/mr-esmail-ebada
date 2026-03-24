@@ -29,11 +29,11 @@ export const useBadgeCounts = (userId: string, grade: string, isSubscribed: bool
       // Run ALL queries in parallel instead of sequentially
       const [msgResult, hwResult, subsResult, examsResult, attemptsResult, videosResult, viewsResult, notifResult] = await Promise.all([
         supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("is_admin_reply", true).eq("is_read", false),
-        supabase.from("homework").select("id").eq("grade", grade).eq("term" as any, currentTerm),
+        supabase.from("homework").select("id").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("homework_submissions").select("homework_id").eq("user_id", userId),
-        supabase.from("exams").select("id, access_type").eq("grade", grade).eq("term" as any, currentTerm),
+        supabase.from("exams").select("id, access_type").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("exam_attempts").select("exam_id").eq("user_id", userId),
-        supabase.from("videos").select("id, subject").eq("grade", grade).eq("term" as any, currentTerm),
+        supabase.from("videos").select("id, subject").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("video_views").select("video_id").eq("user_id", userId),
         supabase.from("student_notifications").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("is_read", false),
       ]);
