@@ -27,46 +27,63 @@ const testimonials = [
     text: "المنصة فيها كل حاجة محتاجاها من شرح وامتحانات وواجبات. أسلوب الأستاذ إسماعيل مميز جداً وبيوصل المعلومة بسهولة.",
     rating: 5,
   },
+  {
+    name: "يوسف إبراهيم",
+    grade: "الصف الثالث الثانوي",
+    text: "المنصة ساعدتني أحقق أعلى الدرجات في مواد الفقه والتوحيد. الشرح وافي ومنظم والمتابعة ممتازة.",
+    rating: 5,
+  },
+  {
+    name: "آية عبدالرحمن",
+    grade: "الصف الأول الإعدادي",
+    text: "بحب المنصة جداً وبستمتع بالدروس. نظام النقاط والمسابقات بيخلي التعلم ممتع ومشوق.",
+    rating: 5,
+  },
 ];
 
 const TestimonialsSection = () => {
   return (
-    <section className="py-20 bg-background">
-      <div className="container mx-auto px-4">
+    <section className="py-24 bg-background relative overflow-hidden">
+      {/* Decorative */}
+      <div className="absolute top-0 left-1/4 w-80 h-80 bg-gold/3 rounded-full blur-[150px]" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-[180px]" />
+
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-14"
+          className="text-center max-w-2xl mx-auto mb-16"
         >
-          <span className="inline-block bg-gold/10 text-gold text-sm font-bold px-4 py-1.5 rounded-full mb-4">
-            آراء الطلاب
+          <span className="inline-block bg-gold/10 text-gold text-sm font-bold px-5 py-2 rounded-full mb-4">
+            ⭐ قصص نجاح طلابنا
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold font-amiri text-foreground mb-4">
-            ماذا يقول طلابنا عن المنصة
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold font-amiri text-foreground mb-4">
+            ماذا يقول
+            <span className="block text-primary text-3xl md:text-4xl mt-2">طلابنا عن المنصة</span>
           </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            نفتخر بثقة طلابنا وأولياء أمورهم في منصتنا التعليمية
+          <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
+            شهادات حقيقية من طلاب حققوا النجاح والتفوق معنا
           </p>
         </motion.div>
 
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto" staggerDelay={0.12}>
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto" staggerDelay={0.1}>
           {testimonials.map((t, index) => (
             <StaggerItem key={index}>
               <motion.div
-                whileHover={{ y: -4 }}
+                whileHover={{ y: -6 }}
                 transition={{ type: "spring", stiffness: 300 }}
-                className="bg-card rounded-2xl p-6 border border-border hover:border-primary/20 transition-all duration-300 relative overflow-hidden"
+                className="bg-card rounded-2xl p-6 border border-border hover:border-gold/30 transition-all duration-300 hover:shadow-xl hover:shadow-gold/5 relative overflow-hidden h-full"
               >
-                <Quote className="absolute top-4 left-4 w-8 h-8 text-primary/10" />
-                <div className="flex items-center gap-1 mb-3">
+                <Quote className="absolute top-4 left-4 w-10 h-10 text-gold/10" />
+                <div className="flex items-center gap-1 mb-4">
                   {Array.from({ length: t.rating }).map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-gold text-gold" />
                   ))}
                 </div>
-                <p className="text-foreground text-sm leading-relaxed mb-4">"{t.text}"</p>
-                <div className="border-t border-border pt-3">
+                <p className="text-foreground text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <div className="border-t border-border pt-4">
                   <p className="font-bold text-sm text-foreground">{t.name}</p>
                   <p className="text-xs text-muted-foreground">{t.grade}</p>
                 </div>

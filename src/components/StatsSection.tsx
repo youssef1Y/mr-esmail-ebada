@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Users, Video, FileText, Trophy } from "lucide-react";
+import { Users, Video, FileText, Trophy, GraduationCap, BookOpen } from "lucide-react";
 
 const stats = [
   { icon: Users, label: "طالب وطالبة", value: 500, suffix: "+" },
   { icon: Video, label: "فيديو تعليمي", value: 200, suffix: "+" },
   { icon: FileText, label: "امتحان واختبار", value: 150, suffix: "+" },
+  { icon: GraduationCap, label: "صف دراسي", value: 6, suffix: "" },
+  { icon: BookOpen, label: "مادة دراسية", value: 7, suffix: "" },
   { icon: Trophy, label: "سنوات خبرة", value: 10, suffix: "+" },
 ];
 
@@ -36,10 +38,11 @@ const AnimatedCounter = ({ target, suffix }: { target: number; suffix: string })
 
 const StatsSection = () => {
   return (
-    <section className="py-16 hero-gradient relative overflow-hidden">
+    <section className="py-24 hero-gradient relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-72 h-72 bg-gold rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary-foreground rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gold/10 rounded-full blur-[200px]" />
       </div>
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
@@ -47,25 +50,26 @@ const StatsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold font-amiri text-primary-foreground mb-3">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold font-amiri text-primary-foreground mb-4">
             أرقام تتحدث عنا
           </h2>
-          <p className="text-primary-foreground/70 text-sm">إنجازاتنا في خدمة العلم والتعليم</p>
+          <p className="text-primary-foreground/70 text-base md:text-lg max-w-lg mx-auto">إنجازاتنا في خدمة العلم والتعليم تتحدث بنفسها</p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {stats.map((stat, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.5, delay: index * 0.08 }}
+              whileHover={{ scale: 1.05, y: -4 }}
               className="text-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border border-primary-foreground/20">
+              <div className="w-16 h-16 rounded-2xl bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border border-primary-foreground/20 hover:border-gold/40 transition-colors">
                 <stat.icon className="w-8 h-8 text-gold" />
               </div>
               <div className="text-3xl md:text-4xl font-bold text-primary-foreground mb-1">
