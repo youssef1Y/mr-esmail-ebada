@@ -38,67 +38,94 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function callAIWithVideo(
-  LOVABLE_API_KEY: string,
-  systemPrompt: string,
-  userPrompt: string,
-  videoPart: Record<string, unknown>,
-  tools: any[],
-  toolChoice: any
-) {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userPrompt },
-            videoPart,
-          ],
-        },
-      ],
-      tools,
-      tool_choice: toolChoice,
-      max_tokens: 8192,
-    }),
-  });
-
-  return response;
+function extractSummaryFromAi(rawText: string): string | null {
+  if (!rawText) return null;
+  const text = rawText.trim();
+  if (text.startsWith("STATUS:NO_VIDEO")) return null;
+  if (text.startsWith("STATUS:OK")) {
+    return text.replace(/^STATUS:OK\s*/i, "").trim();
+  }
+  return null;
 }
 
-async function callAIWithSummary(
+async function summarizeVideo(
   LOVABLE_API_KEY: string,
-  systemPrompt: string,
-  userPrompt: string,
-  tools: any[],
-  toolChoice: any
-) {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools,
-      tool_choice: toolChoice,
-      max_tokens: 8192,
-    }),
-  });
+  sb: any,
+  video: any
+): Promise<string | null> {
+  const storagePath = getStoragePath(video.video_url);
+  if (!storagePath) return null;
 
-  return response;
+  const { data: signedData } = await sb.storage
+    .from("videos")
+    .createSignedUrl(storagePath, 3600);
+
+  if (!signedData?.signedUrl) return null;
+
+  const analysisPrompt = `أنت محلل محتوى تعليمي. المطلوب تلخيص ما يقال ويُشرح داخل الفيديو نفسه فقط.
+
+قواعد إلزامية صارمة:
+1) ممنوع الاعتماد على عنوان الفيديو أو أي معرفة عامة خارج الفيديو.
+2) لو لم تستطع تحليل الفيديو الفعلي (صوت/صورة)، اكتب فقط: STATUS:NO_VIDEO
+3) لو حللت الفيديو فعلاً، ابدأ الرد بـ STATUS:OK ثم قدّم:
+   - عناوين فرعية واضحة
+   - نقاط مرتبة للمفاهيم الأساسية
+   - أمثلة أو خطوات شرح وردت داخل الفيديو
+4) الرد بالعربية.`;
+
+  const callWithVideo = async (videoPart: Record<string, unknown>) => {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: analysisPrompt },
+            videoPart,
+          ],
+        }],
+        max_tokens: 4096,
+        temperature: 0.1,
+      }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const raw = data.choices?.[0]?.message?.content || "";
+    const summary = extractSummaryFromAi(raw);
+    return summary && summary.length >= 80 ? summary : null;
+  };
+
+  // Try signed URL
+  let summary = await callWithVideo({
+    type: "video_url",
+    video_url: { url: signedData.signedUrl },
+  }).catch(() => null);
+
+  if (summary) return summary;
+
+  // Try base64
+  try {
+    const videoResp = await fetch(signedData.signedUrl);
+    if (videoResp.ok) {
+      const buf = await videoResp.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      if (bytes.byteLength / (1024 * 1024) <= 18) {
+        const base64 = uint8ToBase64(bytes);
+        const ct = videoResp.headers.get("content-type")?.split(";")[0] || "video/mp4";
+        summary = await callWithVideo({
+          inline_data: { mime_type: ct, data: base64 },
+        }).catch(() => null);
+        if (summary) return summary;
+      }
+    }
+  } catch { /* ignore */ }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -111,11 +138,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, supabaseKey);
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Get video info
     const { data: video, error: videoErr } = await sb
       .from("videos")
       .select("id, title, subject, grade, video_url, description")
@@ -124,187 +148,140 @@ serve(async (req) => {
 
     if (videoErr || !video) {
       return new Response(JSON.stringify({ error: "video_not_found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const count = Math.min(question_count || 5, 10);
 
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "create_questions",
-          description: "Create MCQ questions from video content",
-          parameters: {
-            type: "object",
-            properties: {
-              questions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    question_text: { type: "string", description: "نص السؤال" },
-                    options: { type: "array", items: { type: "string" }, description: "4 خيارات" },
-                    correct_answer: { type: "string", description: "الإجابة الصحيحة (من الخيارات)" },
-                    lesson: { type: "string", description: "اسم الدرس أو الموضوع" },
-                  },
-                  required: ["question_text", "options", "correct_answer", "lesson"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["questions"],
-            additionalProperties: false,
-          },
-        },
-      },
-    ];
-    const toolChoice = { type: "function", function: { name: "create_questions" } };
+    // Step 1: Get or create video summary
+    let { data: summaryRow } = await sb
+      .from("video_summaries")
+      .select("summary")
+      .eq("video_id", video_id)
+      .single();
 
-    const systemPrompt = `أنت معلم تربية دينية إسلامية خبير. مهمتك مشاهدة وتحليل محتوى الفيديو التعليمي وإنشاء أسئلة اختيار من متعدد بناءً على ما شُرح فعلاً في الفيديو.
-
-القواعد:
-- حلل محتوى الفيديو الفعلي (الصوت والصورة)
-- أنشئ ${count} أسئلة اختيار من متعدد مبنية على المحتوى الفعلي
-- كل سؤال له 4 خيارات واقعية ومقاربة
-- تنوع في مستوى الصعوبة
-- حدد اسم الدرس/الموضوع لكل سؤال
-- الأسئلة بالعربية الفصحى
-- ركز على المفاهيم والمعلومات اللي اتشرحت في الفيديو`;
-
-    const userPrompt = `شاهد هذا الفيديو التعليمي وأنشئ ${count} أسئلة اختيار من متعدد بناءً على محتواه الفعلي.
-عنوان الفيديو: ${video.title}
-المادة: ${video.subject}
-الصف: ${video.grade}
-${video.description ? `وصف: ${video.description}` : ""}
-
-مهم جداً: الأسئلة يجب أن تكون مبنية على ما شُرح فعلاً في الفيديو وليس من معرفتك العامة.`;
-
-    let questions: any[] | null = null;
-
-    // Strategy 1: Try analyzing the actual video
-    const storagePath = getStoragePath(video.video_url);
-    if (storagePath) {
-      const { data: signedData } = await sb.storage
-        .from("videos")
-        .createSignedUrl(storagePath, 3600);
-
-      if (signedData?.signedUrl) {
-        // Try with signed URL
-        try {
-          const resp = await callAIWithVideo(
-            LOVABLE_API_KEY, systemPrompt, userPrompt,
-            { type: "video_url", video_url: { url: signedData.signedUrl } },
-            tools, toolChoice
-          );
-
-          if (resp.ok) {
-            const aiData = await resp.json();
-            const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-            if (toolCall) {
-              questions = JSON.parse(toolCall.function.arguments).questions;
-            }
-          } else {
-            console.error("Video URL attempt failed:", resp.status);
-          }
-        } catch (e) {
-          console.error("Video URL attempt error:", e);
-        }
-
-        // Try with base64 if URL failed
-        if (!questions) {
-          try {
-            const videoResp = await fetch(signedData.signedUrl);
-            if (videoResp.ok) {
-              const videoBuffer = await videoResp.arrayBuffer();
-              const videoBytes = new Uint8Array(videoBuffer);
-              const videoSizeMB = videoBytes.byteLength / (1024 * 1024);
-
-              if (videoSizeMB <= 18) {
-                const base64 = uint8ToBase64(videoBytes);
-                const contentType = videoResp.headers.get("content-type")?.split(";")[0] || "video/mp4";
-
-                const resp = await callAIWithVideo(
-                  LOVABLE_API_KEY, systemPrompt, userPrompt,
-                  { inline_data: { mime_type: contentType, data: base64 } },
-                  tools, toolChoice
-                );
-
-                if (resp.ok) {
-                  const aiData = await resp.json();
-                  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-                  if (toolCall) {
-                    questions = JSON.parse(toolCall.function.arguments).questions;
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.error("Base64 attempt error:", e);
-          }
-        }
+    if (!summaryRow?.summary) {
+      console.log("No cached summary, analyzing video...");
+      const newSummary = await summarizeVideo(LOVABLE_API_KEY, sb, video);
+      if (newSummary) {
+        await sb.from("video_summaries").upsert({
+          video_id: video.id,
+          summary: newSummary,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "video_id" });
+        summaryRow = { summary: newSummary };
+        console.log("Video summarized successfully");
       }
     }
 
-    // Strategy 2: Use cached summary if video analysis failed
-    if (!questions) {
-      const { data: summary } = await sb
-        .from("video_summaries")
-        .select("summary")
-        .eq("video_id", video_id)
-        .single();
+    if (!summaryRow?.summary) {
+      return new Response(JSON.stringify({
+        error: "no_summary",
+        message: "لم يتمكن الذكاء الاصطناعي من تحليل الفيديو. تأكد إن الفيديو موجود وحجمه مناسب.",
+      }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-      if (summary?.summary) {
-        const summaryPrompt = `بناءً على ملخص محتوى الفيديو التالي، أنشئ ${count} أسئلة اختيار من متعدد:
+    // Step 2: Generate questions from summary
+    const tools = [{
+      type: "function",
+      function: {
+        name: "create_questions",
+        description: "Create MCQ questions from video content",
+        parameters: {
+          type: "object",
+          properties: {
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  question_text: { type: "string", description: "نص السؤال" },
+                  options: { type: "array", items: { type: "string" }, description: "4 خيارات" },
+                  correct_answer: { type: "string", description: "الإجابة الصحيحة" },
+                  lesson: { type: "string", description: "اسم الدرس" },
+                },
+                required: ["question_text", "options", "correct_answer", "lesson"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["questions"],
+          additionalProperties: false,
+        },
+      },
+    }];
+
+    const systemPrompt = `أنت معلم تربية دينية إسلامية خبير. أنشئ أسئلة اختيار من متعدد بناءً على ملخص محتوى الفيديو التعليمي.
+
+القواعد:
+- أنشئ ${count} أسئلة مبنية فقط على المعلومات في الملخص
+- كل سؤال له 4 خيارات واقعية ومقاربة
+- تنوع في مستوى الصعوبة
+- حدد اسم الدرس/الموضوع لكل سؤال
+- الأسئلة بالعربية الفصحى`;
+
+    const userPrompt = `بناءً على ملخص محتوى الفيديو التالي، أنشئ ${count} أسئلة اختيار من متعدد:
 
 عنوان الفيديو: ${video.title}
 المادة: ${video.subject}
 الصف: ${video.grade}
 
 ملخص محتوى الفيديو:
-${summary.summary}
+${summaryRow.summary}
 
-أنشئ أسئلة مبنية فقط على المعلومات الموجودة في الملخص أعلاه.`;
+مهم: الأسئلة يجب أن تكون مبنية فقط على المعلومات الموجودة في الملخص أعلاه.`;
 
-        try {
-          const resp = await callAIWithSummary(
-            LOVABLE_API_KEY, systemPrompt, summaryPrompt,
-            tools, toolChoice
-          );
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools,
+        tool_choice: { type: "function", function: { name: "create_questions" } },
+        max_tokens: 8192,
+      }),
+    });
 
-          if (resp.ok) {
-            const aiData = await resp.json();
-            const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-            if (toolCall) {
-              questions = JSON.parse(toolCall.function.arguments).questions;
-            }
-          } else if (resp.status === 429) {
-            return new Response(JSON.stringify({ error: "rate_limited" }), {
-              status: 429,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          } else if (resp.status === 402) {
-            return new Response(JSON.stringify({ error: "payment_required" }), {
-              status: 402,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        } catch (e) {
-          console.error("Summary attempt error:", e);
-        }
-      }
+    if (resp.status === 429) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    if (!questions || questions.length === 0) {
-      return new Response(JSON.stringify({ error: "no_questions_generated", message: "لم يتمكن الذكاء الاصطناعي من تحليل الفيديو. تأكد أن الفيديو تم تلخيصه أولاً." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (resp.status === 402) {
+      return new Response(JSON.stringify({ error: "payment_required" }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Save to question bank if requested
+    let questions: any[] = [];
+    if (resp.ok) {
+      const aiData = await resp.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall) {
+        questions = JSON.parse(toolCall.function.arguments).questions;
+      }
+    }
+
+    if (!questions.length) {
+      return new Response(JSON.stringify({
+        error: "no_questions_generated",
+        message: "لم يتمكن الذكاء الاصطناعي من توليد أسئلة. حاول مرة تانية.",
+      }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Step 3: Save to question bank if requested
     let savedCount = 0;
     if (save_to_bank) {
       const rows = questions.map(q => ({
@@ -322,11 +299,8 @@ ${summary.summary}
         .insert(rows)
         .select("id");
 
-      if (insertErr) {
-        console.error("Insert error:", insertErr);
-      } else {
-        savedCount = inserted?.length || 0;
-      }
+      if (!insertErr) savedCount = inserted?.length || 0;
+      else console.error("Insert error:", insertErr);
     }
 
     return new Response(JSON.stringify({
@@ -341,8 +315,7 @@ ${summary.summary}
   } catch (e) {
     console.error("Error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
