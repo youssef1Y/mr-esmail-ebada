@@ -491,7 +491,7 @@ const AdminNewsTab = ({ toast }: { toast: any }) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition" | "question_bank">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition" | "question_bank" | "stats">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
