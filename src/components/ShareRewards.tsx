@@ -57,7 +57,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
     setTotalShares((p) => p + 1);
     toast({
       title: "🎉 مبروك!",
-      description: "حصلت على 5 نقاط + مفتاح مسابقة!",
+      description: "حصلت على 10 نقاط + مفتاح مسابقة!",
     });
   };
 
@@ -91,7 +91,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
         </div>
         <div>
           <h3 className="font-bold font-amiri text-foreground">شارك المنصة واكسب جوائز! 🎁</h3>
-          <p className="text-xs text-muted-foreground">شارك يومياً واحصل على 5 نقاط + مفتاح مسابقة</p>
+          <p className="text-xs text-muted-foreground">شارك يومياً واحصل على 10 نقاط + مفتاح مسابقة</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
       <div className="flex gap-3 mb-4">
         <div className="flex-1 bg-background/60 rounded-xl p-3 text-center border border-border/50">
           <Star className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">+5</p>
+          <p className="text-lg font-bold text-foreground">+10</p>
           <p className="text-[10px] text-muted-foreground">نقاط</p>
         </div>
         <div className="flex-1 bg-background/60 rounded-xl p-3 text-center border border-border/50">
