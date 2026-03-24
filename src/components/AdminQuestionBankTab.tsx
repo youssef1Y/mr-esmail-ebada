@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet, FileText, Video, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +68,17 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [filterSubject, setFilterSubject] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Video AI generation
+  const [showVideoGen, setShowVideoGen] = useState(false);
+  const [videoGenGrade, setVideoGenGrade] = useState("");
+  const [videoGenSubject, setVideoGenSubject] = useState("");
+  const [videoGenCount, setVideoGenCount] = useState(5);
+  const [videoList, setVideoList] = useState<{id: string; title: string; subject: string; grade: string}[]>([]);
+  const [selectedVideoForGen, setSelectedVideoForGen] = useState("");
+  const [videoGenLoading, setVideoGenLoading] = useState(false);
+  const [videoGenResult, setVideoGenResult] = useState<{questions: any[]; saved: number} | null>(null);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+
   const fetchQuestions = async () => {
     setLoading(true);
     let query = supabase.from("question_bank").select("*").order("created_at", { ascending: false });
@@ -79,6 +90,50 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   };
 
   useEffect(() => { fetchQuestions(); }, [filterGrade, filterSubject]);
+
+  // Fetch videos for AI generation
+  useEffect(() => {
+    if (!showVideoGen) return;
+    const fetchVideos = async () => {
+      setLoadingVideos(true);
+      let query = supabase.from("videos").select("id, title, subject, grade").order("created_at", { ascending: false });
+      if (videoGenGrade) query = query.eq("grade", videoGenGrade);
+      if (videoGenSubject) query = query.eq("subject", videoGenSubject);
+      const { data } = await query.limit(50);
+      setVideoList((data || []) as any[]);
+      setLoadingVideos(false);
+    };
+    fetchVideos();
+  }, [showVideoGen, videoGenGrade, videoGenSubject]);
+
+  const handleVideoGenerate = async () => {
+    if (!selectedVideoForGen) {
+      toast({ title: "خطأ", description: "اختر فيديو أولاً", variant: "destructive" });
+      return;
+    }
+    setVideoGenLoading(true);
+    setVideoGenResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-video-questions", {
+        body: { video_id: selectedVideoForGen, question_count: videoGenCount, save_to_bank: true },
+      });
+      if (error) throw error;
+      if (data?.error === "rate_limited") {
+        toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
+      } else if (data?.error) {
+        toast({ title: "خطأ", description: data.message || "فشل في توليد الأسئلة", variant: "destructive" });
+      } else {
+        const saved = data.saved_to_bank || 0;
+        setVideoGenResult({ questions: data.questions || [], saved });
+        toast({ title: `تم توليد وحفظ ${saved} سؤال من الفيديو ✅` });
+        fetchQuestions();
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "خطأ", description: "فشل في توليد الأسئلة", variant: "destructive" });
+    }
+    setVideoGenLoading(false);
+  };
 
   const updateDraft = (idx: number, patch: Partial<DraftQuestion>) => {
     setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, ...patch } : d));
@@ -288,9 +343,10 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </h2>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={fetchQuestions} className="gap-1"><RefreshCw className="w-3 h-3" /> تحديث</Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowPdf(!showPdf); setShowBulk(false); setShowAdd(false); }} className="gap-1"><FileText className="w-3 h-3" /> رفع PDF</Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); setShowPdf(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
-            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setShowPdf(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowVideoGen(!showVideoGen); setShowPdf(false); setShowBulk(false); setShowAdd(false); }} className="gap-1"><Sparkles className="w-3 h-3" /> من فيديو</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowPdf(!showPdf); setShowBulk(false); setShowAdd(false); setShowVideoGen(false); }} className="gap-1"><FileText className="w-3 h-3" /> رفع PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowBulk(!showBulk); setShowAdd(false); setShowPdf(false); setShowVideoGen(false); }} className="gap-1"><Upload className="w-3 h-3" /> رفع Excel</Button>
+            <Button size="sm" onClick={() => { setShowAdd(!showAdd); setShowBulk(false); setShowPdf(false); setShowVideoGen(false); setEditingId(null); setDrafts([emptyDraft()]); setAddGrade(""); setAddSubject(""); setAddLesson(""); }} className="gap-1"><Plus className="w-3 h-3" /> إضافة أسئلة</Button>
           </div>
         </div>
 
@@ -309,6 +365,93 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
             <Input placeholder="بحث..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
           </div>
         </div>
+
+        {/* ===== VIDEO AI GENERATION ===== */}
+        {showVideoGen && (
+          <div className="bg-muted rounded-xl p-4 mb-4 space-y-3">
+            <h3 className="font-bold text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" /> توليد أسئلة من فيديو بالذكاء الاصطناعي
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              الذكاء الاصطناعي يشاهد الفيديو ويحلل محتواه ويولّد أسئلة اختيار من متعدد ويحفظها في بنك الأسئلة تلقائياً
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">الصف (فلتر)</Label>
+                <select value={videoGenGrade} onChange={e => { setVideoGenGrade(e.target.value); setSelectedVideoForGen(""); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">كل الصفوف</option>
+                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">المادة (فلتر)</Label>
+                <select value={videoGenSubject} onChange={e => { setVideoGenSubject(e.target.value); setSelectedVideoForGen(""); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">كل المواد</option>
+                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">عدد الأسئلة</Label>
+                <select value={videoGenCount} onChange={e => setVideoGenCount(Number(e.target.value))} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  {[3, 5, 7, 10].map(n => <option key={n} value={n}>{n} أسئلة</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1 block">اختر فيديو</Label>
+              {loadingVideos ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : videoList.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">لا توجد فيديوهات</p>
+              ) : (
+                <div className="max-h-40 overflow-y-auto space-y-1 border border-input rounded-lg p-2 bg-background">
+                  {videoList.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => setSelectedVideoForGen(v.id)}
+                      className={`w-full text-right px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
+                        selectedVideoForGen === v.id
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <Video className="w-3 h-3 shrink-0" />
+                      <span className="flex-1 truncate">{v.title}</span>
+                      <span className={`text-[10px] ${selectedVideoForGen === v.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{v.subject}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {videoGenResult && (
+              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 text-sm">
+                <p className="font-bold text-green-700 dark:text-green-400">
+                  ✅ تم توليد وحفظ {videoGenResult.saved} سؤال في بنك الأسئلة
+                </p>
+                <div className="mt-2 space-y-1">
+                  {videoGenResult.questions.map((q: any, i: number) => (
+                    <p key={i} className="text-xs text-muted-foreground truncate">• {q.question_text}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button onClick={handleVideoGenerate} disabled={videoGenLoading || !selectedVideoForGen} className="flex-1 gap-1">
+                {videoGenLoading ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> جاري تحليل الفيديو...</>
+                ) : (
+                  <><Sparkles className="w-3 h-3" /> توليد وحفظ الأسئلة</>
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => { setShowVideoGen(false); setVideoGenResult(null); }}>إلغاء</Button>
+            </div>
+          </div>
+        )}
 
         {/* ===== PDF UPLOAD ===== */}
         {showPdf && (
