@@ -20,7 +20,7 @@ const ScrollToTop = () => {
           exit={{ opacity: 0, scale: 0.5, y: 20 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 left-6 z-40 w-11 h-11 rounded-full bg-primary shadow-lg shadow-primary/25 flex items-center justify-center text-primary-foreground hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 active:scale-95 border border-primary-foreground/10"
+          className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full bg-primary shadow-lg shadow-primary/25 flex items-center justify-center text-primary-foreground hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 active:scale-95 border border-primary-foreground/10"
           aria-label="العودة لأعلى"
         >
           <ArrowUp className="w-5 h-5" />
