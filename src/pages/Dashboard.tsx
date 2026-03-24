@@ -180,6 +180,10 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       answerKeyUrl = urlData.publicUrl;
     }
 
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const insertData: any = {
       title: newHw.title,
       description: newHw.description || null,
@@ -189,6 +193,7 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       pdf_url: pdfUrl,
       homework_type: newHw.homework_type,
       answer_key_url: answerKeyUrl,
+      term: currentTerm,
     };
 
     if (newHw.homework_type === "book") {
