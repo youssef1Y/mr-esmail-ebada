@@ -99,7 +99,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
       <div className="flex gap-3 mb-4">
         <div className="flex-1 bg-background/60 rounded-xl p-3 text-center border border-border/50">
           <Star className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">+5</p>
+          <p className="text-lg font-bold text-foreground">+10</p>
           <p className="text-[10px] text-muted-foreground">نقاط</p>
         </div>
         <div className="flex-1 bg-background/60 rounded-xl p-3 text-center border border-border/50">
