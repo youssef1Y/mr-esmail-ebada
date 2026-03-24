@@ -194,10 +194,7 @@ const fetchQuestion = async (subjectName: string, grade: string): Promise<any | 
 
   const fromVideoExams = async () => {
     try {
-      const { data: exams } = await supabase.from("exams").select("id").eq("grade", g).eq("subject", subjectName);
-      if (!exams || exams.length === 0) return null;
-      const examIds = exams.map((e: any) => e.id);
-      const { data: questions } = await supabase.from("exam_questions" as any).select("question_text, options, correct_answer").eq("question_type", "mcq").in("exam_id", examIds);
+      const { data: questions } = await supabase.rpc("get_competition_exam_questions" as any, { p_grade: g, p_subject: subjectName });
       if (!questions || (questions as any[]).length === 0) return null;
       const valid = (questions as any[]).filter((q: any) => q.question_text && q.options && q.correct_answer);
       if (valid.length === 0) return null;
