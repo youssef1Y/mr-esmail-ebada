@@ -10,6 +10,7 @@ import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { StudentProgressTracker } from "@/components/StudentProgressTracker";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { DailyChallenges } from "@/components/DailyChallenges";
+import { ShareRewards } from "@/components/ShareRewards";
 const AdminScheduleTab = lazy(() => import("@/components/AdminScheduleTab"));
 const AdminCompetitionTab = lazy(() => import("@/components/AdminCompetitionTab"));
 const AdminQuestionBankTab = lazy(() => import("@/components/AdminQuestionBankTab"));
@@ -3271,6 +3272,9 @@ const Dashboard = () => {
 
         {/* Daily Challenges */}
         {!adminUnlocked && user && profile && <DailyChallenges userId={user.id} grade={displayGrade} />}
+
+        {/* Share Rewards */}
+        {!adminUnlocked && user && <ShareRewards userId={user.id} />}
 
         {/* Student Progress Tracker */}
         {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}

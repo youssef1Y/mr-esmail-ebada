@@ -803,6 +803,36 @@ export type Database = {
         }
         Relationships: []
       }
+      share_rewards: {
+        Row: {
+          id: string
+          key_earned: boolean
+          platform: string
+          points_earned: number
+          share_date: string
+          shared_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          key_earned?: boolean
+          platform?: string
+          points_earned?: number
+          share_date?: string
+          shared_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          key_earned?: boolean
+          platform?: string
+          points_earned?: number
+          share_date?: string
+          shared_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_keys: {
         Row: {
           created_at: string
@@ -1204,6 +1234,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_share_reward: {
+        Args: { p_platform: string; p_user_id: string }
+        Returns: Json
+      }
       complete_referral: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: undefined
