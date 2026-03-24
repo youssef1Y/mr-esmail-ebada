@@ -29,13 +29,17 @@ export const StudentProgressTracker = ({ userId, grade }: { userId: string; grad
     if (!userId || !grade) return;
     const fetchProgress = async () => {
       setLoading(true);
+
+      // Get current term
+      const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+      const currentTerm = parseInt(termSetting?.value || "1") || 1;
       
       const [videosRes, viewsRes, homeworkRes, hwSubsRes, examsRes, attemptsRes] = await Promise.all([
-        supabase.from("videos").select("id, subject").eq("grade", grade),
+        supabase.from("videos").select("id, subject").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("video_views").select("video_id").eq("user_id", userId),
-        supabase.from("homework").select("id, subject").eq("grade", grade),
+        supabase.from("homework").select("id, subject").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("homework_submissions").select("homework_id").eq("user_id", userId),
-        supabase.from("exams").select("id, subject").eq("grade", grade),
+        supabase.from("exams").select("id, subject").eq("grade", grade).filter("term", "eq", currentTerm),
         supabase.from("exam_attempts").select("exam_id").eq("user_id", userId),
       ]);
 

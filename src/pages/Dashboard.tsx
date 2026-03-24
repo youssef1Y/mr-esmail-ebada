@@ -180,6 +180,10 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       answerKeyUrl = urlData.publicUrl;
     }
 
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const insertData: any = {
       title: newHw.title,
       description: newHw.description || null,
@@ -189,6 +193,7 @@ const AdminHomeworkTab = ({ grades, subjects, toast }: { grades: string[]; subje
       pdf_url: pdfUrl,
       homework_type: newHw.homework_type,
       answer_key_url: answerKeyUrl,
+      term: currentTerm,
     };
 
     if (newHw.homework_type === "book") {
@@ -520,38 +525,53 @@ const gradeOrder = [
 
 const AdminPromoteTab = ({ toast }: { toast: any }) => {
   const [promoting, setPromoting] = useState(false);
+  const [switchingTerm, setSwitchingTerm] = useState(false);
+  const [currentTerm, setCurrentTerm] = useState<number>(1);
   const [preview, setPreview] = useState<{ grade: string; count: number; nextGrade: string }[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const loadPreview = async () => {
-      const { data: profiles } = await supabase.from("profiles").select("grade");
-      if (!profiles) return;
-      const counts: Record<string, number> = {};
-      profiles.forEach(p => { counts[p.grade] = (counts[p.grade] || 0) + 1; });
-      const result = gradeOrder.slice(0, -1).map((g, i) => ({
-        grade: g,
-        count: counts[g] || 0,
-        nextGrade: gradeOrder[i + 1],
-      }));
-      setPreview(result);
+    const loadData = async () => {
+      const [profilesRes, settingsRes] = await Promise.all([
+        supabase.from("profiles").select("grade"),
+        supabase.from("app_settings").select("value").eq("key", "current_term").single(),
+      ]);
+      if (profilesRes.data) {
+        const counts: Record<string, number> = {};
+        profilesRes.data.forEach(p => { counts[p.grade] = (counts[p.grade] || 0) + 1; });
+        setPreview(gradeOrder.slice(0, -1).map((g, i) => ({
+          grade: g, count: counts[g] || 0, nextGrade: gradeOrder[i + 1],
+        })));
+      }
+      if (settingsRes.data) setCurrentTerm(parseInt(settingsRes.data.value) || 1);
       setLoaded(true);
     };
-    loadPreview();
+    loadData();
   }, []);
+
+  const switchTerm = async (newTerm: number) => {
+    if (!confirm(`هل أنت متأكد من التبديل إلى الترم ${newTerm === 1 ? "الأول" : "الثاني"}؟ سيتم إخفاء محتوى الترم ${newTerm === 1 ? "الثاني" : "الأول"} عن الطلاب.`)) return;
+    setSwitchingTerm(true);
+    const { error } = await supabase.from("app_settings").update({ value: String(newTerm), updated_at: new Date().toISOString() }).eq("key", "current_term");
+    if (error) {
+      toast({ title: "خطأ", description: "فشل تغيير الترم", variant: "destructive" });
+    } else {
+      setCurrentTerm(newTerm);
+      toast({ title: `تم التبديل للترم ${newTerm === 1 ? "الأول" : "الثاني"} ✅`, description: "سيظهر للطلاب محتوى الترم الحالي فقط" });
+    }
+    setSwitchingTerm(false);
+  };
 
   const promoteAll = async () => {
     if (!confirm("هل أنت متأكد من ترقية جميع الطلاب للصف التالي؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
     setPromoting(true);
     try {
-      // Promote in reverse order to avoid conflicts (highest grade first)
       for (let i = gradeOrder.length - 2; i >= 0; i--) {
         const currentGrade = gradeOrder[i];
         const nextGrade = gradeOrder[i + 1];
         await supabase.from("profiles").update({ grade: nextGrade }).eq("grade", currentGrade);
       }
       toast({ title: "تمت الترقية", description: "تم ترقية جميع الطلاب للصف التالي بنجاح" });
-      // Reload preview
       const { data: profiles } = await supabase.from("profiles").select("grade");
       const counts: Record<string, number> = {};
       (profiles || []).forEach(p => { counts[p.grade] = (counts[p.grade] || 0) + 1; });
@@ -567,34 +587,70 @@ const AdminPromoteTab = ({ toast }: { toast: any }) => {
   if (!loaded) return <p className="text-center text-muted-foreground py-6">جاري التحميل...</p>;
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-bold text-sm flex items-center gap-2"><ArrowRight className="w-4 h-4" /> ترقية الصفوف الدراسية</h3>
-      <p className="text-xs text-muted-foreground">ترقية جميع الطلاب للصف الدراسي التالي (مثلاً: أولى إعدادي ← ثانية إعدادي). طلاب الصف الثالث الثانوي لن يتأثروا.</p>
-      
-      <div className="space-y-2">
-        {preview.map(p => (
-          <div key={p.grade} className="bg-muted rounded-lg p-3 flex items-center justify-between text-sm">
-            <div>
-              <span className="font-bold">{p.grade}</span>
-              <span className="text-muted-foreground mx-2">←</span>
-              <span className="text-primary font-bold">{p.nextGrade}</span>
-            </div>
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{p.count} طالب</span>
-          </div>
-        ))}
+    <div className="space-y-6">
+      {/* Term Switching Section */}
+      <div className="space-y-3">
+        <h3 className="font-bold text-sm flex items-center gap-2">📅 الترم الدراسي الحالي</h3>
+        <p className="text-xs text-muted-foreground">عند تغيير الترم، سيظهر للطلاب محتوى الترم الحالي فقط. المحتوى القديم يبقى محفوظاً لكن مخفي.</p>
+        
+        <div className="flex gap-2">
+          <Button
+            variant={currentTerm === 1 ? "default" : "outline"}
+            onClick={() => currentTerm !== 1 && switchTerm(1)}
+            disabled={switchingTerm || currentTerm === 1}
+            className="flex-1 gap-2"
+          >
+            {currentTerm === 1 && <CheckCircle className="w-4 h-4" />}
+            الترم الأول
+          </Button>
+          <Button
+            variant={currentTerm === 2 ? "default" : "outline"}
+            onClick={() => currentTerm !== 2 && switchTerm(2)}
+            disabled={switchingTerm || currentTerm === 2}
+            className="flex-1 gap-2"
+          >
+            {currentTerm === 2 && <CheckCircle className="w-4 h-4" />}
+            الترم الثاني
+          </Button>
+        </div>
+        
+        <div className="bg-muted rounded-lg p-3 text-center">
+          <span className="text-xs text-muted-foreground">الترم الحالي: </span>
+          <span className="text-sm font-bold text-primary">{currentTerm === 1 ? "الترم الأول" : "الترم الثاني"}</span>
+        </div>
       </div>
 
-      <Button onClick={promoteAll} disabled={promoting} className="w-full gap-2">
-        {promoting ? (
-          <><div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full" /> جاري الترقية...</>
-        ) : (
-          <><ArrowRight className="w-4 h-4" /> ترقية جميع الطلاب للصف التالي</>
-        )}
-      </Button>
+      <div className="border-t border-border" />
+
+      {/* Grade Promotion Section */}
+      <div className="space-y-3">
+        <h3 className="font-bold text-sm flex items-center gap-2"><ArrowRight className="w-4 h-4" /> ترقية الصفوف الدراسية</h3>
+        <p className="text-xs text-muted-foreground">ترقية جميع الطلاب للصف الدراسي التالي. طلاب الصف الثالث الثانوي لن يتأثروا.</p>
+        
+        <div className="space-y-2">
+          {preview.map(p => (
+            <div key={p.grade} className="bg-muted rounded-lg p-3 flex items-center justify-between text-sm">
+              <div>
+                <span className="font-bold">{p.grade}</span>
+                <span className="text-muted-foreground mx-2">←</span>
+                <span className="text-primary font-bold">{p.nextGrade}</span>
+              </div>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{p.count} طالب</span>
+            </div>
+          ))}
+        </div>
+
+        <Button onClick={promoteAll} disabled={promoting} className="w-full gap-2">
+          {promoting ? (
+            <><div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full" /> جاري الترقية...</>
+          ) : (
+            <><ArrowRight className="w-4 h-4" /> ترقية جميع الطلاب للصف التالي</>
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
-
 // Admin Parent Reports Tab
 const AdminParentReportsTab = ({ toast }: { toast: any }) => {
   const [sending, setSending] = useState(false);
@@ -1417,7 +1473,10 @@ const Dashboard = () => {
   };
 
   const fetchStudentExams = async (grade: string, isSubscribed: boolean) => {
-    const { data } = await supabase.from("exams").select("*").eq("grade", grade).order("created_at", { ascending: false });
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+    const { data } = await supabase.from("exams").select("*").eq("grade", grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false });
     if (data) {
       const filtered = data.filter(e => {
         if (e.access_type === "subscribers_only" && !isSubscribed) return false;
@@ -1600,6 +1659,10 @@ const Dashboard = () => {
       pdfUrl = urlData.publicUrl;
     }
 
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const examCurrentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const { data: exam, error } = await supabase.from("exams").insert({
       title: newExam.title,
       grade: newExam.grade,
@@ -1607,6 +1670,7 @@ const Dashboard = () => {
       video_id: newExam.video_id || null,
       access_type: newExam.access_type,
       pdf_url: pdfUrl,
+      term: examCurrentTerm,
     } as any).select().single();
 
     if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); setExamUploading(false); return; }
@@ -1847,6 +1911,10 @@ const Dashboard = () => {
     }
 
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const insertData: any = {
       title: newVideo.title,
       description: newVideo.description,
@@ -1854,6 +1922,7 @@ const Dashboard = () => {
       subject: newVideo.subject,
       access_type: newVideo.access_type,
       video_url: urlData.publicUrl,
+      term: currentTerm,
     };
 
     if (newVideo.subject === "الفقه") {

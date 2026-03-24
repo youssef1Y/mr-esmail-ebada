@@ -70,10 +70,14 @@ const Homework = () => {
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
       if (profile) {
         setGrade(profile.grade);
+        // Get current term
+        const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+        const currentTerm = parseInt(termSetting?.value || "1") || 1;
+
         const [hwRes, subsRes, examsRes, attemptsRes] = await Promise.all([
-          supabase.from("homework").select("*").eq("grade", profile.grade).order("created_at", { ascending: false }),
+          supabase.from("homework").select("*").eq("grade", profile.grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false }),
           supabase.from("homework_submissions").select("*").eq("user_id", session.user.id),
-          supabase.from("exams").select("*").eq("grade", profile.grade).order("created_at", { ascending: false }),
+          supabase.from("exams").select("*").eq("grade", profile.grade).filter("term", "eq", currentTerm).order("created_at", { ascending: false }),
           supabase.from("exam_attempts").select("*").eq("user_id", session.user.id),
         ]);
         if (hwRes.data) setHomeworkList(hwRes.data as HomeworkItem[]);

@@ -115,12 +115,17 @@ const SubjectVideos = () => {
       if (subject && grade) {
         const decodedSubject = decodeURIComponent(subject);
         console.log("Fetching videos:", { grade, subject: decodedSubject });
+
+        // Get current term
+        const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+        const currentTerm = parseInt(termSetting?.value || "1") || 1;
         
         const { data, error: videosError } = await supabase
           .from("videos")
           .select("*")
           .eq("grade", grade)
           .eq("subject", decodedSubject)
+          .filter("term", "eq", currentTerm)
           .order("sort_order", { ascending: true });
 
         if (videosError) {

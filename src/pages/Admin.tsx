@@ -913,7 +913,10 @@ const Admin = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type };
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type, term: currentTerm };
     if (newVideo.subject === "الفقه" && newVideo.madhab) {
       videoData.madhab = newVideo.madhab;
     }
@@ -1044,6 +1047,9 @@ const Admin = () => {
       const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
       pdfUrl = urlData.publicUrl;
     }
+    // Get current term for homework
+    const { data: hwTermSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const hwCurrentTerm = parseInt(hwTermSetting?.value || "1") || 1;
     const { error } = await supabase.from("homework").insert({
       title: newHw.title,
       description: newHw.description || null,
@@ -1051,6 +1057,7 @@ const Admin = () => {
       subject: newHw.subject,
       due_date: newHw.due_date || null,
       pdf_url: pdfUrl,
+      term: hwCurrentTerm,
     } as any);
     setHwCreating(false);
     if (error) {
@@ -1081,12 +1088,16 @@ const Admin = () => {
       const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
       pdfUrl = urlData.publicUrl;
     }
+    // Get current term for exam
+    const { data: examTermSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const examCurrentTerm = parseInt(examTermSetting?.value || "1") || 1;
     const { error } = await supabase.from("exams").insert({
       title: newExam.title,
       grade: newExam.grade,
       subject: newExam.subject,
       access_type: newExam.access_type,
       pdf_url: pdfUrl,
+      term: examCurrentTerm,
     } as any);
     setExamCreating(false);
     if (error) {
