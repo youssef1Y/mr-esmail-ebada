@@ -5,6 +5,7 @@ import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
+import AdminStatsTab from "@/components/AdminStatsTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
