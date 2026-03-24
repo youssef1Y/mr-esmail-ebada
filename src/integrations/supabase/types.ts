@@ -1243,6 +1243,14 @@ export type Database = {
         Returns: undefined
       }
       expire_subscriptions: { Args: never; Returns: undefined }
+      get_competition_exam_questions: {
+        Args: { p_grade: string; p_subject: string }
+        Returns: {
+          correct_answer: string
+          options: Json
+          question_text: string
+        }[]
+      }
       get_competition_question: {
         Args: { p_grade: string; p_subject: string }
         Returns: {
