@@ -54,11 +54,7 @@ const WhyUsSection = () => {
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto" staggerDelay={0.1}>
           {reasons.map((reason, index) => (
             <StaggerItem key={index}>
-              <motion.div
-                whileHover={{ y: -3, scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="bg-card rounded-2xl p-6 border border-border hover:border-primary/30 transition-all duration-300 flex gap-4"
-              >
+              <div className="bg-card rounded-2xl p-6 border border-border hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 flex gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center flex-shrink-0">
                   <reason.icon className="w-6 h-6 text-primary" />
                 </div>
