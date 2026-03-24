@@ -1047,6 +1047,9 @@ const Admin = () => {
       const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
       pdfUrl = urlData.publicUrl;
     }
+    // Get current term for homework
+    const { data: hwTermSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const hwCurrentTerm = parseInt(hwTermSetting?.value || "1") || 1;
     const { error } = await supabase.from("homework").insert({
       title: newHw.title,
       description: newHw.description || null,
@@ -1054,6 +1057,7 @@ const Admin = () => {
       subject: newHw.subject,
       due_date: newHw.due_date || null,
       pdf_url: pdfUrl,
+      term: hwCurrentTerm,
     } as any);
     setHwCreating(false);
     if (error) {
