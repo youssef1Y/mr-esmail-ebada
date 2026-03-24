@@ -48,14 +48,20 @@ const Index = () => {
           "alternateName": [
             "منصة مستر إسماعيل أحمد عبادة",
             "موقع الأستاذ إسماعيل أحمد عبادة",
+            "منصه الاستاذ اسماعيل احمد عباده",
             "Mr Ismail Ahmed Ebada Platform",
             "Ismail Ahmed Ebada Islamic Studies"
           ],
           "url": "https://mr-esmail-ebada.lovable.app",
-          "description": "منصة تعليمية متخصصة في العلوم الشرعية تقدم دروس الفقه والحديث والتفسير وأصول الدين.",
+          "description": "منصة تعليمية متخصصة في العلوم الشرعية لطلاب الأزهر الشريف. تقدم شرح الفقه بمذاهبه الثلاثة والتوحيد والتفسير والحديث والسيرة النبوية مع امتحانات إلكترونية وواجبات تفاعلية ومسابقات أسبوعية.",
           "foundingDate": "2025",
           "areaServed": { "@type": "Country", "name": "Egypt" },
           "inLanguage": ["ar", "en"],
+          "knowsAbout": [
+            "الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي",
+            "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية",
+            "المنهج الأزهري", "العلوم الشرعية"
+          ],
           "sameAs": [],
           "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "availableLanguage": ["Arabic", "English"] }
         },
@@ -72,10 +78,10 @@ const Index = () => {
           "@type": "WebPage",
           "@id": "https://mr-esmail-ebada.lovable.app/#webpage",
           "url": "https://mr-esmail-ebada.lovable.app",
-          "name": "منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية | تعليم الفقه والحديث والتفسير",
+          "name": "منصة الأستاذ إسماعيل أحمد عبادة | تعليم العلوم الشرعية لطلاب الأزهر الشريف",
           "isPartOf": { "@id": "https://mr-esmail-ebada.lovable.app/#website" },
           "about": { "@id": "https://mr-esmail-ebada.lovable.app/#organization" },
-          "description": "منصة الأستاذ إسماعيل أحمد عبادة للعلوم الشرعية - تعليم الفقه الشافعي والمالكي والحنفي، الحديث، التفسير، أصول الدين.",
+          "description": "منصة الأستاذ إسماعيل أحمد عبادة - أفضل منصة لتعليم العلوم الشرعية لطلاب الأزهر. شرح الفقه الشافعي والمالكي والحنفي، التوحيد، التفسير، الحديث الشريف، والسيرة النبوية. فيديوهات تعليمية وامتحانات إلكترونية وواجبات ومسابقات أسبوعية بجوائز. مؤلف سلسلة المرشد الأزهري.",
           "inLanguage": "ar"
         },
         {
@@ -83,8 +89,63 @@ const Index = () => {
           "@id": "https://mr-esmail-ebada.lovable.app/#person",
           "name": "إسماعيل أحمد عبادة",
           "alternateName": ["مستر إسماعيل أحمد عبادة", "الأستاذ إسماعيل أحمد عبادة", "Mr Ismail Ahmed Ebada", "Ismail Ahmed Ebada"],
-          "jobTitle": "معلم العلوم الشرعية",
-          "worksFor": { "@id": "https://mr-esmail-ebada.lovable.app/#organization" }
+          "jobTitle": "معلم العلوم الشرعية ومؤلف سلسلة المرشد الأزهري",
+          "worksFor": { "@id": "https://mr-esmail-ebada.lovable.app/#organization" },
+          "knowsAbout": ["الفقه الإسلامي", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية", "المنهج الأزهري"]
+        },
+        {
+          "@type": "Course",
+          "name": "دورة العلوم الشرعية للمرحلة الإعدادية الأزهرية",
+          "description": "شرح شامل لمواد الفقه والتوحيد والتفسير والحديث الشريف والسيرة النبوية للصفوف الإعدادية بالأزهر الشريف",
+          "provider": { "@id": "https://mr-esmail-ebada.lovable.app/#organization" },
+          "educationalLevel": "المرحلة الإعدادية الأزهرية",
+          "inLanguage": "ar",
+          "isAccessibleForFree": false,
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT6H/week"
+          }
+        },
+        {
+          "@type": "Course",
+          "name": "دورة العلوم الشرعية للمرحلة الثانوية الأزهرية",
+          "description": "شرح شامل لمواد الفقه والتوحيد والتفسير والحديث الشريف للصفوف الثانوية بالأزهر الشريف",
+          "provider": { "@id": "https://mr-esmail-ebada.lovable.app/#organization" },
+          "educationalLevel": "المرحلة الثانوية الأزهرية",
+          "inLanguage": "ar",
+          "isAccessibleForFree": false,
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT6H/week"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://mr-esmail-ebada.lovable.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "ما هي المواد التي يتم تدريسها على منصة الأستاذ إسماعيل أحمد عبادة؟",
+              "acceptedAnswer": { "@type": "Answer", "text": "يتم تدريس الفقه الإسلامي بمذاهبه الثلاثة (الشافعي والمالكي والحنفي)، والتوحيد، وتفسير القرآن الكريم، والحديث النبوي الشريف، والسيرة النبوية (للمرحلة الإعدادية). جميع المواد مطابقة للمنهج الأزهري المقرر." }
+            },
+            {
+              "@type": "Question",
+              "name": "ما هي المراحل الدراسية المتاحة على المنصة؟",
+              "acceptedAnswer": { "@type": "Answer", "text": "المنصة تخدم طلاب الأزهر الشريف من الصف الأول الإعدادي حتى الصف الثالث الثانوي (6 صفوف دراسية)." }
+            },
+            {
+              "@type": "Question",
+              "name": "هل المنصة مجانية؟",
+              "acceptedAnswer": { "@type": "Answer", "text": "يمكن التسجيل مجاناً ومشاهدة بعض المحتوى. الاشتراك الكامل يبدأ من 150 جنيه للمرحلة الإعدادية و200 جنيه للمرحلة الثانوية شهرياً." }
+            },
+            {
+              "@type": "Question",
+              "name": "من هو الأستاذ إسماعيل أحمد عبادة؟",
+              "acceptedAnswer": { "@type": "Answer", "text": "الأستاذ إسماعيل أحمد عبادة هو معلم العلوم الشرعية ومؤلف سلسلة المرشد الأزهري، يقدم شرحاً مبسطاً وشاملاً لمواد العلوم الشرعية لطلاب الأزهر الشريف." }
+            }
+          ]
         }
       ]
     };
