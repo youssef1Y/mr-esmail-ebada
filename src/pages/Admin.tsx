@@ -1224,6 +1224,7 @@ const Admin = () => {
             { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "competition" as const, label: "المسابقات", icon: Trophy },
             { key: "question_bank" as const, label: "بنك الأسئلة", icon: ClipboardList },
+            { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
