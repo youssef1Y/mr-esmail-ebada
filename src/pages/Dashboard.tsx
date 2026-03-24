@@ -1903,6 +1903,10 @@ const Dashboard = () => {
     }
 
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(filePath);
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const insertData: any = {
       title: newVideo.title,
       description: newVideo.description,
@@ -1910,6 +1914,7 @@ const Dashboard = () => {
       subject: newVideo.subject,
       access_type: newVideo.access_type,
       video_url: urlData.publicUrl,
+      term: currentTerm,
     };
 
     if (newVideo.subject === "الفقه") {
