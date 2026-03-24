@@ -54,11 +54,7 @@ const TestimonialsSection = () => {
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto" staggerDelay={0.12}>
           {testimonials.map((t, index) => (
             <StaggerItem key={index}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="bg-card rounded-2xl p-6 border border-border hover:border-primary/20 transition-all duration-300 relative overflow-hidden"
-              >
+              <div className="bg-card rounded-2xl p-6 border border-border hover:border-primary/20 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
                 <Quote className="absolute top-4 left-4 w-8 h-8 text-primary/10" />
                 <div className="flex items-center gap-1 mb-3">
                   {Array.from({ length: t.rating }).map((_, i) => (
