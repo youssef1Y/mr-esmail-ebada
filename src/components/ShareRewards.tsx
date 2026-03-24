@@ -91,7 +91,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
         </div>
         <div>
           <h3 className="font-bold font-amiri text-foreground">شارك المنصة واكسب جوائز! 🎁</h3>
-          <p className="text-xs text-muted-foreground">شارك يومياً واحصل على 5 نقاط + مفتاح مسابقة</p>
+          <p className="text-xs text-muted-foreground">شارك يومياً واحصل على 10 نقاط + مفتاح مسابقة</p>
         </div>
       </div>
 
