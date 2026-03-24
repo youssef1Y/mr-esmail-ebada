@@ -246,10 +246,10 @@ serve(async (req) => {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages,
-          temperature: 0.1,
-          max_tokens: 1500,
+          temperature: 0.2,
+          max_tokens: 2500,
         }),
       });
 
