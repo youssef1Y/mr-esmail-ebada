@@ -71,24 +71,13 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
-            {/* Ripple rings that expand outward and fade */}
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full border border-gold/30"
-                style={{ width: '200px', height: '200px' }}
-                animate={{
-                  scale: [1, 1.15, 1.3],
-                  opacity: [0.3, 0.1, 0],
-                }}
-                transition={{
-                  duration: 4,
-                  delay: i * 1.3,
-                  repeat: Infinity,
-                  ease: "easeOut",
-                }}
-              />
-            ))}
+            {/* Single subtle ring */}
+            <motion.div
+              className="absolute rounded-full border border-gold/20"
+              style={{ width: '200px', height: '200px' }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0, 0.2] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeOut" }}
+            />
             {/* Static decorative ring */}
             <div className="absolute w-[210px] h-[210px] md:w-[250px] md:h-[250px] rounded-full border border-gold/15" />
             {/* Image with breathing scale */}
