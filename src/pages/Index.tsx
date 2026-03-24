@@ -11,7 +11,9 @@ const SubjectsSection = lazy(() => import("@/components/SubjectsSection"));
 const StatsSection = lazy(() => import("@/components/StatsSection"));
 const FeaturesSection = lazy(() => import("@/components/FeaturesSection"));
 const WhyUsSection = lazy(() => import("@/components/WhyUsSection"));
+const BookSection = lazy(() => import("@/components/BookSection"));
 const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
+const ContactSection = lazy(() => import("@/components/ContactSection"));
 const FAQSection = lazy(() => import("@/components/FAQSection"));
 const CTASection = lazy(() => import("@/components/CTASection"));
 const ParentSection = lazy(() => import("@/components/ParentSection"));
@@ -112,7 +114,9 @@ const Index = () => {
         <StatsSection />
         <FeaturesSection />
         <WhyUsSection />
+        <BookSection />
         <TestimonialsSection />
+        <ContactSection />
         <FAQSection />
         <ParentSection />
         <CTASection />
