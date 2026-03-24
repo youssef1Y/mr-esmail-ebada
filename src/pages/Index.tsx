@@ -8,8 +8,10 @@ import ScrollToTop from "@/components/ScrollToTop";
 // Lazy load below-fold sections
 const AboutSection = lazy(() => import("@/components/AboutSection"));
 const SubjectsSection = lazy(() => import("@/components/SubjectsSection"));
+const SEOCurriculumSection = lazy(() => import("@/components/SEOCurriculumSection"));
 const StatsSection = lazy(() => import("@/components/StatsSection"));
 const FeaturesSection = lazy(() => import("@/components/FeaturesSection"));
+const SEOMethodSection = lazy(() => import("@/components/SEOMethodSection"));
 const WhyUsSection = lazy(() => import("@/components/WhyUsSection"));
 const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
 const FAQSection = lazy(() => import("@/components/FAQSection"));
@@ -110,8 +112,10 @@ const Index = () => {
       <Suspense fallback={<div className="min-h-[200px]" />}>
         <AboutSection />
         <SubjectsSection />
+        <SEOCurriculumSection />
         <StatsSection />
         <FeaturesSection />
+        <SEOMethodSection />
         <WhyUsSection />
         <TestimonialsSection />
         <FAQSection />
