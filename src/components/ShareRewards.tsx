@@ -57,7 +57,7 @@ export const ShareRewards = ({ userId }: ShareRewardsProps) => {
     setTotalShares((p) => p + 1);
     toast({
       title: "🎉 مبروك!",
-      description: "حصلت على 5 نقاط + مفتاح مسابقة!",
+      description: "حصلت على 10 نقاط + مفتاح مسابقة!",
     });
   };
 
