@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       chat_memory: {
         Row: {
           created_at: string
@@ -209,6 +227,7 @@ export type Database = {
           id: string
           pdf_url: string | null
           subject: string
+          term: number
           title: string
           video_id: string | null
         }
@@ -220,6 +239,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           subject: string
+          term?: number
           title: string
           video_id?: string | null
         }
@@ -231,6 +251,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           subject?: string
+          term?: number
           title?: string
           video_id?: string | null
         }
@@ -259,6 +280,7 @@ export type Database = {
           page_to: number | null
           pdf_url: string | null
           subject: string
+          term: number
           title: string
         }
         Insert: {
@@ -275,6 +297,7 @@ export type Database = {
           page_to?: number | null
           pdf_url?: string | null
           subject: string
+          term?: number
           title: string
         }
         Update: {
@@ -291,6 +314,7 @@ export type Database = {
           page_to?: number | null
           pdf_url?: string | null
           subject?: string
+          term?: number
           title?: string
         }
         Relationships: []
@@ -1096,6 +1120,7 @@ export type Database = {
           publish_at: string | null
           sort_order: number | null
           subject: string
+          term: number
           title: string
           video_url: string
         }
@@ -1109,6 +1134,7 @@ export type Database = {
           publish_at?: string | null
           sort_order?: number | null
           subject: string
+          term?: number
           title: string
           video_url: string
         }
@@ -1122,6 +1148,7 @@ export type Database = {
           publish_at?: string | null
           sort_order?: number | null
           subject?: string
+          term?: number
           title?: string
           video_url?: string
         }
