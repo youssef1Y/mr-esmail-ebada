@@ -1656,6 +1656,10 @@ const Dashboard = () => {
       pdfUrl = urlData.publicUrl;
     }
 
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const examCurrentTerm = parseInt(termSetting?.value || "1") || 1;
+
     const { data: exam, error } = await supabase.from("exams").insert({
       title: newExam.title,
       grade: newExam.grade,
@@ -1663,6 +1667,7 @@ const Dashboard = () => {
       video_id: newExam.video_id || null,
       access_type: newExam.access_type,
       pdf_url: pdfUrl,
+      term: examCurrentTerm,
     } as any).select().single();
 
     if (error) { console.error("Insert exam error:", error); toast({ title: "خطأ", description: "حدث خطأ أثناء إنشاء الامتحان", variant: "destructive" }); setExamUploading(false); return; }
