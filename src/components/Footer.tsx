@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Phone, MessageCircle, MapPin, ExternalLink, Heart } from "lucide-react";
+import { BookOpen, Newspaper, Users, Phone, Mail, MapPin, Heart, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 
 const footerLinks = [
@@ -40,42 +40,29 @@ const Footer = () => {
         }} />
 
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
             {/* Brand Column */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="space-y-4 md:col-span-2"
+              className="space-y-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gold/20 backdrop-blur-sm border border-gold/30 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-gold" />
+                <div className="w-11 h-11 rounded-xl bg-gold/20 backdrop-blur-sm border border-gold/30 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-primary-foreground text-base">منصة الأستاذ إسماعيل</h3>
-                  <p className="text-primary-foreground/50 text-xs">أحمد عبادة — للعلوم الشرعية</p>
+                  <h3 className="font-bold text-primary-foreground text-sm">منصة الأستاذ إسماعيل</h3>
+                  <p className="text-primary-foreground/50 text-xs">أحمد عباده</p>
                 </div>
               </div>
-              <p className="text-primary-foreground/60 text-sm leading-relaxed max-w-sm">
-                منصة تعليمية متخصصة في العلوم الشرعية. دروس الفقه والحديث والتفسير والتوحيد والسيرة لجميع المراحل الدراسية بالأزهر الشريف.
+              <p className="text-primary-foreground/60 text-xs leading-relaxed max-w-xs">
+                منصة تعليمية متخصصة في العلوم الشرعية. دروس الفقه والحديث والتفسير والتوحيد لجميع المراحل الدراسية.
               </p>
-              
-              {/* Contact Info */}
-              <div className="space-y-2">
-                <a href="https://wa.me/201097602493" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary-foreground/60 hover:text-gold transition-colors text-sm">
-                  <MessageCircle className="w-4 h-4 text-[#25D366]" />
-                  <span dir="ltr">01097602493</span>
-                  <span className="text-xs bg-[#25D366]/20 text-[#25D366] px-2 py-0.5 rounded-full">واتساب</span>
-                </a>
-                <a href="tel:+201097602493" className="flex items-center gap-2 text-primary-foreground/60 hover:text-gold transition-colors text-sm">
-                  <Phone className="w-4 h-4 text-gold/70" />
-                  <span dir="ltr">01097602493</span>
-                </a>
-                <div className="flex items-center gap-2 text-primary-foreground/50 text-sm">
-                  <MapPin className="w-4 h-4 text-gold/70" />
-                  <span>جمهورية مصر العربية</span>
-                </div>
+              <div className="flex items-center gap-2 text-primary-foreground/50 text-xs">
+                <MapPin className="w-3.5 h-3.5 text-gold/70" />
+                <span>جمهورية مصر العربية</span>
               </div>
             </motion.div>
 
@@ -95,7 +82,7 @@ const Footer = () => {
                     <li key={link.to}>
                       <Link
                         to={link.to}
-                        className="text-primary-foreground/60 hover:text-gold text-sm transition-colors duration-200 flex items-center gap-1.5 group"
+                        className="text-primary-foreground/60 hover:text-gold text-xs transition-colors duration-200 flex items-center gap-1.5 group"
                       >
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-gold/70" />
                         {link.label}
@@ -110,14 +97,9 @@ const Footer = () => {
           {/* Divider */}
           <div className="border-t border-primary-foreground/10 pt-5">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-              <p className="text-primary-foreground/40 text-xs flex items-center gap-1">
-                © {new Date().getFullYear()} جميع الحقوق محفوظة — منصة الأستاذ إسماعيل أحمد عبادة
-                <Heart className="w-3 h-3 text-red-400 fill-red-400 inline" />
+              <p className="text-primary-foreground/40 text-xs">
+                © {new Date().getFullYear()} جميع الحقوق محفوظة — منصة الأستاذ إسماعيل أحمد عباده
               </p>
-              <a href="https://wa.me/201097602493" target="_blank" rel="noopener noreferrer" className="text-primary-foreground/40 hover:text-gold text-xs transition-colors flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                تواصل معنا عبر واتساب
-              </a>
             </div>
           </div>
         </div>
