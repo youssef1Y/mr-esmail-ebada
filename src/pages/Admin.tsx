@@ -1088,12 +1088,16 @@ const Admin = () => {
       const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
       pdfUrl = urlData.publicUrl;
     }
+    // Get current term for exam
+    const { data: examTermSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const examCurrentTerm = parseInt(examTermSetting?.value || "1") || 1;
     const { error } = await supabase.from("exams").insert({
       title: newExam.title,
       grade: newExam.grade,
       subject: newExam.subject,
       access_type: newExam.access_type,
       pdf_url: pdfUrl,
+      term: examCurrentTerm,
     } as any);
     setExamCreating(false);
     if (error) {
