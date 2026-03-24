@@ -17,7 +17,7 @@ const CTASection = lazy(() => import("@/components/CTASection"));
 const ParentSection = lazy(() => import("@/components/ParentSection"));
 const Footer = lazy(() => import("@/components/Footer"));
 const InstallPWABanner = lazy(() => import("@/components/InstallPWA").then(m => ({ default: m.InstallPWABanner })));
-const FloatingWhatsApp = lazy(() => import("@/components/FloatingWhatsApp"));
+
 
 const Index = () => {
   const navigate = useNavigate();
