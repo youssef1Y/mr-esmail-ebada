@@ -71,23 +71,12 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
-            {/* Single subtle ring */}
-            <motion.div
-              className="absolute rounded-full border border-gold/20"
-              style={{ width: '200px', height: '200px' }}
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0, 0.2] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeOut" }}
-            />
             {/* Static decorative ring */}
             <div className="absolute w-[210px] h-[210px] md:w-[250px] md:h-[250px] rounded-full border border-gold/15" />
-            {/* Image with breathing scale */}
-            <motion.div
-              animate={{ scale: [1, 1.08, 1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="w-44 h-44 md:w-52 md:h-52 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]"
-            >
+            {/* Image */}
+            <div className="w-44 h-44 md:w-52 md:h-52 rounded-full border-[3px] border-gold overflow-hidden shadow-[0_0_40px_rgba(196,164,75,0.3)]">
               <img src={teacherImg} alt="الأستاذ إسماعيل أحمد عباده" className="w-full h-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
-            </motion.div>
+            </div>
           </motion.div>
 
           {/* Subject pills */}
@@ -97,16 +86,13 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="flex flex-wrap justify-center gap-2 max-w-lg"
           >
-            {["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي", "التوحيد", "التفسير", "الحديث", "السيرة"].map((subject, i) => (
-              <motion.span
+            {["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي", "التوحيد", "التفسير", "الحديث", "السيرة"].map((subject) => (
+              <span
                 key={subject}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.7 + i * 0.05 }}
                 className="bg-primary-foreground/8 backdrop-blur-sm border border-primary-foreground/15 text-primary-foreground/80 text-xs px-3 py-1.5 rounded-full"
               >
                 {subject}
-              </motion.span>
+              </span>
             ))}
           </motion.div>
 

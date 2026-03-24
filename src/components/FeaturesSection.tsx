@@ -60,17 +60,13 @@ const FeaturesSection = () => {
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.08}>
           {features.map((feature, index) => (
             <StaggerItem key={index}>
-              <motion.div
-                whileHover={{ y: -4, boxShadow: "0 10px 30px -10px hsl(var(--primary) / 0.15)" }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="bg-card rounded-2xl p-6 border border-border hover:border-primary/30 transition-all duration-300 h-full"
-              >
+              <div className="bg-card rounded-2xl p-6 border border-border hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 h-full">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-bold text-base mb-2 text-foreground">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-              </motion.div>
+              </div>
             </StaggerItem>
           ))}
         </StaggerContainer>

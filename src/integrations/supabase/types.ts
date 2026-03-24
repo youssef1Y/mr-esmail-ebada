@@ -1234,6 +1234,7 @@ export type Database = {
       get_practice_questions: {
         Args: { p_grade: string; p_subject: string }
         Returns: {
+          correct_answer: string
           grade: string
           id: string
           lesson: string
