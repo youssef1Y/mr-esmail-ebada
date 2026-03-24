@@ -5,6 +5,7 @@ import AdminVideoHomeworkTab from "@/components/AdminVideoHomeworkTab";
 import AdminCompetitionTab from "@/components/AdminCompetitionTab";
 import AdminQuestionBankTab from "@/components/AdminQuestionBankTab";
 import AdminScheduleTab from "@/components/AdminScheduleTab";
+import AdminStatsTab from "@/components/AdminStatsTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -490,7 +491,7 @@ const AdminNewsTab = ({ toast }: { toast: any }) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition" | "question_bank">("subscribers");
+  const [tab, setTab] = useState<"subscribers" | "videos" | "notifications" | "homework" | "video_homework" | "exams" | "messages" | "requests" | "reports" | "news" | "schedule" | "competition" | "question_bank" | "stats">("subscribers");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -1223,6 +1224,7 @@ const Admin = () => {
             { key: "schedule" as const, label: "الجدول الدراسي", icon: CalendarDays },
             { key: "competition" as const, label: "المسابقات", icon: Trophy },
             { key: "question_bank" as const, label: "بنك الأسئلة", icon: ClipboardList },
+            { key: "stats" as const, label: "الإحصائيات", icon: BarChart3 },
             { key: "news" as const, label: "الأخبار", icon: Newspaper },
           ].map(t => (
             <Button
@@ -2295,6 +2297,10 @@ const Admin = () => {
 
         {tab === "question_bank" && (
           <AdminQuestionBankTab toast={toast} />
+        )}
+
+        {tab === "stats" && (
+          <AdminStatsTab toast={toast} />
         )}
       </main>
     </div>
