@@ -113,8 +113,10 @@ const Index = () => {
       <Suspense fallback={<div className="min-h-[200px]" />}>
         <AboutSection />
         <SubjectsSection />
+        <SEOCurriculumSection />
         <StatsSection />
         <FeaturesSection />
+        <SEOMethodSection />
         <WhyUsSection />
         <TestimonialsSection />
         <FAQSection />
