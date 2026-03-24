@@ -913,7 +913,10 @@ const Admin = () => {
       toast({ title: "خطأ", description: "أكمل جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type };
+    // Get current term
+    const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
+    const currentTerm = parseInt(termSetting?.value || "1") || 1;
+    const videoData: any = { title: newVideo.title, description: newVideo.description, video_url: newVideo.video_url, grade: newVideo.grade, subject: newVideo.subject, access_type: newVideo.access_type, term: currentTerm };
     if (newVideo.subject === "الفقه" && newVideo.madhab) {
       videoData.madhab = newVideo.madhab;
     }
