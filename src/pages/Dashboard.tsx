@@ -102,7 +102,7 @@ const allGrades = [
   "الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي",
 ];
 
-const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية"];
+const subjectsList = ["الفقه", "التوحيد", "التفسير", "الحديث الشريف", "السيرة النبوية", "النحو"];
 const madhabOptions = ["شافعي", "حنفي", "مالكي", "حنبلي"] as const;
 
 const prepSubjects = [
@@ -111,6 +111,7 @@ const prepSubjects = [
   { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
   { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
   { title: "السيرة النبوية", icon: BookOpen, description: "دراسة سيرة النبي صلى الله عليه وسلم" },
+  { title: "النحو", icon: Library, description: "قواعد اللغة العربية والنحو والصرف وفق المنهج الأزهري" },
 ];
 
 const secSubjects = [
@@ -118,6 +119,7 @@ const secSubjects = [
   { title: "التوحيد", icon: Star, description: "شرح مقرر للعقيدة الإسلامية وأركان الإيمان" },
   { title: "التفسير", icon: Scroll, description: "تفسير الآيات القرآنية وفهم معانيها" },
   { title: "الحديث الشريف", icon: BookHeart, description: "دراسة الأحاديث النبوية الشريفة المقررة" },
+  { title: "النحو", icon: Library, description: "قواعد اللغة العربية والنحو والصرف وفق المنهج الأزهري" },
 ];
 
 const gradeSubjects: Record<string, { title: string; icon: any; description: string }[]> = {
