@@ -68,6 +68,17 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [filterSubject, setFilterSubject] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Video AI generation
+  const [showVideoGen, setShowVideoGen] = useState(false);
+  const [videoGenGrade, setVideoGenGrade] = useState("");
+  const [videoGenSubject, setVideoGenSubject] = useState("");
+  const [videoGenCount, setVideoGenCount] = useState(5);
+  const [videoList, setVideoList] = useState<{id: string; title: string; subject: string; grade: string}[]>([]);
+  const [selectedVideoForGen, setSelectedVideoForGen] = useState("");
+  const [videoGenLoading, setVideoGenLoading] = useState(false);
+  const [videoGenResult, setVideoGenResult] = useState<{questions: any[]; saved: number} | null>(null);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+
   const fetchQuestions = async () => {
     setLoading(true);
     let query = supabase.from("question_bank").select("*").order("created_at", { ascending: false });
