@@ -120,6 +120,9 @@ const Index = () => {
         <Footer />
         <InstallPWABanner />
       </Suspense>
+      <Suspense fallback={null}>
+        <FloatingWhatsApp />
+      </Suspense>
       <ScrollToTop />
     </div>
   );
