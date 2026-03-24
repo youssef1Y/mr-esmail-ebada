@@ -3273,6 +3273,9 @@ const Dashboard = () => {
         {/* Daily Challenges */}
         {!adminUnlocked && user && profile && <DailyChallenges userId={user.id} grade={displayGrade} />}
 
+        {/* Share Rewards */}
+        {!adminUnlocked && user && <ShareRewards userId={user.id} />}
+
         {/* Student Progress Tracker */}
         {!adminUnlocked && user && profile && <StudentProgressTracker userId={user.id} grade={displayGrade} />}
 
