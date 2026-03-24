@@ -66,7 +66,7 @@ const FeaturesSection = () => {
                 </div>
                 <h3 className="font-bold text-base mb-2 text-foreground">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-              </motion.div>
+              </div>
             </StaggerItem>
           ))}
         </StaggerContainer>

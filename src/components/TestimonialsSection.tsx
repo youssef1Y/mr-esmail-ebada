@@ -66,7 +66,7 @@ const TestimonialsSection = () => {
                   <p className="font-bold text-sm text-foreground">{t.name}</p>
                   <p className="text-xs text-muted-foreground">{t.grade}</p>
                 </div>
-              </motion.div>
+              </div>
             </StaggerItem>
           ))}
         </StaggerContainer>

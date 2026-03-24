@@ -62,7 +62,7 @@ const WhyUsSection = () => {
                   <h3 className="font-bold text-base mb-1.5 text-foreground">{reason.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{reason.description}</p>
                 </div>
-              </motion.div>
+              </div>
             </StaggerItem>
           ))}
         </StaggerContainer>
