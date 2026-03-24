@@ -91,6 +91,50 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
 
   useEffect(() => { fetchQuestions(); }, [filterGrade, filterSubject]);
 
+  // Fetch videos for AI generation
+  useEffect(() => {
+    if (!showVideoGen) return;
+    const fetchVideos = async () => {
+      setLoadingVideos(true);
+      let query = supabase.from("videos").select("id, title, subject, grade").order("created_at", { ascending: false });
+      if (videoGenGrade) query = query.eq("grade", videoGenGrade);
+      if (videoGenSubject) query = query.eq("subject", videoGenSubject);
+      const { data } = await query.limit(50);
+      setVideoList((data || []) as any[]);
+      setLoadingVideos(false);
+    };
+    fetchVideos();
+  }, [showVideoGen, videoGenGrade, videoGenSubject]);
+
+  const handleVideoGenerate = async () => {
+    if (!selectedVideoForGen) {
+      toast({ title: "خطأ", description: "اختر فيديو أولاً", variant: "destructive" });
+      return;
+    }
+    setVideoGenLoading(true);
+    setVideoGenResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-video-questions", {
+        body: { video_id: selectedVideoForGen, question_count: videoGenCount, save_to_bank: true },
+      });
+      if (error) throw error;
+      if (data?.error === "rate_limited") {
+        toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
+      } else if (data?.error) {
+        toast({ title: "خطأ", description: data.message || "فشل في توليد الأسئلة", variant: "destructive" });
+      } else {
+        const saved = data.saved_to_bank || 0;
+        setVideoGenResult({ questions: data.questions || [], saved });
+        toast({ title: `تم توليد وحفظ ${saved} سؤال من الفيديو ✅` });
+        fetchQuestions();
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "خطأ", description: "فشل في توليد الأسئلة", variant: "destructive" });
+    }
+    setVideoGenLoading(false);
+  };
+
   const updateDraft = (idx: number, patch: Partial<DraftQuestion>) => {
     setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, ...patch } : d));
   };
