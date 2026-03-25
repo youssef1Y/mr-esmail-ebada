@@ -133,29 +133,35 @@ const Homework = () => {
     } else {
       toast({ title: "تم التسليم", description: "تم تسليم الواجب بنجاح - جاري التصحيح التلقائي..." });
       
-      const hw = selectedHw as any;
-      if (hw.answer_key_url || hw.pdf_url) {
-        const { data: subs } = await supabase.from("homework_submissions")
-          .select("id").eq("homework_id", selectedHw.id).eq("user_id", user.id)
-          .order("submitted_at", { ascending: false }).limit(1);
-        if (subs && subs.length > 0) {
-          supabase.functions.invoke("grade-submission", {
-            body: { submission_id: subs[0].id, type: "homework" },
-          }).then(({ data }) => {
-            if (data?.success) {
-              toast({ title: "تم التصحيح التلقائي ✅", description: `درجتك: ${data.score}/${data.total}` });
-              supabase.from("homework_submissions").select("*").eq("user_id", user!.id)
-                .then(({ data: s }) => { if (s) setSubmissions(s as Submission[]); });
-            }
-          });
-        }
+      // Always trigger auto-grading
+      const { data: subs } = await supabase.from("homework_submissions")
+        .select("id").eq("homework_id", selectedHw.id).eq("user_id", user.id)
+        .order("submitted_at", { ascending: false }).limit(1);
+      if (subs && subs.length > 0) {
+        supabase.functions.invoke("grade-submission", {
+          body: { submission_id: subs[0].id, type: "homework" },
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error("Grade submission error:", error);
+            toast({ title: "تنبيه", description: "لم يتمكن النظام من التصحيح التلقائي، سيتم التصحيح يدوياً", variant: "destructive" });
+            return;
+          }
+          if (data?.success) {
+            toast({ title: "تم التصحيح التلقائي ✅", description: `درجتك: ${data.score}/${data.total}` });
+            supabase.from("homework_submissions").select("*").eq("user_id", user!.id)
+              .then(({ data: s }) => { if (s) setSubmissions(s as Submission[]); });
+          } else if (data?.error) {
+            console.error("Grade submission returned error:", data.error);
+            toast({ title: "تنبيه", description: "لم يتمكن النظام من التصحيح التلقائي", variant: "destructive" });
+          }
+        });
       }
 
       setSelectedHw(null);
       setAnswerText("");
       setAnswerImages([]);
-      const { data: subs } = await supabase.from("homework_submissions").select("*").eq("user_id", user.id);
-      if (subs) setSubmissions(subs as Submission[]);
+      const { data: updatedSubs } = await supabase.from("homework_submissions").select("*").eq("user_id", user.id);
+      if (updatedSubs) setSubmissions(updatedSubs as Submission[]);
     }
   };
 
