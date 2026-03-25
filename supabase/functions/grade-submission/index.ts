@@ -66,13 +66,8 @@ serve(async (req) => {
         .single();
       if (!hw) throw new Error("Homework not found");
 
-      // Get answer key URL
+      // Get answer key URL (optional - AI can grade without it)
       const answerKeyUrl = hw.answer_key_url;
-      if (!answerKeyUrl && !hw.pdf_url) {
-        return new Response(JSON.stringify({ error: "no_answer_key" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       // Check if student submitted any content at all
       const hasImages = sub.image_urls && sub.image_urls.length > 0;
