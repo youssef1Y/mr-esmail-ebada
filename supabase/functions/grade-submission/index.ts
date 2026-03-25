@@ -143,96 +143,178 @@ serve(async (req) => {
         answerKeyBase64 = await imageUrlToBase64(akUrl);
       }
 
-      // Build messages for AI with base64 images
-      const userContent: any[] = [];
-      let contextText = `الواجب: ${hw.title}\nالمادة: ${hw.subject}\nالصف: ${hw.grade}`;
+      // ===== PASS 1: OCR — Extract handwritten text from student images =====
+      let extractedStudentText = "";
+      if (base64Images.length > 0) {
+        const ocrContent: any[] = [
+          { type: "text", text: `أنت خبير في قراءة خط اليد العربي (OCR). مهمتك الوحيدة هي قراءة ونسخ كل ما هو مكتوب في الصور التالية بدقة عالية.
+
+## تعليمات القراءة:
+1. اقرأ كل صورة من اليمين لليسار، من أعلى لأسفل
+2. انسخ كل كلمة وكل جملة كما هي مكتوبة
+3. إذا كانت كلمة غير واضحة تماماً، خمنها من السياق واكتبها مع علامة [؟] بعدها
+4. حافظ على ترتيب الأسئلة والأرقام كما تظهر
+5. اكتب أرقام الأسئلة إذا ظهرت (مثل: 1- أو س1 أو أولاً)
+6. لا تصحح الأخطاء الإملائية - انسخ كما هو مكتوب
+7. إذا وجدت رسومات أو أشكال، صِفها بين [أقواس]
+8. افصل بين إجابة كل سؤال بسطر فارغ
+
+## مهم جداً:
+- ركز على فهم الحروف المتصلة في خط اليد العربي
+- انتبه للنقاط (ب، ت، ث، ن، ي) والتشكيل إذا وُجد
+- الكلمات في سياق ديني/شرعي (فقه، توحيد، تفسير، حديث)
+- إذا كان الخط صعباً جداً، حاول أكثر من محاولة للقراءة
+
+أخرج النص المستخرج فقط بدون أي تعليقات إضافية.` }
+        ];
+
+        for (const b64 of base64Images) {
+          ocrContent.push({ type: "image_url", image_url: { url: b64 } });
+        }
+
+        console.log("Pass 1: OCR extraction...");
+        const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-pro",
+            messages: [{ role: "user", content: ocrContent }],
+            temperature: 0.1,
+            max_tokens: 4000,
+          }),
+        });
+
+        if (ocrResponse.ok) {
+          const ocrData = await ocrResponse.json();
+          extractedStudentText = ocrData.choices?.[0]?.message?.content || "";
+          console.log("OCR extracted text length:", extractedStudentText.length);
+          console.log("OCR preview:", extractedStudentText.substring(0, 300));
+        } else {
+          const errText = await ocrResponse.text();
+          console.error("OCR pass failed:", ocrResponse.status, errText);
+        }
+      }
+
+      // Also extract text from answer key image if exists
+      let extractedAnswerKeyText = "";
+      if (answerKeyBase64) {
+        console.log("Extracting answer key text...");
+        const akOcrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: "اقرأ وانسخ كل النص المكتوب في هذه الصورة بدقة. هذه إجابات نموذجية لواجب في العلوم الشرعية. انسخ النص فقط بدون تعليقات." },
+                { type: "image_url", image_url: { url: answerKeyBase64 } }
+              ]
+            }],
+            temperature: 0.1,
+            max_tokens: 3000,
+          }),
+        });
+
+        if (akOcrResponse.ok) {
+          const akData = await akOcrResponse.json();
+          extractedAnswerKeyText = akData.choices?.[0]?.message?.content || "";
+          console.log("Answer key text extracted, length:", extractedAnswerKeyText.length);
+        } else {
+          await akOcrResponse.text();
+        }
+      }
+
+      // ===== PASS 2: Grading — Compare extracted texts =====
+      let contextText = `## معلومات الواجب:\n- العنوان: ${hw.title}\n- المادة: ${hw.subject}\n- الصف: ${hw.grade}`;
       if (hw.homework_type === "book") {
-        contextText += `\nنوع: حل كتاب ${hw.book_name || ""}`;
+        contextText += `\n- نوع: حل كتاب ${hw.book_name || ""}`;
         if (hw.page_from) contextText += ` من صفحة ${hw.page_from}`;
         if (hw.page_to) contextText += ` لصفحة ${hw.page_to}`;
         if (hw.lesson_number) contextText += ` - درس ${hw.lesson_number}`;
       }
 
-      // Add answer key
-      if (answerKeyBase64) {
-        contextText += "\n\nالإجابات النموذجية (في الصورة التالية):";
-        userContent.push({ type: "text", text: contextText });
-        userContent.push({ type: "image_url", image_url: { url: answerKeyBase64 } });
-      } else if (answerKeyUrl) {
-        // Try original URL as fallback
-        contextText += "\n\nالإجابات النموذجية:";
-        userContent.push({ type: "text", text: contextText });
-        userContent.push({ type: "image_url", image_url: { url: answerKeyUrl } });
-      } else {
-        userContent.push({ type: "text", text: contextText + "\n\nلا توجد إجابات نموذجية، قيّم بناءً على صحة المعلومات الدينية." });
+      // Build grading prompt with extracted texts
+      let gradingPrompt = contextText + "\n\n";
+
+      if (extractedAnswerKeyText) {
+        gradingPrompt += `## الإجابات النموذجية:\n${extractedAnswerKeyText}\n\n`;
+      } else if (answerKeyUrl && !answerKeyBase64) {
+        gradingPrompt += `## ملاحظة: لا توجد إجابات نموذجية متاحة، قيّم بناءً على صحة المعلومات الشرعية.\n\n`;
+      } else if (!answerKeyUrl) {
+        gradingPrompt += `## ملاحظة: لا توجد إجابات نموذجية، قيّم بناءً على صحة المعلومات الدينية والشرعية.\n\n`;
       }
 
-      // Add student text answer
+      gradingPrompt += `## إجابة الطالب:\n`;
+      if (extractedStudentText) {
+        gradingPrompt += `### النص المستخرج من صور خط اليد:\n${extractedStudentText}\n`;
+      }
       if (hasText) {
-        userContent.push({ type: "text", text: `\n\nإجابة الطالب المكتوبة:\n${sub.content}` });
+        gradingPrompt += `### إجابة مكتوبة:\n${sub.content}\n`;
+      }
+      if (!extractedStudentText && !hasText) {
+        gradingPrompt += `لم يتم العثور على أي نص في إجابة الطالب.\n`;
       }
 
-      // Add student images as base64
-      if (base64Images.length > 0) {
-        userContent.push({ type: "text", text: `\n\nصور إجابات الطالب (${base64Images.length} صورة) - اقرأ خط اليد بعناية:` });
-        for (const b64 of base64Images) {
-          userContent.push({ type: "image_url", image_url: { url: b64 } });
-        }
-      } else if (hasImages) {
-        // Images existed but couldn't convert - log error
-        console.error("Could not convert any student images to base64!");
-        userContent.push({ type: "text", text: "\n\nملاحظة: الطالب رفع صور لكن لم نتمكن من قراءتها." });
-      }
-
-      const messages: any[] = [
+      const gradingMessages: any[] = [
         {
           role: "system",
-          content: `أنت مصحح امتحانات وواجبات إسلامية خبير جداً في قراءة خط اليد العربي بجميع أشكاله. أنت تفهم اللغة العربية فهماً عميقاً وتقبل المرادفات والتعبيرات المختلفة التي تؤدي نفس المعنى.
+          content: `أنت مصحح امتحانات وواجبات العلوم الشرعية. لديك خبرة عميقة في الفقه والتوحيد والتفسير والحديث والسيرة النبوية.
 
-## مهمتك خطوة بخطوة:
+## منهجية التصحيح:
 
-### الخطوة 1: قراءة صور إجابات الطالب
-- ركز على كل صورة من صور الطالب واقرأ خط اليد بعناية فائقة
-- حتى لو الخط سيء جداً أو غير واضح، حاول بكل الطرق فهم ما كتبه الطالب
-- انظر للحروف والكلمات في سياقها لتفهم المعنى
-- إذا كانت كلمة غير واضحة، خمنها من السياق
+### المقارنة بالمعنى (أهم قاعدة):
+- قارن إجابة الطالب بالإجابة النموذجية من حيث **المعنى والمضمون** وليس التطابق الحرفي
+- اقبل المرادفات: "التوحيد" = "عبادة الله وحده" = "إفراد الله بالعبادة"
+- اقبل إعادة الصياغة: "أركان الإسلام خمسة" = "للإسلام خمس أركان"
+- اقبل الإجابات الصحيحة حتى لو بأسلوب مختلف عن النموذجي
 
-### الخطوة 2: قراءة الإجابات النموذجية
-- اقرأ الإجابات النموذجية المرفقة (صورة أو نص)
-- افهم المطلوب من كل سؤال
-
-### الخطوة 3: المقارنة بالمعنى وليس بالحرف
-- قارن إجابة الطالب بالإجابة النموذجية من حيث المعنى والمضمون
-- إذا كتب الطالب نفس المعنى بكلمات مختلفة أو مرادفات = إجابة صحيحة
-- إذا كتب الطالب جملة تؤدي نفس المعنى حتى لو بأسلوب مختلف = إجابة صحيحة
-- مثال: "التوحيد" و"عبادة الله وحده" = نفس المعنى = صحيح
-- مثال: "الصلاة" و"إقامة الصلاة" = نفس المعنى = صحيح
-- مثال: "أركان الإسلام خمسة" و"للإسلام خمسة أركان" = نفس المعنى = صحيح
-
-### قواعد التصحيح:
-- ✅ نفس المعنى بكلمات مختلفة = صحيح (درجة كاملة)
-- ✅ إجابة صحيحة جزئياً = درجة جزئية
-- ✅ خط سيء لكن يمكن فهمه = حاول واحسبه
-- ❌ صفر فقط إذا: الصورة فارغة تماماً / لا يوجد أي نص / الإجابة خاطئة تماماً ولا علاقة لها بالسؤال
+### قواعد الدرجات:
+- ✅ إجابة صحيحة المعنى = درجة كاملة
+- ✅ إجابة صحيحة جزئياً (ذكر بعض النقاط) = درجة جزئية متناسبة
+- ✅ أخطاء إملائية لا تؤثر على صحة الإجابة = لا تخصم
+- ❌ صفر فقط إذا: لا يوجد أي إجابة / الإجابة خاطئة تماماً ولا علاقة لها بالسؤال
 - ❌ لا تطلب تطابق حرفي أبداً
 
 ### الملاحظات يجب أن تشمل:
-1. ما قرأته من خط يد الطالب (انسخ ما فهمته حرفياً)
-2. مقارنة مختصرة مع الإجابة النموذجية
-3. سبب الدرجة المعطاة
+1. ملخص ما كتبه الطالب في كل سؤال
+2. هل الإجابة صحيحة/جزئية/خاطئة ولماذا
+3. الدرجة النهائية وسببها
 
 الدرجة من 0 إلى 10.
 
-أرجع JSON فقط بدون أي نص إضافي:
-{"score": رقم, "total": 10, "feedback": "ملاحظات"}`
+أرجع JSON فقط:
+{"score": رقم, "total": 10, "feedback": "ملاحظات مفصلة"}`
         },
         {
           role: "user",
-          content: userContent
+          content: gradingPrompt
         }
       ];
 
-      console.log("Sending to AI for grading...");
+      // If we have images AND extracted text, also attach images to grading for cross-reference
+      if (base64Images.length > 0 && extractedStudentText) {
+        const userContentWithImages: any[] = [
+          { type: "text", text: gradingPrompt + "\n\n(الصور الأصلية مرفقة للتحقق من القراءة)" }
+        ];
+        for (const b64 of base64Images) {
+          userContentWithImages.push({ type: "image_url", image_url: { url: b64 } });
+        }
+        // Also attach answer key image for cross-reference
+        if (answerKeyBase64) {
+          userContentWithImages.push({ type: "text", text: "\n\nصورة الإجابات النموذجية:" });
+          userContentWithImages.push({ type: "image_url", image_url: { url: answerKeyBase64 } });
+        }
+        gradingMessages[1] = { role: "user", content: userContentWithImages };
+      }
+
+      console.log("Pass 2: Grading...");
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -242,15 +324,15 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-pro",
-          messages,
-          temperature: 0.2,
-          max_tokens: 2500,
+          messages: gradingMessages,
+          temperature: 0.15,
+          max_tokens: 3000,
         }),
       });
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
-        console.error("AI error:", aiResponse.status, errText);
+        console.error("AI grading error:", aiResponse.status, errText);
         return new Response(JSON.stringify({ error: "ai_error", details: errText }), {
           status: aiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -258,7 +340,7 @@ serve(async (req) => {
 
       const aiData = await aiResponse.json();
       const content = aiData.choices?.[0]?.message?.content || "";
-      console.log("AI response:", content);
+      console.log("Grading response:", content.substring(0, 500));
       
       let result = { score: 0, total: 10, feedback: "لم يتمكن النظام من التصحيح" };
       try {
@@ -268,7 +350,11 @@ serve(async (req) => {
         console.error("Parse error:", e, "Raw content:", content);
       }
 
-      // Update submission with AI grading
+      // Update submission with AI grading + extracted text for debugging
+      const feedbackWithOcr = extractedStudentText 
+        ? `[تصحيح تلقائي]\n${result.feedback}\n\n📝 ما قرأه النظام من خط اليد:\n${extractedStudentText.substring(0, 500)}`
+        : `[تصحيح تلقائي] ${result.feedback}`;
+
       await supabaseAdmin
         .from("homework_submissions")
         .update({
@@ -276,11 +362,11 @@ serve(async (req) => {
           ai_feedback: result.feedback,
           score: result.score,
           total: result.total,
-          feedback: `[تصحيح تلقائي] ${result.feedback}`,
+          feedback: feedbackWithOcr,
         })
         .eq("id", submission_id);
 
-      // Notify student if perfect score (certificate available)
+      // Notify student if perfect score
       if (result.score >= result.total && result.total > 0) {
         await supabaseAdmin.from("student_notifications").insert({
           user_id: sub.user_id,
