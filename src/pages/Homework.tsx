@@ -160,8 +160,8 @@ const Homework = () => {
       setSelectedHw(null);
       setAnswerText("");
       setAnswerImages([]);
-      const { data: subs } = await supabase.from("homework_submissions").select("*").eq("user_id", user.id);
-      if (subs) setSubmissions(subs as Submission[]);
+      const { data: updatedSubs } = await supabase.from("homework_submissions").select("*").eq("user_id", user.id);
+      if (updatedSubs) setSubmissions(updatedSubs as Submission[]);
     }
   };
 
