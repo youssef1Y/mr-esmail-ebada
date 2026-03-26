@@ -234,7 +234,14 @@ const VideoPlayer = ({ src, title, onRefreshSource, showAd = false }: VideoPlaye
     };
     const onLoadedMetadata = () => {
       setDuration(v.duration);
-      v.play().catch(() => {});
+      // Show ad for new videos (not already shown for this src)
+      if (showAd && adShownForSrc.current !== src) {
+        setAdVisible(true);
+        adShownForSrc.current = src;
+        // Don't auto-play yet — wait for ad skip
+      } else {
+        v.play().catch(() => {});
+      }
     };
     const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
