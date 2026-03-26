@@ -232,21 +232,9 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     };
     const onLoadedMetadata = () => {
       setDuration(v.duration);
-      // Show ad for new videos (not already shown for this src)
-      if (showAd && adShownForSrc.current !== src) {
-        setAdVisible(true);
-        adShownForSrc.current = src;
-        // Don't auto-play yet — wait for ad skip
-      } else {
-        v.play().catch(() => {});
-      }
+      v.play().catch(() => {});
     };
-    const onEnded = () => {
-      setPlaying(false);
-      if (showAd) {
-        setAdVisible(true);
-      }
-    };
+    const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onWaiting = () => setIsBuffering(true);
