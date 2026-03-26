@@ -7,7 +7,7 @@ interface AdBannerProps {
 }
 
 // Set your AdSense Publisher ID here
-const ADSENSE_PUBLISHER_ID = "ca-pub-XXXXXXXXXXXXXXXX";
+const ADSENSE_PUBLISHER_ID = "ca-pub-7340212241504444";
 
 declare global {
   interface Window {
@@ -30,7 +30,7 @@ const AdBanner = ({ adSlot, adFormat = "auto", className = "" }: AdBannerProps) 
   }, []);
 
   // Don't render if publisher ID not set
-  if (ADSENSE_PUBLISHER_ID === "ca-pub-XXXXXXXXXXXXXXXX") {
+  if (!ADSENSE_PUBLISHER_ID || ADSENSE_PUBLISHER_ID.includes("XXXX")) {
     return null;
   }
 
