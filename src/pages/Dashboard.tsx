@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key } from "lucide-react";
+import { BookOpen, User, LogOut, CheckCircle, ChevronLeft, Star, BookMarked, Scroll, BookHeart, Shield, Bell, Video, Users, Search, RefreshCw, Trash2, UserCheck, UserX, Plus, Send, Lock, ChevronDown, Play, Upload, FileText, X, BarChart3, ArrowRight, Trophy, Library, ClipboardList, Image as ImageIcon, Eye, MessageCircle, UserCog, Download, CalendarDays, Moon, Sun, Key, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StudentLevelBadge } from "@/components/StudentLevel";
@@ -3459,14 +3459,34 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Contact Us Link - bottom of page */}
+        {/* Contact & Quick Links - bottom of page */}
         {!isAdmin && (
-          <div className="mt-4 mb-8 max-w-2xl mx-auto">
+          <div className="mt-4 mb-8 max-w-2xl mx-auto space-y-3">
             <Link to="/contact">
               <div className="bg-muted/50 rounded-xl border border-border p-4 text-center hover:border-primary/30 transition-colors cursor-pointer">
                 <p className="text-sm text-muted-foreground">هل لديك شكوى أو اقتراح؟ <span className="text-primary font-medium">تواصل معنا</span></p>
               </div>
             </Link>
+            <div className="flex items-center justify-center gap-3">
+              <a
+                href="https://wa.me/201097602493"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] rounded-full px-5 py-2.5 text-sm font-bold transition-colors"
+              >
+                <svg viewBox="0 0 32 32" className="w-4 h-4 fill-current">
+                  <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.128 6.744 3.046 9.378L1.054 31.29l6.118-1.958A15.9 15.9 0 0016.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.31 22.594c-.39 1.1-1.932 2.014-3.168 2.28-.846.18-1.95.324-5.67-1.218-4.762-1.972-7.828-6.81-8.066-7.126-.228-.316-1.916-2.55-1.916-4.862 0-2.312 1.212-3.45 1.642-3.924.39-.428 1.03-.642 1.644-.642.198 0 .376.01.536.018.472.02.708.048 1.02.79.39.926 1.338 3.266 1.456 3.504.12.238.238.554.078.87-.15.326-.278.528-.516.81-.238.282-.488.502-.726.81-.218.268-.464.554-.192 1.026.272.462 1.212 2 2.602 3.238 1.786 1.59 3.292 2.084 3.762 2.312.368.178.808.148 1.092-.148.358-.376.802-.998 1.252-1.612.32-.438.724-.494 1.122-.336.406.148 2.568 1.21 3.008 1.43.44.218.732.33.84.51.108.18.108 1.048-.282 2.148z"/>
+                </svg>
+                تواصل واتساب
+              </a>
+              <a
+                href="tel:+201097602493"
+                className="inline-flex items-center gap-2 bg-muted/60 hover:bg-muted border border-border text-muted-foreground rounded-full px-5 py-2.5 text-sm font-bold transition-colors"
+              >
+                <Phone className="w-4 h-4" />
+                اتصل بنا
+              </a>
+            </div>
           </div>
         )}
 
