@@ -680,7 +680,7 @@ const SubjectVideos = () => {
         {/* Achievement Badges */}
         {userId && (
           <div className="mt-8 mb-4">
-            <AchievementBadges />
+            <AchievementBadges userId={userId} />
           </div>
         )}
       </main>
