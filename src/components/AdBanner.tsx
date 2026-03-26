@@ -30,7 +30,7 @@ const AdBanner = ({ adSlot, adFormat = "auto", className = "" }: AdBannerProps) 
   }, []);
 
   // Don't render if publisher ID not set
-  if (ADSENSE_PUBLISHER_ID === "ca-pub-XXXXXXXXXXXXXXXX") {
+  if (!ADSENSE_PUBLISHER_ID || ADSENSE_PUBLISHER_ID.includes("XXXX")) {
     return null;
   }
 
