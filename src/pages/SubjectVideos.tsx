@@ -474,6 +474,11 @@ const SubjectVideos = () => {
                 );
               })()}
             </div>
+
+            {/* Ad below video player - hidden for subscribers */}
+            {!isSubscribed && !isAdmin && (
+              <AdBanner adSlot="XXXXXXXXXX" adFormat="horizontal" className="mt-3 rounded-xl overflow-hidden" />
+            )}
           </div>
         )}
 
