@@ -676,6 +676,13 @@ const SubjectVideos = () => {
           </StaggerContainer>
           </>
         )}
+
+        {/* Achievement Badges */}
+        {userId && (
+          <div className="mt-8 mb-4">
+            <AchievementBadges />
+          </div>
+        )}
       </main>
     </div>
   );
