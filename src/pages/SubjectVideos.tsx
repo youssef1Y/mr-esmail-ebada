@@ -680,6 +680,11 @@ const SubjectVideos = () => {
               );
             })}
           </StaggerContainer>
+
+          {/* Bottom ad */}
+          {!isSubscribed && !isAdmin && (
+            <AdBanner adSlot="XXXXXXXXXX" adFormat="horizontal" className="mt-6 rounded-xl overflow-hidden" />
+          )}
           </>
         )}
       </main>
