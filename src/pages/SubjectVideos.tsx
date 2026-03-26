@@ -543,7 +543,6 @@ const SubjectVideos = () => {
           )}
           <StaggerContainer className="space-y-3" staggerDelay={0.08}>
             {filteredVideos.map((v, i) => {
-              const showAd = !isSubscribed && !isAdmin && i > 0 && i % 4 === 0;
               const locked = isVideoLocked(v.id);
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
