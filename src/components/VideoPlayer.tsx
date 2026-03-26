@@ -243,7 +243,12 @@ const VideoPlayer = ({ src, title, onRefreshSource, showAd = false }: VideoPlaye
         v.play().catch(() => {});
       }
     };
-    const onEnded = () => setPlaying(false);
+    const onEnded = () => {
+      setPlaying(false);
+      if (showAd) {
+        setAdVisible(true);
+      }
+    };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onWaiting = () => setIsBuffering(true);
