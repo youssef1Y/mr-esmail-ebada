@@ -53,8 +53,6 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const [tapCount, setTapCount] = useState(0);
   const [tapSide, setTapSide] = useState<"left" | "right" | null>(null);
   const [isPiP, setIsPiP] = useState(false);
-  const [adVisible, setAdVisible] = useState(showAd);
-  const adShownForSrc = useRef<string | null>(null);
 
   // ── Source refresh ──
   const refreshSource = useCallback(async () => {
