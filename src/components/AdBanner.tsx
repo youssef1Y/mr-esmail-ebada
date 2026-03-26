@@ -7,7 +7,7 @@ interface AdBannerProps {
 }
 
 // Set your AdSense Publisher ID here
-const ADSENSE_PUBLISHER_ID = "ca-pub-XXXXXXXXXXXXXXXX";
+const ADSENSE_PUBLISHER_ID = "ca-pub-7340212241504444";
 
 declare global {
   interface Window {
