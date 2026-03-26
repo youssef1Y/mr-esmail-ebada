@@ -552,6 +552,9 @@ const SubjectVideos = () => {
 
               return (
                 <StaggerItem key={v.id}>
+                  {showAd && (
+                    <AdBanner adSlot="XXXXXXXXXX" adFormat="rectangle" className="mb-3 rounded-xl overflow-hidden" />
+                  )}
                   <div
                     className={`bg-card rounded-xl border overflow-hidden transition-all ${
                       isCurrentlyPlaying
