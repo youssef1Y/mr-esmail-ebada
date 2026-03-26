@@ -33,7 +33,7 @@ const VideoAdOverlay = ({ onSkip, onAdComplete, skipDelay = 5 }: VideoAdOverlayP
 
       {/* Ad content */}
       <div className="w-full max-w-md px-4">
-        <AdBanner adSlot="XXXXXXXXXX" adFormat="rectangle" className="rounded-xl overflow-hidden" />
+        <AdBanner adSlot="3538823398" adFormat="rectangle" className="rounded-xl overflow-hidden" />
       </div>
 
       {/* Skip / Countdown button */}
