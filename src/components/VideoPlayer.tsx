@@ -9,7 +9,7 @@ interface VideoPlayerProps {
   src: string;
   title?: string;
   onRefreshSource?: () => Promise<boolean>;
-  showAd?: boolean;
+  
 }
 
 const formatTime = (seconds: number) => {
