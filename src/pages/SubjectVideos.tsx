@@ -360,6 +360,7 @@ const SubjectVideos = () => {
               <VideoPlayer
                 src={resolvedUrls[playingVideo.id]}
                 title={playingVideo.title}
+                showAd={!isSubscribed && !isAdmin}
                 onRefreshSource={async () => {
                   const [refreshed] = await resolvePlayableVideoUrls([playingVideo]);
                   if (refreshed) {
