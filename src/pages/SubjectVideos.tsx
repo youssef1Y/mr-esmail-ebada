@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { AchievementBadges } from "@/components/AchievementBadges";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -674,6 +675,13 @@ const SubjectVideos = () => {
             })}
           </StaggerContainer>
           </>
+        )}
+
+        {/* Achievement Badges */}
+        {userId && (
+          <div className="mt-8 mb-4">
+            <AchievementBadges userId={userId} />
+          </div>
         )}
       </main>
     </div>
