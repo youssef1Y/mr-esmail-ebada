@@ -372,6 +372,20 @@ const VideoPlayer = ({ src, title, onRefreshSource, showAd = false }: VideoPlaye
         onContextMenu={(e) => e.preventDefault()}
       />
 
+      {/* Pre-roll Ad Overlay */}
+      {adVisible && (
+        <VideoAdOverlay
+          onSkip={() => {
+            setAdVisible(false);
+            videoRef.current?.play().catch(() => {});
+          }}
+          onAdComplete={() => {
+            setAdVisible(false);
+            videoRef.current?.play().catch(() => {});
+          }}
+        />
+      )}
+
       {/* Buffering Spinner */}
       {isBuffering && playing && !error && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
