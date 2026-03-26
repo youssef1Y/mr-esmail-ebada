@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
-import AdBanner from "@/components/AdBanner";
+
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -360,6 +360,7 @@ const SubjectVideos = () => {
               <VideoPlayer
                 src={resolvedUrls[playingVideo.id]}
                 title={playingVideo.title}
+                showAd={!isSubscribed && !isAdmin}
                 onRefreshSource={async () => {
                   const [refreshed] = await resolvePlayableVideoUrls([playingVideo]);
                   if (refreshed) {
@@ -475,10 +476,6 @@ const SubjectVideos = () => {
               })()}
             </div>
 
-            {/* Ad below video player - hidden for subscribers */}
-            {!isSubscribed && !isAdmin && (
-              <AdBanner adSlot="XXXXXXXXXX" adFormat="horizontal" className="mt-3 rounded-xl overflow-hidden" />
-            )}
           </div>
         )}
 

@@ -3,11 +3,13 @@ import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
   Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2
 } from "lucide-react";
+import VideoAdOverlay from "./VideoAdOverlay";
 
 interface VideoPlayerProps {
   src: string;
   title?: string;
   onRefreshSource?: () => Promise<boolean>;
+  showAd?: boolean;
 }
 
 const formatTime = (seconds: number) => {
@@ -21,7 +23,7 @@ const formatTime = (seconds: number) => {
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
+const VideoPlayer = ({ src, title, onRefreshSource, showAd = false }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -51,6 +53,8 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const [tapCount, setTapCount] = useState(0);
   const [tapSide, setTapSide] = useState<"left" | "right" | null>(null);
   const [isPiP, setIsPiP] = useState(false);
+  const [adVisible, setAdVisible] = useState(showAd);
+  const adShownForSrc = useRef<string | null>(null);
 
   // ── Source refresh ──
   const refreshSource = useCallback(async () => {
@@ -230,7 +234,14 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     };
     const onLoadedMetadata = () => {
       setDuration(v.duration);
-      v.play().catch(() => {});
+      // Show ad for new videos (not already shown for this src)
+      if (showAd && adShownForSrc.current !== src) {
+        setAdVisible(true);
+        adShownForSrc.current = src;
+        // Don't auto-play yet — wait for ad skip
+      } else {
+        v.play().catch(() => {});
+      }
     };
     const onEnded = () => setPlaying(false);
     const onPlay = () => setPlaying(true);
@@ -360,6 +371,20 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         preload="auto"
         onContextMenu={(e) => e.preventDefault()}
       />
+
+      {/* Pre-roll Ad Overlay */}
+      {adVisible && (
+        <VideoAdOverlay
+          onSkip={() => {
+            setAdVisible(false);
+            videoRef.current?.play().catch(() => {});
+          }}
+          onAdComplete={() => {
+            setAdVisible(false);
+            videoRef.current?.play().catch(() => {});
+          }}
+        />
+      )}
 
       {/* Buffering Spinner */}
       {isBuffering && playing && !error && (
