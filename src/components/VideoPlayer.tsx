@@ -23,7 +23,7 @@ const formatTime = (seconds: number) => {
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
+const VideoPlayer = ({ src, title, onRefreshSource, showAd = false }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
