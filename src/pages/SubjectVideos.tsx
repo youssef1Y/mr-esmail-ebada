@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
+import AdBanner from "@/components/AdBanner";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,6 +474,11 @@ const SubjectVideos = () => {
                 );
               })()}
             </div>
+
+            {/* Ad below video player - hidden for subscribers */}
+            {!isSubscribed && !isAdmin && (
+              <AdBanner adSlot="XXXXXXXXXX" adFormat="horizontal" className="mt-3 rounded-xl overflow-hidden" />
+            )}
           </div>
         )}
 
@@ -537,6 +543,7 @@ const SubjectVideos = () => {
           )}
           <StaggerContainer className="space-y-3" staggerDelay={0.08}>
             {filteredVideos.map((v, i) => {
+              const showAd = !isSubscribed && !isAdmin && i > 0 && i % 4 === 0;
               const locked = isVideoLocked(v.id);
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
@@ -545,6 +552,9 @@ const SubjectVideos = () => {
 
               return (
                 <StaggerItem key={v.id}>
+                  {showAd && (
+                    <AdBanner adSlot="XXXXXXXXXX" adFormat="rectangle" className="mb-3 rounded-xl overflow-hidden" />
+                  )}
                   <div
                     className={`bg-card rounded-xl border overflow-hidden transition-all ${
                       isCurrentlyPlaying
@@ -670,6 +680,11 @@ const SubjectVideos = () => {
               );
             })}
           </StaggerContainer>
+
+          {/* Bottom ad */}
+          {!isSubscribed && !isAdmin && (
+            <AdBanner adSlot="XXXXXXXXXX" adFormat="horizontal" className="mt-6 rounded-xl overflow-hidden" />
+          )}
           </>
         )}
       </main>
