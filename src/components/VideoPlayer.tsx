@@ -3,7 +3,7 @@ import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
   Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2
 } from "lucide-react";
-import VideoAdOverlay from "./VideoAdOverlay";
+
 
 interface VideoPlayerProps {
   src: string;
