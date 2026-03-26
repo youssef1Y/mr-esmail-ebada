@@ -363,19 +363,6 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Pre-roll Ad Overlay */}
-      {adVisible && (
-        <VideoAdOverlay
-          onSkip={() => {
-            setAdVisible(false);
-            videoRef.current?.play().catch(() => {});
-          }}
-          onAdComplete={() => {
-            setAdVisible(false);
-            videoRef.current?.play().catch(() => {});
-          }}
-        />
-      )}
 
       {/* Buffering Spinner */}
       {isBuffering && playing && !error && (
