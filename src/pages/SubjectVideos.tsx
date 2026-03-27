@@ -202,9 +202,21 @@ const SubjectVideos = () => {
   const resolveAndPlay = useCallback(async (videoId: string) => {
     if (isVideoLocked(videoId)) return;
     
-    // Record view when student actually plays
+    // Record view only if no view exists within the last 7 days
     if (userId) {
-      supabase.from("video_views").insert({ video_id: videoId, user_id: userId }).then(() => {});
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      supabase
+        .from("video_views")
+        .select("id")
+        .eq("video_id", videoId)
+        .eq("user_id", userId)
+        .gte("viewed_at", sevenDaysAgo)
+        .limit(1)
+        .then(({ data }) => {
+          if (!data || data.length === 0) {
+            supabase.from("video_views").insert({ video_id: videoId, user_id: userId }).then(() => {});
+          }
+        });
     }
 
     if (resolvedUrls[videoId]) {
