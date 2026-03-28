@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle, XCircle, RotateCcw, Library, Filter, Trophy, Target, Zap, ArrowLeft, ChevronRight, FileText, Eye, BookOpen, Camera, Upload, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, Library, Filter, Trophy, Target, Zap, ArrowLeft, ChevronRight, FileText, Eye, BookOpen, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,11 +47,13 @@ const QuestionBank = () => {
   const [lesson, setLesson] = useState("");
   const [lessonFilter, setLessonFilter] = useState<LessonFilter>("all");
   const [availableLessons, setAvailableLessons] = useState<string[]>([]);
-  const [watchedLessons, setWatchedLessons] = useState<string[]>([]);
+  const [watchedLessons, setWatchedLessons] = useState<{title: string; videoId: string}[]>([]);
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [started, setStarted] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatingMessage, setGeneratingMessage] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
@@ -84,7 +86,9 @@ const QuestionBank = () => {
   const [wsPhotoAnswers, setWsPhotoAnswers] = useState<Record<number, string>>({});
   const [wsSubject, setWsSubject] = useState("");
   const [wsLesson, setWsLesson] = useState("");
+  const [wsLessonFilter, setWsLessonFilter] = useState<LessonFilter>("all");
   const [wsAvailableLessons, setWsAvailableLessons] = useState<string[]>([]);
+  const [wsWatchedLessons, setWsWatchedLessons] = useState<{title: string; videoId: string}[]>([]);
   const [wsQuestionCount, setWsQuestionCount] = useState(10);
   const [wsLoadingQuestions, setWsLoadingQuestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,7 +110,7 @@ const QuestionBank = () => {
     init();
   }, [navigate]);
 
-  // Fetch available lessons + watched lessons when grade + subject change
+  // Fetch available lessons from VIDEOS table + watched lessons when grade + subject change
   useEffect(() => {
     if (!grade || !subject) {
       setAvailableLessons([]);
@@ -117,20 +121,19 @@ const QuestionBank = () => {
     const fetchLessons = async () => {
       setLoadingLessons(true);
 
-      // Get all lessons from question bank
-      const { data } = await supabase
-        .from("question_bank")
-        .select("lesson")
+      // Get all video titles as lessons
+      const { data: allVideos } = await supabase
+        .from("videos")
+        .select("id, title")
         .eq("grade", grade)
-        .eq("subject", subject)
-        .not("lesson", "is", null);
+        .eq("subject", subject);
 
-      if (data) {
-        const unique = [...new Set(data.map(d => d.lesson).filter(Boolean))] as string[];
-        setAvailableLessons(unique.sort());
+      if (allVideos) {
+        const titles = [...new Set(allVideos.map(v => v.title).filter(Boolean))];
+        setAvailableLessons(titles.sort());
       }
 
-      // Get watched video titles/lessons for this student
+      // Get watched video titles for this student
       if (userId) {
         const { data: views } = await supabase
           .from("video_views")
@@ -138,17 +141,16 @@ const QuestionBank = () => {
           .eq("user_id", userId);
 
         if (views && views.length > 0) {
-          const videoIds = [...new Set(views.map(v => v.video_id))];
+          const viewedIds = [...new Set(views.map(v => v.video_id))];
           const { data: videos } = await supabase
             .from("videos")
-            .select("title")
+            .select("id, title")
             .eq("grade", grade)
             .eq("subject", subject)
-            .in("id", videoIds);
+            .in("id", viewedIds);
 
           if (videos) {
-            const titles = videos.map(v => v.title).filter(Boolean);
-            setWatchedLessons(titles);
+            setWatchedLessons(videos.map(v => ({ title: v.title, videoId: v.id })));
           }
         } else {
           setWatchedLessons([]);
@@ -174,62 +176,197 @@ const QuestionBank = () => {
     fetchWorksheets();
   }, [activeTab, grade, wsFilterSubject]);
 
-  // Fetch ws lessons for interactive questions
+  // Fetch ws lessons from videos
   useEffect(() => {
-    if (!grade || !wsSubject) { setWsAvailableLessons([]); return; }
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("question_bank")
-        .select("lesson")
+    if (!grade || !wsSubject) { setWsAvailableLessons([]); setWsWatchedLessons([]); return; }
+    const fetchWsLessons = async () => {
+      const { data: allVideos } = await supabase
+        .from("videos")
+        .select("id, title")
         .eq("grade", grade)
-        .eq("subject", wsSubject)
-        .not("lesson", "is", null);
-      if (data) {
-        const unique = [...new Set(data.map(d => d.lesson).filter(Boolean))] as string[];
-        setWsAvailableLessons(unique.sort());
+        .eq("subject", wsSubject);
+
+      if (allVideos) {
+        const titles = [...new Set(allVideos.map(v => v.title).filter(Boolean))];
+        setWsAvailableLessons(titles.sort());
+      }
+
+      if (userId) {
+        const { data: views } = await supabase
+          .from("video_views")
+          .select("video_id")
+          .eq("user_id", userId);
+
+        if (views && views.length > 0) {
+          const viewedIds = [...new Set(views.map(v => v.video_id))];
+          const { data: videos } = await supabase
+            .from("videos")
+            .select("id, title")
+            .eq("grade", grade)
+            .eq("subject", wsSubject)
+            .in("id", viewedIds);
+
+          if (videos) {
+            setWsWatchedLessons(videos.map(v => ({ title: v.title, videoId: v.id })));
+          }
+        } else {
+          setWsWatchedLessons([]);
+        }
       }
     };
-    fetch();
-  }, [grade, wsSubject]);
+    fetchWsLessons();
+  }, [grade, wsSubject, userId]);
+
+  // Helper: get video IDs based on filter
+  const getFilteredVideoIds = async (
+    filterType: LessonFilter,
+    selectedLesson: string,
+    subjectVal: string,
+    watched: {title: string; videoId: string}[]
+  ): Promise<string[]> => {
+    if (filterType === "watched") {
+      return watched.map(w => w.videoId);
+    }
+
+    if (filterType === "specific" && selectedLesson) {
+      const { data } = await supabase
+        .from("videos")
+        .select("id")
+        .eq("grade", grade)
+        .eq("subject", subjectVal)
+        .eq("title", selectedLesson);
+      return (data || []).map(v => v.id);
+    }
+
+    // "all" - get all videos for this grade/subject
+    const { data } = await supabase
+      .from("videos")
+      .select("id")
+      .eq("grade", grade)
+      .eq("subject", subjectVal);
+    return (data || []).map(v => v.id);
+  };
+
+  // Generate questions from videos using AI
+  const generateFromVideos = async (videoIds: string[], count: number): Promise<BankQuestion[]> => {
+    if (videoIds.length === 0) return [];
+
+    const allGenerated: BankQuestion[] = [];
+    // Pick up to 3 random videos to generate from
+    const shuffled = [...videoIds].sort(() => Math.random() - 0.5);
+    const selectedVideoIds = shuffled.slice(0, Math.min(3, shuffled.length));
+    const perVideo = Math.ceil(count / selectedVideoIds.length);
+
+    for (let i = 0; i < selectedVideoIds.length; i++) {
+      const videoId = selectedVideoIds[i];
+      setGeneratingMessage(`جاري توليد الأسئلة من الفيديو ${i + 1} من ${selectedVideoIds.length}...`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-video-questions", {
+          body: { video_id: videoId, question_count: perVideo, save_to_bank: true },
+        });
+
+        if (error) {
+          console.error("Generate error:", error);
+          continue;
+        }
+        if (data?.error === "rate_limited") {
+          toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
+          break;
+        }
+        if (data?.error) {
+          console.error("AI error:", data.error, data.message);
+          continue;
+        }
+
+        const qs = (data.questions || []).map((q: any, idx: number) => ({
+          id: `gen-${videoId}-${idx}`,
+          grade,
+          subject: data.subject || subject,
+          lesson: q.lesson || data.video_title || null,
+          question_text: q.question_text,
+          question_type: "mcq",
+          options: q.options,
+          correct_answer: q.correct_answer,
+        }));
+        allGenerated.push(...qs);
+      } catch (e) {
+        console.error("Error generating from video:", e);
+      }
+    }
+
+    return allGenerated;
+  };
 
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
 
-    const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
-    if (!data || data.length === 0) { toast({ title: "لا توجد أسئلة", description: "لم يتم إضافة أسئلة لهذه المادة بعد" }); return; }
+    setGenerating(true);
+    setGeneratingMessage("جاري البحث عن أسئلة...");
 
-    let filtered = data as BankQuestion[];
+    try {
+      // Step 1: Try existing question bank
+      const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
+      let filtered = (data as BankQuestion[]) || [];
 
-    // Apply lesson filter
-    if (lessonFilter === "watched" && watchedLessons.length > 0) {
-      filtered = filtered.filter(q => q.lesson && watchedLessons.some(wl =>
-        q.lesson!.includes(wl) || wl.includes(q.lesson!)
-      ));
+      // Apply lesson filter on existing questions
+      if (filtered.length > 0) {
+        if (lessonFilter === "watched" && watchedLessons.length > 0) {
+          const watchedTitles = watchedLessons.map(w => w.title);
+          filtered = filtered.filter(q => q.lesson && watchedTitles.some(wl =>
+            q.lesson!.includes(wl) || wl.includes(q.lesson!)
+          ));
+        } else if (lessonFilter === "specific" && lesson) {
+          filtered = filtered.filter(q => q.lesson === lesson || (q.lesson && q.lesson.includes(lesson)));
+        }
+      }
+
+      // Filter MCQs only
+      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
+
+      // Step 2: If not enough, generate from videos
+      if (filtered.length < questionCount) {
+        setGeneratingMessage("جاري توليد أسئلة جديدة من الفيديوهات بالذكاء الاصطناعي... ⏳");
+        const videoIds = await getFilteredVideoIds(lessonFilter, lesson, subject, watchedLessons);
+
+        if (videoIds.length === 0) {
+          if (filtered.length === 0) {
+            toast({ title: "لا توجد فيديوهات", description: "لم يتم إضافة فيديوهات لهذه المادة بعد" });
+            setGenerating(false);
+            return;
+          }
+        } else {
+          const generated = await generateFromVideos(videoIds, questionCount - filtered.length);
+          filtered = [...filtered, ...generated];
+        }
+      }
+
+      // Filter MCQs again (in case generated questions are not MCQ)
+      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
+
       if (filtered.length === 0) {
-        toast({ title: "لا توجد أسئلة", description: "لا توجد أسئلة للدروس التي شاهدتها بعد" });
+        toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة. تأكد من وجود فيديوهات لهذه المادة" });
+        setGenerating(false);
         return;
       }
-    } else if (lessonFilter === "specific" && lesson) {
-      filtered = filtered.filter(q => q.lesson === lesson);
-      if (filtered.length === 0) {
-        toast({ title: "لا توجد أسئلة", description: "لم يتم إضافة أسئلة لهذا الدرس بعد" });
-        return;
-      }
+
+      // Shuffle and select
+      const shuffled = filtered.sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, questionCount);
+      setQuestions(selected);
+      setStarted(true);
+      setCurrentIndex(0);
+      setScore(0);
+      setTotal(0);
+      setFinished(false);
+      setStreak(0);
+      setBestStreak(0);
+    } catch (e) {
+      console.error("Practice error:", e);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء تحضير الأسئلة", variant: "destructive" });
     }
-
-    filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
-    if (filtered.length === 0) { toast({ title: "لا توجد أسئلة اختيارية", description: "لا توجد أسئلة اختيار من متعدد لهذا التحديد" }); return; }
-
-    const selected = filtered.slice(0, questionCount);
-    setQuestions(selected);
-    setStarted(true);
-    setCurrentIndex(0);
-    setScore(0);
-    setTotal(0);
-    setFinished(false);
-    setStreak(0);
-    setBestStreak(0);
+    setGenerating(false);
   };
 
   const checkAnswer = () => {
@@ -255,38 +392,57 @@ const QuestionBank = () => {
     setSelectedAnswer(""); setShowResult(false); setStreak(0); setBestStreak(0);
   };
 
-  // Worksheet interactive questions
+  // Worksheet interactive questions - same approach
   const startWsQuestions = async () => {
     if (!grade || !wsSubject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
     setWsLoadingQuestions(true);
 
-    const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: wsSubject });
+    try {
+      // Try question bank first
+      const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: wsSubject });
+      let filtered = (data as BankQuestion[]) || [];
 
-    if (!data || data.length === 0) {
-      toast({ title: "لا توجد أسئلة", description: "لم يتم إضافة أسئلة لهذه المادة بعد" });
-      setWsLoadingQuestions(false);
-      return;
+      // Apply lesson filter
+      if (filtered.length > 0) {
+        if (wsLessonFilter === "watched" && wsWatchedLessons.length > 0) {
+          const watchedTitles = wsWatchedLessons.map(w => w.title);
+          filtered = filtered.filter(q => q.lesson && watchedTitles.some(wl =>
+            q.lesson!.includes(wl) || wl.includes(q.lesson!)
+          ));
+        } else if (wsLessonFilter === "specific" && wsLesson) {
+          filtered = filtered.filter(q => q.lesson === wsLesson || (q.lesson && q.lesson.includes(wsLesson)));
+        }
+      }
+
+      // If not enough, generate from videos
+      if (filtered.length < wsQuestionCount) {
+        const videoIds = await getFilteredVideoIds(wsLessonFilter, wsLesson, wsSubject, wsWatchedLessons);
+
+        if (videoIds.length > 0) {
+          const generated = await generateFromVideos(videoIds, wsQuestionCount - filtered.length);
+          filtered = [...filtered, ...generated];
+        }
+      }
+
+      const selected = filtered.slice(0, wsQuestionCount);
+      if (selected.length === 0) {
+        toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة" });
+        setWsLoadingQuestions(false);
+        return;
+      }
+
+      setWsQuestions(selected);
+      setWsStarted(true);
+      setWsCurrentIndex(0);
+      setWsScore(0);
+      setWsTotal(0);
+      setWsFinished(false);
+      setWsPhotoUrl(null);
+      setWsPhotoAnswers({});
+    } catch (e) {
+      console.error("WS Questions error:", e);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء تحضير الأسئلة", variant: "destructive" });
     }
-
-    let filtered = data as BankQuestion[];
-    if (wsLesson) filtered = filtered.filter(q => q.lesson === wsLesson);
-
-    // Include both MCQ and essay questions
-    const selected = filtered.slice(0, wsQuestionCount);
-    if (selected.length === 0) {
-      toast({ title: "لا توجد أسئلة", description: "لا توجد أسئلة متاحة" });
-      setWsLoadingQuestions(false);
-      return;
-    }
-
-    setWsQuestions(selected);
-    setWsStarted(true);
-    setWsCurrentIndex(0);
-    setWsScore(0);
-    setWsTotal(0);
-    setWsFinished(false);
-    setWsPhotoUrl(null);
-    setWsPhotoAnswers({});
     setWsLoadingQuestions(false);
   };
 
@@ -358,6 +514,53 @@ const QuestionBank = () => {
   const currentQ = questions[currentIndex];
   const wsCurrentQ = wsQuestions[wsCurrentIndex];
 
+  // Lesson filter UI component
+  const renderLessonFilter = (
+    filterType: LessonFilter,
+    setFilterType: (f: LessonFilter) => void,
+    lessons: string[],
+    watched: {title: string; videoId: string}[],
+    selectedLesson: string,
+    setSelectedLesson: (l: string) => void
+  ) => (
+    <>
+      {lessons.length > 0 && (
+        <div>
+          <label className="text-sm font-medium mb-1.5 block text-right flex items-center gap-1 justify-end">
+            <Filter className="w-3.5 h-3.5" />
+            نطاق الأسئلة
+          </label>
+          <div className="flex gap-2 flex-wrap justify-center mb-2">
+            <button onClick={() => { setFilterType("all"); setSelectedLesson(""); }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${filterType === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
+              كل الدروس
+            </button>
+            <button onClick={() => { setFilterType("watched"); setSelectedLesson(""); }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${filterType === "watched" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
+              الدروس المشاهدة ({watched.length})
+            </button>
+            <button onClick={() => setFilterType("specific")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${filterType === "specific" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
+              درس محدد
+            </button>
+          </div>
+
+          {filterType === "specific" && (
+            <select value={selectedLesson} onChange={e => setSelectedLesson(e.target.value)}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+              <option value="">اختر الدرس</option>
+              {lessons.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          )}
+
+          {filterType === "watched" && watched.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center mt-1">لم تشاهد أي فيديوهات لهذه المادة بعد</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -377,7 +580,7 @@ const QuestionBank = () => {
       </header>
 
       {/* Tabs - only show when not in quiz mode */}
-      {!started && !wsStarted && (
+      {!started && !wsStarted && !generating && (
         <div className="bg-card border-b border-border">
           <div className="container mx-auto px-4 max-w-2xl">
             <div className="flex">
@@ -406,7 +609,19 @@ const QuestionBank = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-2xl">
         <AnimatePresence mode="wait">
-          {activeTab === "training" ? (
+          {/* Generating state */}
+          {generating && (
+            <motion.div key="generating" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              </div>
+              <h2 className="text-lg font-bold mb-2">جاري تحضير الأسئلة</h2>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">{generatingMessage}</p>
+              <p className="text-xs text-muted-foreground mt-3">🤖 الذكاء الاصطناعي يقرأ الفيديوهات ويولّد أسئلة حصرية لك</p>
+            </motion.div>
+          )}
+
+          {!generating && activeTab === "training" ? (
             <>
               {!started ? (
                 <motion.div key="setup" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
@@ -439,40 +654,11 @@ const QuestionBank = () => {
                       </select>
                     </div>
 
-                    {/* Lesson filter type */}
-                    {subject && availableLessons.length > 0 && (
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block text-right flex items-center gap-1 justify-end">
-                          <Filter className="w-3.5 h-3.5" />
-                          نطاق الأسئلة
-                        </label>
-                        <div className="flex gap-2 flex-wrap justify-center mb-2">
-                          <button onClick={() => { setLessonFilter("all"); setLesson(""); }}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${lessonFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
-                            كل الدروس
-                          </button>
-                          <button onClick={() => { setLessonFilter("watched"); setLesson(""); }}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${lessonFilter === "watched" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
-                            الدروس المشاهدة ({watchedLessons.length})
-                          </button>
-                          <button onClick={() => setLessonFilter("specific")}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${lessonFilter === "specific" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
-                            درس محدد
-                          </button>
-                        </div>
-
-                        {lessonFilter === "specific" && (
-                          <select value={lesson} onChange={e => setLesson(e.target.value)}
-                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                            <option value="">اختر الدرس</option>
-                            {availableLessons.map(l => <option key={l} value={l}>{l}</option>)}
-                          </select>
-                        )}
-
-                        {lessonFilter === "watched" && watchedLessons.length === 0 && (
-                          <p className="text-xs text-muted-foreground text-center mt-1">لم تشاهد أي فيديوهات لهذه المادة بعد</p>
-                        )}
-                      </div>
+                    {/* Lesson filter */}
+                    {subject && !loadingLessons && renderLessonFilter(
+                      lessonFilter, setLessonFilter,
+                      availableLessons, watchedLessons,
+                      lesson, setLesson
                     )}
                     {loadingLessons && <p className="text-xs text-muted-foreground text-center">جاري تحميل الدروس...</p>}
 
@@ -488,10 +674,14 @@ const QuestionBank = () => {
                       </div>
                     </div>
 
-                    <Button onClick={startPractice} className="w-full gap-2" size="lg">
+                    <Button onClick={startPractice} className="w-full gap-2" size="lg" disabled={generating}>
                       <Zap className="w-4 h-4" />
                       ابدأ التدريب
                     </Button>
+
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      🤖 يتم توليد الأسئلة تلقائياً من محتوى الفيديوهات بالذكاء الاصطناعي
+                    </p>
                   </div>
                 </motion.div>
               ) : finished ? (
@@ -576,7 +766,7 @@ const QuestionBank = () => {
                 </motion.div>
               ) : null}
             </>
-          ) : (
+          ) : !generating && activeTab === "worksheets" ? (
             /* ===== WORKSHEETS TAB ===== */
             <>
               {!wsStarted ? (
@@ -604,22 +794,20 @@ const QuestionBank = () => {
                       )}
                       <div>
                         <label className="text-sm font-medium mb-1 block text-right">المادة</label>
-                        <select value={wsSubject} onChange={e => { setWsSubject(e.target.value); setWsLesson(""); }}
+                        <select value={wsSubject} onChange={e => { setWsSubject(e.target.value); setWsLesson(""); setWsLessonFilter("all"); }}
                           className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm">
                           <option value="">اختر المادة</option>
                           {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
-                      {wsAvailableLessons.length > 0 && (
-                        <div>
-                          <label className="text-sm font-medium mb-1 block text-right">الدرس (اختياري)</label>
-                          <select value={wsLesson} onChange={e => setWsLesson(e.target.value)}
-                            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm">
-                            <option value="">كل الدروس</option>
-                            {wsAvailableLessons.map(l => <option key={l} value={l}>{l}</option>)}
-                          </select>
-                        </div>
+
+                      {/* Lesson filter for worksheets */}
+                      {wsSubject && renderLessonFilter(
+                        wsLessonFilter, setWsLessonFilter,
+                        wsAvailableLessons, wsWatchedLessons,
+                        wsLesson, setWsLesson
                       )}
+
                       <div>
                         <label className="text-sm font-medium mb-1 block text-right">عدد الأسئلة</label>
                         <div className="flex gap-2 justify-center">
@@ -633,8 +821,11 @@ const QuestionBank = () => {
                       </div>
                       <Button onClick={startWsQuestions} disabled={wsLoadingQuestions} className="w-full gap-2" size="lg">
                         {wsLoadingQuestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                        ابدأ الأسئلة
+                        {wsLoadingQuestions ? "جاري توليد الأسئلة..." : "ابدأ الأسئلة"}
                       </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        🤖 يتم توليد الأسئلة تلقائياً من محتوى الفيديوهات
+                      </p>
                     </div>
                   </div>
 
@@ -842,7 +1033,7 @@ const QuestionBank = () => {
                 </motion.div>
               ) : null}
             </>
-          )}
+          ) : null}
         </AnimatePresence>
       </main>
     </div>
