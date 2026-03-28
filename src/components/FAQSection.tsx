@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const faqs = [
@@ -48,7 +50,12 @@ const faqs = [
   },
 ];
 
+const INITIAL_COUNT = 5;
+
 const FAQSection = () => {
+  const [showAll, setShowAll] = useState(false);
+  const visibleFaqs = showAll ? faqs : faqs.slice(0, INITIAL_COUNT);
+
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -78,7 +85,7 @@ const FAQSection = () => {
           className="max-w-2xl mx-auto"
         >
           <Accordion type="single" collapsible className="space-y-3">
-            {faqs.map((faq, index) => (
+            {visibleFaqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
@@ -93,6 +100,26 @@ const FAQSection = () => {
               </AccordionItem>
             ))}
           </Accordion>
+
+          {!showAll && faqs.length > INITIAL_COUNT && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="mt-6 mx-auto flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+            >
+              عرض المزيد ({faqs.length - INITIAL_COUNT})
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          )}
+
+          {showAll && (
+            <button
+              onClick={() => setShowAll(false)}
+              className="mt-6 mx-auto flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+            >
+              عرض أقل
+              <ChevronDown className="w-4 h-4 rotate-180" />
+            </button>
+          )}
         </motion.div>
       </div>
     </section>
