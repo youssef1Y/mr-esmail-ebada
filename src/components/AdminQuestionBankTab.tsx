@@ -808,6 +808,106 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
           </div>
         )}
       </div>
+
+      {/* ===== WORKSHEETS MANAGEMENT ===== */}
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="text-lg font-bold font-amiri flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            أوراق عمل وملفات
+            <span className="text-sm font-normal text-muted-foreground">({wsFiles.length})</span>
+          </h2>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={fetchWsFiles} className="gap-1"><RefreshCw className="w-3 h-3" /> تحديث</Button>
+            <Button size="sm" onClick={() => setShowWsAdd(!showWsAdd)} className="gap-1"><FilePlus className="w-3 h-3" /> إضافة ورقة عمل</Button>
+          </div>
+        </div>
+
+        {showWsAdd && (
+          <div className="bg-muted rounded-xl p-4 mb-4 space-y-3">
+            <h3 className="font-bold text-sm">إضافة ورقة عمل / ملف جديد</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">الصف *</Label>
+                <select value={wsGrade} onChange={e => setWsGrade(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر الصف</option>
+                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">المادة *</Label>
+                <select value={wsSubject} onChange={e => setWsSubject(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">اختر المادة</option>
+                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">العنوان *</Label>
+              <Input value={wsTitle} onChange={e => setWsTitle(e.target.value)} placeholder="مثال: ورقة عمل الدرس الأول" className="text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">وصف (اختياري)</Label>
+              <Input value={wsDescription} onChange={e => setWsDescription(e.target.value)} placeholder="وصف مختصر..." className="text-sm" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">ملف الأسئلة (PDF)</Label>
+                <Input type="file" accept=".pdf" onChange={e => setWsPdfFile(e.target.files?.[0] || null)} className="text-xs" />
+              </div>
+              <div>
+                <Label className="text-xs">ملف الحل النموذجي (PDF)</Label>
+                <Input type="file" accept=".pdf" onChange={e => setWsAnswerFile(e.target.files?.[0] || null)} className="text-xs" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleWsSave} disabled={wsSaving} className="flex-1 gap-1">
+                {wsSaving ? <><Loader2 className="w-3 h-3 animate-spin" /> جاري الحفظ...</> : <><Save className="w-3 h-3" /> حفظ</>}
+              </Button>
+              <Button variant="outline" onClick={() => setShowWsAdd(false)}>إلغاء</Button>
+            </div>
+          </div>
+        )}
+
+        {loadingWs ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+        ) : wsFiles.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">لم يتم إضافة أوراق عمل بعد</p>
+        ) : (
+          <div className="space-y-2">
+            {wsFiles.map((ws: any) => (
+              <div key={ws.id} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{ws.title}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">{ws.grade}</span>
+                    <span className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">{ws.subject}</span>
+                    {ws.pdf_url && <span className="text-[10px] bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">📄 أسئلة</span>}
+                    {ws.answer_key_url && <span className="text-[10px] bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">✅ حل</span>}
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  {ws.pdf_url && (
+                    <a href={ws.pdf_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3 h-3" /></Button>
+                    </a>
+                  )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="w-3 h-3" /></Button></AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader><AlertDialogTitle>حذف ورقة العمل؟</AlertDialogTitle><AlertDialogDescription>لا يمكن التراجع عن هذا.</AlertDialogDescription></AlertDialogHeader>
+                      <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => deleteWsFile(ws.id)}>حذف</AlertDialogAction></AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
