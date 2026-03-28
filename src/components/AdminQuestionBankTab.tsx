@@ -379,6 +379,71 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
     !searchQuery || q.question_text.includes(searchQuery) || (q.lesson || "").includes(searchQuery)
   );
 
+  // ===== Worksheet file management =====
+  const fetchWsFiles = async () => {
+    setLoadingWs(true);
+    const { data } = await supabase.from("question_bank_files").select("*").order("created_at", { ascending: false });
+    setWsFiles(data || []);
+    setLoadingWs(false);
+  };
+
+  useEffect(() => { fetchWsFiles(); }, []);
+
+  const sanitizeFileName = (name: string) => {
+    return name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_");
+  };
+
+  const handleWsSave = async () => {
+    if (!wsGrade || !wsSubject || !wsTitle) {
+      toast({ title: "خطأ", description: "أدخل الصف والمادة والعنوان", variant: "destructive" });
+      return;
+    }
+    setWsSaving(true);
+
+    let pdfUrl = null;
+    let answerUrl = null;
+
+    try {
+      if (wsPdfFile) {
+        const ext = wsPdfFile.name.split('.').pop() || 'pdf';
+        const path = `worksheets/${Date.now()}_${sanitizeFileName(wsPdfFile.name)}`;
+        const { error } = await supabase.storage.from("documents").upload(path, wsPdfFile);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+        pdfUrl = urlData.publicUrl;
+      }
+      if (wsAnswerFile) {
+        const path = `worksheets/answers_${Date.now()}_${sanitizeFileName(wsAnswerFile.name)}`;
+        const { error } = await supabase.storage.from("documents").upload(path, wsAnswerFile);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+        answerUrl = urlData.publicUrl;
+      }
+
+      const { error } = await supabase.from("question_bank_files").insert({
+        grade: wsGrade, subject: wsSubject, title: wsTitle,
+        description: wsDescription || null,
+        pdf_url: pdfUrl, answer_key_url: answerUrl,
+      });
+      if (error) throw error;
+
+      toast({ title: "تم إضافة ورقة العمل ✅" });
+      setShowWsAdd(false);
+      setWsGrade(""); setWsSubject(""); setWsTitle(""); setWsDescription("");
+      setWsPdfFile(null); setWsAnswerFile(null);
+      fetchWsFiles();
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message || "فشل في الحفظ", variant: "destructive" });
+    }
+    setWsSaving(false);
+  };
+
+  const deleteWsFile = async (id: string) => {
+    await supabase.from("question_bank_files").delete().eq("id", id);
+    toast({ title: "تم الحذف" });
+    fetchWsFiles();
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-2xl border border-border p-6">
