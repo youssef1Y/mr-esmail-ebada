@@ -725,6 +725,39 @@ export type Database = {
         }
         Relationships: []
       }
+      question_bank_files: {
+        Row: {
+          answer_key_url: string | null
+          created_at: string
+          description: string | null
+          grade: string
+          id: string
+          pdf_url: string | null
+          subject: string
+          title: string
+        }
+        Insert: {
+          answer_key_url?: string | null
+          created_at?: string
+          description?: string | null
+          grade: string
+          id?: string
+          pdf_url?: string | null
+          subject: string
+          title: string
+        }
+        Update: {
+          answer_key_url?: string | null
+          created_at?: string
+          description?: string | null
+          grade?: string
+          id?: string
+          pdf_url?: string | null
+          subject?: string
+          title?: string
+        }
+        Relationships: []
+      }
       referral_codes: {
         Row: {
           code: string
