@@ -414,20 +414,20 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <Label className="text-xs">الصف (فلتر)</Label>
-                <select value={videoGenGrade} onChange={e => { setVideoGenGrade(e.target.value); setSelectedVideoForGen(""); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <select value={videoGenGrade} onChange={e => { setVideoGenGrade(e.target.value); setSelectedVideosForGen([]); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                   <option value="">كل الصفوف</option>
                   {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-xs">المادة (فلتر)</Label>
-                <select value={videoGenSubject} onChange={e => { setVideoGenSubject(e.target.value); setSelectedVideoForGen(""); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <select value={videoGenSubject} onChange={e => { setVideoGenSubject(e.target.value); setSelectedVideosForGen([]); }} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                   <option value="">كل المواد</option>
                   {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs">عدد الأسئلة</Label>
+                <Label className="text-xs">عدد الأسئلة (لكل فيديو)</Label>
                 <select value={videoGenCount} onChange={e => setVideoGenCount(Number(e.target.value))} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                   {[3, 5, 7, 10].map(n => <option key={n} value={n}>{n} أسئلة</option>)}
                 </select>
@@ -435,7 +435,14 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
             </div>
 
             <div>
-              <Label className="text-xs mb-1 block">اختر فيديو</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs">اختر فيديوهات ({selectedVideosForGen.length} محدد)</Label>
+                {videoList.length > 0 && (
+                  <button onClick={selectAllVideos} className="text-xs text-primary hover:underline">
+                    {selectedVideosForGen.length === videoList.length ? "إلغاء تحديد الكل" : `تحديد الكل (${videoList.length})`}
+                  </button>
+                )}
+              </div>
               {loadingVideos ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -443,32 +450,43 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
               ) : videoList.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-3">لا توجد فيديوهات</p>
               ) : (
-                <div className="max-h-40 overflow-y-auto space-y-1 border border-input rounded-lg p-2 bg-background">
-                  {videoList.map(v => (
-                    <button
-                      key={v.id}
-                      onClick={() => setSelectedVideoForGen(v.id)}
-                      className={`w-full text-right px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
-                        selectedVideoForGen === v.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <Video className="w-3 h-3 shrink-0" />
-                      <span className="flex-1 truncate">{v.title}</span>
-                      <span className={`text-[10px] ${selectedVideoForGen === v.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{v.subject}</span>
-                    </button>
-                  ))}
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-input rounded-lg p-2 bg-background">
+                  {videoList.map(v => {
+                    const isSelected = selectedVideosForGen.includes(v.id);
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => toggleVideoSelection(v.id)}
+                        className={`w-full text-right px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
+                          isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isSelected ? "bg-primary-foreground text-primary border-primary-foreground" : "border-input"}`}>
+                          {isSelected && <span className="text-[10px]">✓</span>}
+                        </div>
+                        <Video className="w-3 h-3 shrink-0" />
+                        <span className="flex-1 truncate">{v.title}</span>
+                        <span className={`text-[10px] ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{v.subject}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
+            {videoGenProgress && (
+              <div className="bg-primary/10 rounded-lg p-3 text-sm flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                <p className="text-xs text-primary font-medium truncate">{videoGenProgress}</p>
+              </div>
+            )}
+
             {videoGenResult && (
-              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 text-sm">
-                <p className="font-bold text-green-700 dark:text-green-400">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
+                <p className="font-bold text-primary">
                   ✅ تم توليد وحفظ {videoGenResult.saved} سؤال في بنك الأسئلة
                 </p>
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                   {videoGenResult.questions.map((q: any, i: number) => (
                     <p key={i} className="text-xs text-muted-foreground truncate">• {q.question_text}</p>
                   ))}
@@ -477,14 +495,14 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
             )}
 
             <div className="flex gap-2">
-              <Button onClick={handleVideoGenerate} disabled={videoGenLoading || !selectedVideoForGen} className="flex-1 gap-1">
+              <Button onClick={handleVideoGenerate} disabled={videoGenLoading || selectedVideosForGen.length === 0} className="flex-1 gap-1">
                 {videoGenLoading ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> جاري تحليل الفيديو...</>
+                  <><Loader2 className="w-3 h-3 animate-spin" /> جاري التوليد...</>
                 ) : (
-                  <><Sparkles className="w-3 h-3" /> توليد وحفظ الأسئلة</>
+                  <><Sparkles className="w-3 h-3" /> توليد وحفظ الأسئلة ({selectedVideosForGen.length} فيديو)</>
                 )}
               </Button>
-              <Button variant="outline" onClick={() => { setShowVideoGen(false); setVideoGenResult(null); }}>إلغاء</Button>
+              <Button variant="outline" onClick={() => { setShowVideoGen(false); setVideoGenResult(null); setSelectedVideosForGen([]); }}>إلغاء</Button>
             </div>
           </div>
         )}
