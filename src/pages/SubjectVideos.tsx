@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X, Eye } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
 
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
