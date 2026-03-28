@@ -80,6 +80,18 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [videoGenProgress, setVideoGenProgress] = useState("");
   const [loadingVideos, setLoadingVideos] = useState(false);
 
+  // Worksheet files
+  const [wsFiles, setWsFiles] = useState<any[]>([]);
+  const [loadingWs, setLoadingWs] = useState(false);
+  const [showWsAdd, setShowWsAdd] = useState(false);
+  const [wsGrade, setWsGrade] = useState("");
+  const [wsSubject, setWsSubject] = useState("");
+  const [wsTitle, setWsTitle] = useState("");
+  const [wsDescription, setWsDescription] = useState("");
+  const [wsPdfFile, setWsPdfFile] = useState<File | null>(null);
+  const [wsAnswerFile, setWsAnswerFile] = useState<File | null>(null);
+  const [wsSaving, setWsSaving] = useState(false);
+
   const fetchQuestions = async () => {
     setLoading(true);
     let query = supabase.from("question_bank").select("*").order("created_at", { ascending: false });
