@@ -325,12 +325,45 @@ const SubjectVideos = () => {
       .trim();
   };
 
+  // Common aliases / misspellings people search for
+  const searchAliases: Record<string, string[]> = {
+    "اسماعيل": ["إسماعيل", "اسمعيل", "اسماعيل", "إسمعيل", "اسمعيلا"],
+    "عباده": ["عبادة", "عباده", "العبادة", "العباده"],
+    "مستر": ["مستر", "مسطر", "مصطر", "mr"],
+    "احمد": ["أحمد", "احمد"],
+    "محمد": ["محمد", "محمت", "مهمد"],
+    "عربي": ["عربى", "عربي", "العربي", "العربى"],
+    "رياضيات": ["رياضيات", "رياضه", "رياضة", "حساب"],
+    "علوم": ["علوم", "العلوم", "ساينس", "science"],
+    "دراسات": ["دراسات", "الدراسات", "دراسه", "دراسة"],
+    "انجليزي": ["انجليزى", "انجليزي", "انقليزي", "english", "انجلش"],
+    "اسلام": ["إسلام", "اسلام", "الاسلام", "الإسلام"],
+    "دين": ["دين", "الدين", "تربية دينية", "تربيه دينيه"],
+    "قران": ["قرآن", "قران", "القرآن", "القران"],
+    "لغه": ["لغة", "لغه", "اللغة", "اللغه"],
+    "تاريخ": ["تاريخ", "التاريخ", "تأريخ"],
+    "جغرافيا": ["جغرافيا", "جغرافيه", "الجغرافيا"],
+  };
+
+  // Expand query: if search matches an alias key, also search all its variants
+  const expandSearch = (query: string): string[] => {
+    const normalized = normalizeArabic(query);
+    const variants = [normalized];
+    for (const [, alts] of Object.entries(searchAliases)) {
+      const normalizedAlts = alts.map(a => normalizeArabic(a));
+      if (normalizedAlts.some(a => a.includes(normalized) || normalized.includes(a))) {
+        normalizedAlts.forEach(a => { if (!variants.includes(a)) variants.push(a); });
+      }
+    }
+    return variants;
+  };
+
   const filteredVideos = videos.filter(v => {
     if (!searchQuery) return true;
-    const q = normalizeArabic(searchQuery);
+    const queries = expandSearch(searchQuery);
     const title = normalizeArabic(v.title);
     const desc = normalizeArabic(v.description || "");
-    return title.includes(q) || desc.includes(q);
+    return queries.some(q => title.includes(q) || desc.includes(q));
   });
 
 
