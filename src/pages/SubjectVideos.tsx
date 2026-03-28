@@ -671,6 +671,12 @@ const SubjectVideos = () => {
                           {isCurrentlyPlaying && (
                             <span className="text-[9px] text-primary font-semibold">قيد التشغيل ▲</span>
                           )}
+                          {isAdmin && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                              <Eye className="w-3 h-3" />
+                              {viewCounts[v.id] || 0}
+                            </span>
+                          )}
                         </div>
                       </div>
 
