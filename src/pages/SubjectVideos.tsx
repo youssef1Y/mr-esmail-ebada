@@ -151,8 +151,23 @@ const SubjectVideos = () => {
           console.log("Filtered videos:", { count: filtered.length });
           setVideos(filtered as VideoItem[]);
 
-          // Fetch homework data
+          // Fetch view counts for admin
           const videoIds = filtered.map(v => v.id);
+          if (isAdminUser && videoIds.length > 0) {
+            const { data: viewsData } = await supabase
+              .from("video_views")
+              .select("video_id")
+              .in("video_id", videoIds);
+            if (viewsData) {
+              const counts: Record<string, number> = {};
+              viewsData.forEach(v => {
+                counts[v.video_id] = (counts[v.video_id] || 0) + 1;
+              });
+              setViewCounts(counts);
+            }
+          }
+
+          // Fetch homework data
           if (videoIds.length > 0) {
             const { data: hwData } = await supabase
               .from("video_homework" as any)
