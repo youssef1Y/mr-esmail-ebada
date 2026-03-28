@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet, FileText, Video, Loader2, Sparkles } from "lucide-react";
+import { Library, Plus, RefreshCw, Trash2, Edit2, Save, X, Search, Upload, FileSpreadsheet, FileText, Video, Loader2, Sparkles, Eye, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
