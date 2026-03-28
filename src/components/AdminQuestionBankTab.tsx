@@ -74,9 +74,10 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
   const [videoGenSubject, setVideoGenSubject] = useState("");
   const [videoGenCount, setVideoGenCount] = useState(5);
   const [videoList, setVideoList] = useState<{id: string; title: string; subject: string; grade: string}[]>([]);
-  const [selectedVideoForGen, setSelectedVideoForGen] = useState("");
+  const [selectedVideosForGen, setSelectedVideosForGen] = useState<string[]>([]);
   const [videoGenLoading, setVideoGenLoading] = useState(false);
   const [videoGenResult, setVideoGenResult] = useState<{questions: any[]; saved: number} | null>(null);
+  const [videoGenProgress, setVideoGenProgress] = useState("");
   const [loadingVideos, setLoadingVideos] = useState(false);
 
   const fetchQuestions = async () => {
