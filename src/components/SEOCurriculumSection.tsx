@@ -57,27 +57,6 @@ const SEOCurriculumSection = () => {
           </p>
         </div>
 
-        {/* Grades Covered */}
-        <div className="bg-card rounded-2xl border border-border p-6 md:p-8 mb-12 max-w-3xl mx-auto">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="font-bold text-lg text-foreground">الصفوف الدراسية المتاحة</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {grades.map((g) => (
-              <div key={g} className="flex items-center gap-2 text-sm text-foreground">
-                <CheckCircle className="w-4 h-4 text-primary shrink-0" />
-                <span>{g}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-            يتم تدريس المواد حسب المذهب الفقهي المقرر لكل مرحلة دراسية في الأزهر الشريف.
-            الصفوف الإعدادية تدرس الفقه الشافعي، بينما الصفوف الثانوية تدرس المذاهب الثلاثة (الشافعي والمالكي والحنفي).
-          </p>
-        </div>
 
         {/* Curriculum Details */}
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto" staggerDelay={0.08}>
@@ -94,16 +73,6 @@ const SEOCurriculumSection = () => {
           ))}
         </StaggerContainer>
 
-        {/* SEO-rich paragraph */}
-        <div className="max-w-3xl mx-auto mt-12 text-center">
-          <p className="text-muted-foreground text-sm leading-[2]">
-            منصة الأستاذ إسماعيل أحمد عبادة هي الوجهة الأولى لطلاب الأزهر الشريف في مصر.
-            نوفر شرحاً مبسطاً ووافياً لجميع مواد العلوم الشرعية بما يشمل: الفقه الإسلامي بمذاهبه المختلفة (الفقه الشافعي، الفقه المالكي، الفقه الحنفي)،
-            وعلم التوحيد، وتفسير القرآن الكريم، والحديث النبوي الشريف ومصطلحه، والسيرة النبوية الشريفة.
-            المنصة مناسبة لطلاب المرحلة الإعدادية الأزهرية والمرحلة الثانوية الأزهرية،
-            وتقدم فيديوهات تعليمية وامتحانات إلكترونية وواجبات تفاعلية ومسابقات أسبوعية وتقارير أداء لأولياء الأمور.
-          </p>
-        </div>
       </div>
     </section>
   );
