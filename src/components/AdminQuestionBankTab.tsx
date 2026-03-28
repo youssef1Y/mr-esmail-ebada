@@ -100,38 +100,73 @@ const AdminQuestionBankTab = ({ toast }: AdminQuestionBankTabProps) => {
       let query = supabase.from("videos").select("id, title, subject, grade").order("created_at", { ascending: false });
       if (videoGenGrade) query = query.eq("grade", videoGenGrade);
       if (videoGenSubject) query = query.eq("subject", videoGenSubject);
-      const { data } = await query.limit(50);
+      const { data } = await query.limit(100);
       setVideoList((data || []) as any[]);
       setLoadingVideos(false);
     };
     fetchVideos();
   }, [showVideoGen, videoGenGrade, videoGenSubject]);
 
+  const toggleVideoSelection = (videoId: string) => {
+    setSelectedVideosForGen(prev =>
+      prev.includes(videoId) ? prev.filter(id => id !== videoId) : [...prev, videoId]
+    );
+  };
+
+  const selectAllVideos = () => {
+    if (selectedVideosForGen.length === videoList.length) {
+      setSelectedVideosForGen([]);
+    } else {
+      setSelectedVideosForGen(videoList.map(v => v.id));
+    }
+  };
+
   const handleVideoGenerate = async () => {
-    if (!selectedVideoForGen) {
-      toast({ title: "خطأ", description: "اختر فيديو أولاً", variant: "destructive" });
+    if (selectedVideosForGen.length === 0) {
+      toast({ title: "خطأ", description: "اختر فيديو واحد على الأقل", variant: "destructive" });
       return;
     }
     setVideoGenLoading(true);
     setVideoGenResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-video-questions", {
-        body: { video_id: selectedVideoForGen, question_count: videoGenCount, save_to_bank: true },
-      });
-      if (error) throw error;
-      if (data?.error === "rate_limited") {
-        toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
-      } else if (data?.error) {
-        toast({ title: "خطأ", description: data.message || "فشل في توليد الأسئلة", variant: "destructive" });
-      } else {
-        const saved = data.saved_to_bank || 0;
-        setVideoGenResult({ questions: data.questions || [], saved });
-        toast({ title: `تم توليد وحفظ ${saved} سؤال من الفيديو ✅` });
-        fetchQuestions();
+    setVideoGenProgress("");
+
+    let totalSaved = 0;
+    let allQuestions: any[] = [];
+
+    for (let i = 0; i < selectedVideosForGen.length; i++) {
+      const videoId = selectedVideosForGen[i];
+      const videoTitle = videoList.find(v => v.id === videoId)?.title || "";
+      setVideoGenProgress(`جاري تحليل الفيديو ${i + 1} من ${selectedVideosForGen.length}: ${videoTitle}`);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-video-questions", {
+          body: { video_id: videoId, question_count: videoGenCount, save_to_bank: true },
+        });
+        if (error) {
+          console.error(`Error for video ${videoId}:`, error);
+          continue;
+        }
+        if (data?.error === "rate_limited") {
+          toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
+          break;
+        }
+        if (!data?.error) {
+          const saved = data.saved_to_bank || 0;
+          totalSaved += saved;
+          allQuestions = [...allQuestions, ...(data.questions || [])];
+        }
+      } catch (e) {
+        console.error(`Error for video ${videoId}:`, e);
       }
-    } catch (e) {
-      console.error(e);
-      toast({ title: "خطأ", description: "فشل في توليد الأسئلة", variant: "destructive" });
+    }
+
+    setVideoGenResult({ questions: allQuestions, saved: totalSaved });
+    setVideoGenProgress("");
+    if (totalSaved > 0) {
+      toast({ title: `تم توليد وحفظ ${totalSaved} سؤال من ${selectedVideosForGen.length} فيديو ✅` });
+      fetchQuestions();
+    } else {
+      toast({ title: "لم يتم توليد أسئلة", description: "تأكد إن الفيديوهات موجودة وحجمها مناسب", variant: "destructive" });
     }
     setVideoGenLoading(false);
   };
