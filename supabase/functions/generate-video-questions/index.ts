@@ -94,7 +94,7 @@ async function summarizeVideo(
             videoPart,
           ],
         }],
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.1,
       }),
     });
