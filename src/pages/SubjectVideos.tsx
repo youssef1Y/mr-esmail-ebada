@@ -312,9 +312,26 @@ const SubjectVideos = () => {
     }
   };
 
-  const filteredVideos = videos.filter(v =>
-    !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
-  );
+  // Normalize Arabic text for fuzzy search
+  const normalizeArabic = (text: string) => {
+    return text
+      .replace(/[إأآٱا]/g, "ا")
+      .replace(/[ؤ]/g, "و")
+      .replace(/[ئ]/g, "ي")
+      .replace(/[ة]/g, "ه")
+      .replace(/[ى]/g, "ي")
+      .replace(/[\u064B-\u065F\u0670]/g, "") // remove tashkeel
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const filteredVideos = videos.filter(v => {
+    if (!searchQuery) return true;
+    const q = normalizeArabic(searchQuery);
+    const title = normalizeArabic(v.title);
+    const desc = normalizeArabic(v.description || "");
+    return title.includes(q) || desc.includes(q);
+  });
 
 
 
