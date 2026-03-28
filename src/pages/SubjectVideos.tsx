@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X, Eye } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
 
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
@@ -48,6 +48,9 @@ const SubjectVideos = () => {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
+
+  // View counts for admin
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   // Homework gating
   const [videoHomework, setVideoHomework] = useState<Record<string, { id: string; description: string | null; questions: any[] }>>({});
@@ -148,8 +151,23 @@ const SubjectVideos = () => {
           console.log("Filtered videos:", { count: filtered.length });
           setVideos(filtered as VideoItem[]);
 
-          // Fetch homework data
+          // Fetch view counts for admin
           const videoIds = filtered.map(v => v.id);
+          if (isAdminUser && videoIds.length > 0) {
+            const { data: viewsData } = await supabase
+              .from("video_views")
+              .select("video_id")
+              .in("video_id", videoIds);
+            if (viewsData) {
+              const counts: Record<string, number> = {};
+              viewsData.forEach(v => {
+                counts[v.video_id] = (counts[v.video_id] || 0) + 1;
+              });
+              setViewCounts(counts);
+            }
+          }
+
+          // Fetch homework data
           if (videoIds.length > 0) {
             const { data: hwData } = await supabase
               .from("video_homework" as any)
@@ -294,9 +312,26 @@ const SubjectVideos = () => {
     }
   };
 
-  const filteredVideos = videos.filter(v =>
-    !searchQuery || v.title.includes(searchQuery) || v.description?.includes(searchQuery)
-  );
+  // Normalize Arabic text for fuzzy search
+  const normalizeArabic = (text: string) => {
+    return text
+      .replace(/[إأآٱا]/g, "ا")
+      .replace(/[ؤ]/g, "و")
+      .replace(/[ئ]/g, "ي")
+      .replace(/[ة]/g, "ه")
+      .replace(/[ى]/g, "ي")
+      .replace(/[\u064B-\u065F\u0670]/g, "") // remove tashkeel
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const filteredVideos = videos.filter(v => {
+    if (!searchQuery) return true;
+    const q = normalizeArabic(searchQuery);
+    const title = normalizeArabic(v.title);
+    const desc = normalizeArabic(v.description || "");
+    return title.includes(q) || desc.includes(q);
+  });
 
 
 
@@ -635,6 +670,12 @@ const SubjectVideos = () => {
                           )}
                           {isCurrentlyPlaying && (
                             <span className="text-[9px] text-primary font-semibold">قيد التشغيل ▲</span>
+                          )}
+                          {isAdmin && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                              <Eye className="w-3 h-3" />
+                              {viewCounts[v.id] || 0}
+                            </span>
                           )}
                         </div>
                       </div>
