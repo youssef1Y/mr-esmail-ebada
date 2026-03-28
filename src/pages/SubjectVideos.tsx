@@ -49,6 +49,9 @@ const SubjectVideos = () => {
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
+  // View counts for admin
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
+
   // Homework gating
   const [videoHomework, setVideoHomework] = useState<Record<string, { id: string; description: string | null; questions: any[] }>>({});
   const [submittedHomework, setSubmittedHomework] = useState<Set<string>>(new Set());
