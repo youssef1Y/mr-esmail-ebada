@@ -344,15 +344,8 @@ const QuestionBank = () => {
         }
       }
 
-      // If not enough, generate from videos
-      if (filtered.length < wsQuestionCount) {
-        const videoIds = await getFilteredVideoIds(wsLessonFilter, wsLesson, wsSubject, wsWatchedLessons);
-
-        if (videoIds.length > 0) {
-          const generated = await generateFromVideos(videoIds, wsQuestionCount - filtered.length);
-          filtered = [...filtered, ...generated];
-        }
-      }
+      // Filter MCQs
+      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
       const selected = filtered.slice(0, wsQuestionCount);
       if (selected.length === 0) {
