@@ -1181,6 +1181,7 @@ export type Database = {
           id: string
           madhab: string | null
           publish_at: string | null
+          questions_generated: boolean
           sort_order: number | null
           subject: string
           term: number
@@ -1195,6 +1196,7 @@ export type Database = {
           id?: string
           madhab?: string | null
           publish_at?: string | null
+          questions_generated?: boolean
           sort_order?: number | null
           subject: string
           term?: number
@@ -1209,6 +1211,7 @@ export type Database = {
           id?: string
           madhab?: string | null
           publish_at?: string | null
+          questions_generated?: boolean
           sort_order?: number | null
           subject?: string
           term?: number
