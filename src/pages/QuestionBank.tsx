@@ -258,9 +258,9 @@ const QuestionBank = () => {
         return;
       }
 
-      // Shuffle and select
+      // Shuffle questions AND their options for randomness
       const shuffled = filtered.sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, questionCount);
+      const selected = shuffleOptions(shuffled.slice(0, questionCount));
       setQuestions(selected);
       setStarted(true);
       setCurrentIndex(0);
