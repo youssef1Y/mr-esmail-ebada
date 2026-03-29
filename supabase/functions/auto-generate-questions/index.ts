@@ -44,6 +44,16 @@ serve(async (req) => {
 
     for (let batch = 0; batch < batches; batch++) {
       try {
+        const { data: existingRows } = await sb
+          .from("question_bank")
+          .select("question_text")
+          .eq("video_id", video.id)
+          .limit(1000);
+
+        const excludedQuestions = (existingRows || [])
+          .map((row: { question_text?: string | null }) => row.question_text)
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
         const resp = await fetch(
           `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-video-questions`,
           {
@@ -56,6 +66,8 @@ serve(async (req) => {
               video_id: video.id,
               question_count: batchSize,
               save_to_bank: true,
+              diversity_seed: crypto.randomUUID(),
+              excluded_questions: excludedQuestions,
             }),
           }
         );
@@ -63,16 +75,13 @@ serve(async (req) => {
         const result = await resp.json();
         if (result.error) {
           console.error(`Batch ${batch + 1} error:`, result.error);
-          if (result.error === "rate_limited") {
-            console.log("Rate limited, stopping generation");
-            break;
-          }
+          if (result.error === "rate_limited") break;
           continue;
         }
 
         totalGenerated += result.questions?.length || 0;
         totalSaved += result.saved_to_bank || 0;
-        console.log(`Batch ${batch + 1}/${batches}: generated ${result.questions?.length || 0}, total so far: ${totalGenerated}`);
+        console.log(`Batch ${batch + 1}/${batches}: generated ${result.questions?.length || 0}, total saved: ${totalSaved}`);
       } catch (e) {
         console.error(`Batch ${batch + 1} failed:`, e);
       }
