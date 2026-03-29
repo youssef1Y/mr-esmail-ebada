@@ -36,3 +36,6 @@ verify_jwt = false
 
 [functions.subscription-action]
 verify_jwt = false
+
+[functions.generate-video-questions]
+verify_jwt = false
