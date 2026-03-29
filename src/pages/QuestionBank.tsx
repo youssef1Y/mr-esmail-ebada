@@ -247,19 +247,15 @@ const QuestionBank = () => {
       const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
       let filtered = (data as BankQuestion[]) || [];
 
-      // Apply lesson filter
       if (filtered.length > 0) {
         if (lessonFilter === "watched" && watchedLessons.length > 0) {
-          const watchedTitles = watchedLessons.map(w => w.title);
-          filtered = filtered.filter(q => q.lesson && watchedTitles.some(wl =>
-            q.lesson!.includes(wl) || wl.includes(q.lesson!)
-          ));
+          const watchedIds = new Set(watchedLessons.map(w => w.videoId));
+          filtered = filtered.filter(q => q.video_id && watchedIds.has(q.video_id));
         } else if (lessonFilter === "specific" && lesson) {
           filtered = filtered.filter(q => q.lesson === lesson || (q.lesson && q.lesson.includes(lesson)));
         }
       }
 
-      // Filter MCQs only
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
       if (filtered.length === 0) {
