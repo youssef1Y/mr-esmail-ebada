@@ -333,7 +333,7 @@ const QuestionBank = () => {
       // Filter MCQs
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
-      const shuffledWs = filtered.sort(() => Math.random() - 0.5);
+      const shuffledWs = fisherYatesShuffle(filtered);
       const selected = shuffleOptions(shuffledWs.slice(0, wsQuestionCount));
       if (selected.length === 0) {
         toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة" });
