@@ -61,7 +61,7 @@ const QuestionBank = () => {
   const [total, setTotal] = useState(0);
   const [finished, setFinished] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [questionCount, setQuestionCount] = useState(10);
+  const [questionCount, setQuestionCount] = useState(100);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [userId, setUserId] = useState("");
