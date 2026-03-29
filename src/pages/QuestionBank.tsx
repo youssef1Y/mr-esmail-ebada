@@ -733,8 +733,8 @@ const QuestionBank = () => {
                       <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
                         <FileText className="w-7 h-7 text-primary" />
                       </div>
-                      <h2 className="text-lg font-bold font-amiri">أوراق عمل وملفات</h2>
-                      <p className="text-xs text-muted-foreground">ملفات PDF وأوراق عمل مع الحلول النموذجية</p>
+                      <h2 className="text-lg font-bold font-amiri">ملفات وأوراق عمل المستر</h2>
+                      <p className="text-xs text-muted-foreground">ملفات PDF وأوراق عمل من المستر مع الحلول النموذجية</p>
                     </div>
 
                     <div className="bg-card rounded-2xl border border-border p-4 mb-4 max-w-md mx-auto">
