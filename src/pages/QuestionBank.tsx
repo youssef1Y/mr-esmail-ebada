@@ -217,100 +217,18 @@ const QuestionBank = () => {
     fetchWsLessons();
   }, [grade, wsSubject, userId]);
 
-  // Helper: get video IDs based on filter
-  const getFilteredVideoIds = async (
-    filterType: LessonFilter,
-    selectedLesson: string,
-    subjectVal: string,
-    watched: {title: string; videoId: string}[]
-  ): Promise<string[]> => {
-    if (filterType === "watched") {
-      return watched.map(w => w.videoId);
-    }
-
-    if (filterType === "specific" && selectedLesson) {
-      const { data } = await supabase
-        .from("videos")
-        .select("id")
-        .eq("grade", grade)
-        .eq("subject", subjectVal)
-        .eq("title", selectedLesson);
-      return (data || []).map(v => v.id);
-    }
-
-    // "all" - get all videos for this grade/subject
-    const { data } = await supabase
-      .from("videos")
-      .select("id")
-      .eq("grade", grade)
-      .eq("subject", subjectVal);
-    return (data || []).map(v => v.id);
-  };
-
-  // Generate questions from videos using AI
-  const generateFromVideos = async (videoIds: string[], count: number): Promise<BankQuestion[]> => {
-    if (videoIds.length === 0) return [];
-
-    const allGenerated: BankQuestion[] = [];
-    // Pick up to 3 random videos to generate from
-    const shuffled = [...videoIds].sort(() => Math.random() - 0.5);
-    const selectedVideoIds = shuffled.slice(0, Math.min(3, shuffled.length));
-    const perVideo = Math.ceil(count / selectedVideoIds.length);
-
-    for (let i = 0; i < selectedVideoIds.length; i++) {
-      const videoId = selectedVideoIds[i];
-      setGeneratingMessage(`جاري توليد الأسئلة من الفيديو ${i + 1} من ${selectedVideoIds.length}...`);
-
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-video-questions", {
-          body: { video_id: videoId, question_count: perVideo, save_to_bank: true },
-        });
-
-        if (error) {
-          console.error("Generate error:", error);
-          continue;
-        }
-        if (data?.error === "rate_limited") {
-          toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
-          break;
-        }
-        if (data?.error) {
-          console.error("AI error:", data.error, data.message);
-          continue;
-        }
-
-        const qs = (data.questions || []).map((q: any, idx: number) => ({
-          id: `gen-${videoId}-${idx}`,
-          grade,
-          subject: data.subject || subject,
-          lesson: q.lesson || data.video_title || null,
-          question_text: q.question_text,
-          question_type: "mcq",
-          options: q.options,
-          correct_answer: q.correct_answer,
-        }));
-        allGenerated.push(...qs);
-      } catch (e) {
-        console.error("Error generating from video:", e);
-      }
-    }
-
-    return allGenerated;
-  };
-
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
 
     setGenerating(true);
-    setGeneratingMessage("جاري البحث عن أسئلة...");
+    setGeneratingMessage("جاري تحميل الأسئلة...");
 
     try {
-      // Step 1: Try existing question bank
       const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
       let filtered = (data as BankQuestion[]) || [];
 
-      // Apply lesson filter on existing questions
+      // Apply lesson filter
       if (filtered.length > 0) {
         if (lessonFilter === "watched" && watchedLessons.length > 0) {
           const watchedTitles = watchedLessons.map(w => w.title);
@@ -325,28 +243,8 @@ const QuestionBank = () => {
       // Filter MCQs only
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
-      // Step 2: If not enough, generate from videos
-      if (filtered.length < questionCount) {
-        setGeneratingMessage("جاري توليد أسئلة جديدة من الفيديوهات بالذكاء الاصطناعي... ⏳");
-        const videoIds = await getFilteredVideoIds(lessonFilter, lesson, subject, watchedLessons);
-
-        if (videoIds.length === 0) {
-          if (filtered.length === 0) {
-            toast({ title: "لا توجد فيديوهات", description: "لم يتم إضافة فيديوهات لهذه المادة بعد" });
-            setGenerating(false);
-            return;
-          }
-        } else {
-          const generated = await generateFromVideos(videoIds, questionCount - filtered.length);
-          filtered = [...filtered, ...generated];
-        }
-      }
-
-      // Filter MCQs again (in case generated questions are not MCQ)
-      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
-
       if (filtered.length === 0) {
-        toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة. تأكد من وجود فيديوهات لهذه المادة" });
+        toast({ title: "لا توجد أسئلة بعد", description: "الأسئلة يتم توليدها تلقائياً عند إضافة الفيديوهات. انتظر قليلاً أو اختر مادة أخرى" });
         setGenerating(false);
         return;
       }
@@ -414,15 +312,8 @@ const QuestionBank = () => {
         }
       }
 
-      // If not enough, generate from videos
-      if (filtered.length < wsQuestionCount) {
-        const videoIds = await getFilteredVideoIds(wsLessonFilter, wsLesson, wsSubject, wsWatchedLessons);
-
-        if (videoIds.length > 0) {
-          const generated = await generateFromVideos(videoIds, wsQuestionCount - filtered.length);
-          filtered = [...filtered, ...generated];
-        }
-      }
+      // Filter MCQs
+      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
       const selected = filtered.slice(0, wsQuestionCount);
       if (selected.length === 0) {
