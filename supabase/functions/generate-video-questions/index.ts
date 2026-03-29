@@ -137,7 +137,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { video_id, question_count, save_to_bank } = await req.json();
+    const { video_id, question_count, save_to_bank, diversity_seed, excluded_questions } = await req.json();
     if (!video_id) throw new Error("video_id is required");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

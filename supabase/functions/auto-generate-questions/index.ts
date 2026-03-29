@@ -21,34 +21,26 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if already generated
-    const { data: video } = await sb
-      .from("videos")
-      .select("id, title, subject, grade, video_url, description, questions_generated")
-      .eq("id", video_id)
-      .single();
+    const totalTarget = 200;
 
-    if (!video) {
-      console.log("Video not found:", video_id);
-      return new Response(JSON.stringify({ error: "video_not_found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { count: existingCount = 0 } = await sb
+      .from("question_bank")
+      .select("id", { count: "exact", head: true })
+      .eq("video_id", video_id);
 
-    if (video.questions_generated) {
-      console.log("Questions already generated for:", video.title);
-      return new Response(JSON.stringify({ status: "already_generated" }), {
+    if ((existingCount ?? 0) >= totalTarget && video.questions_generated) {
+      console.log("Questions already generated for:", video.title, existingCount);
+      return new Response(JSON.stringify({ status: "already_generated", saved_to_bank: existingCount }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.log(`Auto-generating questions for video: ${video.title}`);
 
-    let totalSaved = 0;
+    let totalSaved = existingCount ?? 0;
     let totalGenerated = 0;
     const batchSize = 20;
-    const totalTarget = 200;
-    const batches = Math.ceil(totalTarget / batchSize);
+    const batches = Math.ceil(Math.max(totalTarget - totalSaved, 0) / batchSize);
 
     for (let batch = 0; batch < batches; batch++) {
       try {
