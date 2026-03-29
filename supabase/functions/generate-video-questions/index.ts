@@ -157,7 +157,7 @@ serve(async (req) => {
       });
     }
 
-    const count = Math.min(question_count || 5, 10);
+    const count = Math.min(question_count || 10, 20);
 
     // Step 1: Get or create video summary
     let { data: summaryRow } = await sb
