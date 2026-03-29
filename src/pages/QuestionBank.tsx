@@ -247,56 +247,7 @@ const QuestionBank = () => {
     return (data || []).map(v => v.id);
   };
 
-  // Generate questions from videos using AI
-  const generateFromVideos = async (videoIds: string[], count: number): Promise<BankQuestion[]> => {
-    if (videoIds.length === 0) return [];
-
-    const allGenerated: BankQuestion[] = [];
-    // Pick up to 3 random videos to generate from
-    const shuffled = [...videoIds].sort(() => Math.random() - 0.5);
-    const selectedVideoIds = shuffled.slice(0, Math.min(3, shuffled.length));
-    const perVideo = Math.ceil(count / selectedVideoIds.length);
-
-    for (let i = 0; i < selectedVideoIds.length; i++) {
-      const videoId = selectedVideoIds[i];
-      setGeneratingMessage(`جاري توليد الأسئلة من الفيديو ${i + 1} من ${selectedVideoIds.length}...`);
-
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-video-questions", {
-          body: { video_id: videoId, question_count: perVideo, save_to_bank: true },
-        });
-
-        if (error) {
-          console.error("Generate error:", error);
-          continue;
-        }
-        if (data?.error === "rate_limited") {
-          toast({ title: "انتظر قليلاً", description: "تم تجاوز الحد المسموح، حاول بعد دقيقة", variant: "destructive" });
-          break;
-        }
-        if (data?.error) {
-          console.error("AI error:", data.error, data.message);
-          continue;
-        }
-
-        const qs = (data.questions || []).map((q: any, idx: number) => ({
-          id: `gen-${videoId}-${idx}`,
-          grade,
-          subject: data.subject || subject,
-          lesson: q.lesson || data.video_title || null,
-          question_text: q.question_text,
-          question_type: "mcq",
-          options: q.options,
-          correct_answer: q.correct_answer,
-        }));
-        allGenerated.push(...qs);
-      } catch (e) {
-        console.error("Error generating from video:", e);
-      }
-    }
-
-    return allGenerated;
-  };
+  // Questions are now pre-generated when admin uploads videos (no on-the-fly generation needed)
 
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
