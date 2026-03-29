@@ -61,7 +61,7 @@ const QuestionBank = () => {
   const [total, setTotal] = useState(0);
   const [finished, setFinished] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [questionCount, setQuestionCount] = useState(10);
+  const [questionCount, setQuestionCount] = useState(100);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [userId, setUserId] = useState("");
@@ -89,7 +89,7 @@ const QuestionBank = () => {
   const [wsLessonFilter, setWsLessonFilter] = useState<LessonFilter>("all");
   const [wsAvailableLessons, setWsAvailableLessons] = useState<string[]>([]);
   const [wsWatchedLessons, setWsWatchedLessons] = useState<{title: string; videoId: string}[]>([]);
-  const [wsQuestionCount, setWsQuestionCount] = useState(10);
+  const [wsQuestionCount, setWsQuestionCount] = useState(100);
   const [wsLoadingQuestions, setWsLoadingQuestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -217,6 +217,15 @@ const QuestionBank = () => {
     fetchWsLessons();
   }, [grade, wsSubject, userId]);
 
+  // Shuffle options for each question so answer order is different every time
+  const shuffleOptions = (qs: BankQuestion[]): BankQuestion[] => {
+    return qs.map(q => {
+      if (!q.options || q.options.length < 2) return q;
+      const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+      return { ...q, options: shuffled };
+    });
+  };
+
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
@@ -249,9 +258,9 @@ const QuestionBank = () => {
         return;
       }
 
-      // Shuffle and select
+      // Shuffle questions AND their options for randomness
       const shuffled = filtered.sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, questionCount);
+      const selected = shuffleOptions(shuffled.slice(0, questionCount));
       setQuestions(selected);
       setStarted(true);
       setCurrentIndex(0);
@@ -315,7 +324,8 @@ const QuestionBank = () => {
       // Filter MCQs
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
-      const selected = filtered.slice(0, wsQuestionCount);
+      const shuffledWs = filtered.sort(() => Math.random() - 0.5);
+      const selected = shuffleOptions(shuffledWs.slice(0, wsQuestionCount));
       if (selected.length === 0) {
         toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة" });
         setWsLoadingQuestions(false);
@@ -490,8 +500,8 @@ const QuestionBank = () => {
                   activeTab === "worksheets" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <FileText className="w-4 h-4 inline-block ml-1" />
-                أوراق عمل وأسئلة
+                <BookOpen className="w-4 h-4 inline-block ml-1" />
+                ملفات المستر
               </button>
             </div>
           </div>
@@ -555,10 +565,10 @@ const QuestionBank = () => {
 
                     <div>
                       <label className="text-sm font-medium mb-1.5 block text-right">عدد الأسئلة</label>
-                      <div className="flex gap-2 justify-center">
-                        {[10, 15, 20].map(n => (
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {[100, 120, 150, 200].map(n => (
                           <button key={n} onClick={() => setQuestionCount(n)}
-                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all ${questionCount === n ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
+                            className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${questionCount === n ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
                             {n}
                           </button>
                         ))}
@@ -733,8 +743,8 @@ const QuestionBank = () => {
                       <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
                         <FileText className="w-7 h-7 text-primary" />
                       </div>
-                      <h2 className="text-lg font-bold font-amiri">أوراق عمل وملفات</h2>
-                      <p className="text-xs text-muted-foreground">ملفات PDF وأوراق عمل مع الحلول النموذجية</p>
+                      <h2 className="text-lg font-bold font-amiri">ملفات وأوراق عمل المستر</h2>
+                      <p className="text-xs text-muted-foreground">ملفات PDF وأوراق عمل من المستر مع الحلول النموذجية</p>
                     </div>
 
                     <div className="bg-card rounded-2xl border border-border p-4 mb-4 max-w-md mx-auto">

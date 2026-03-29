@@ -44,42 +44,57 @@ serve(async (req) => {
 
     console.log(`Auto-generating questions for video: ${video.title}`);
 
-    // Step 1: Summarize video first
-    const summarizeResp = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-video-questions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({
-          video_id: video.id,
-          question_count: 10,
-          save_to_bank: true,
-        }),
+    let totalSaved = 0;
+    let totalGenerated = 0;
+    const batchSize = 20;
+    const totalTarget = 100;
+    const batches = Math.ceil(totalTarget / batchSize);
+
+    for (let batch = 0; batch < batches; batch++) {
+      try {
+        const resp = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-video-questions`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              video_id: video.id,
+              question_count: batchSize,
+              save_to_bank: true,
+            }),
+          }
+        );
+
+        const result = await resp.json();
+        if (result.error) {
+          console.error(`Batch ${batch + 1} error:`, result.error);
+          if (result.error === "rate_limited") {
+            console.log("Rate limited, stopping generation");
+            break;
+          }
+          continue;
+        }
+
+        totalGenerated += result.questions?.length || 0;
+        totalSaved += result.saved_to_bank || 0;
+        console.log(`Batch ${batch + 1}/${batches}: generated ${result.questions?.length || 0}, total so far: ${totalGenerated}`);
+      } catch (e) {
+        console.error(`Batch ${batch + 1} failed:`, e);
       }
-    );
-
-    const result = await summarizeResp.json();
-
-    if (result.error) {
-      console.error("Generation error:", result.error, result.message);
-      return new Response(JSON.stringify({ error: result.error }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
-    const savedCount = result.saved_to_bank || 0;
-    console.log(`Generated ${result.questions?.length || 0} questions, saved ${savedCount} to bank`);
+    console.log(`Finished: total generated ${totalGenerated}, saved ${totalSaved}`);
 
     // Mark video as questions generated
     await sb.from("videos").update({ questions_generated: true }).eq("id", video_id);
 
     return new Response(JSON.stringify({
       status: "success",
-      questions_count: result.questions?.length || 0,
-      saved_to_bank: savedCount,
+      questions_count: totalGenerated,
+      saved_to_bank: totalSaved,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
