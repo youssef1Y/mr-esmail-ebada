@@ -297,6 +297,7 @@ ${summaryRow.summary}
     let savedCount = 0;
     if (save_to_bank) {
       const rows = questions.map(q => ({
+        video_id: video.id,
         grade: video.grade,
         subject: video.subject,
         lesson: q.lesson || video.title,

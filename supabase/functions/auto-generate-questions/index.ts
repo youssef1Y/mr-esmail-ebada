@@ -47,7 +47,7 @@ serve(async (req) => {
     let totalSaved = 0;
     let totalGenerated = 0;
     const batchSize = 20;
-    const totalTarget = 100;
+    const totalTarget = 200;
     const batches = Math.ceil(totalTarget / batchSize);
 
     for (let batch = 0; batch < batches; batch++) {
