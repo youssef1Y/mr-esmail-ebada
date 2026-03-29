@@ -21,6 +21,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const { data: video } = await sb
+      .from("videos")
+      .select("id, title, subject, grade, video_url, description, questions_generated")
+      .eq("id", video_id)
+      .single();
+
+    if (!video) {
+      console.log("Video not found:", video_id);
+      return new Response(JSON.stringify({ error: "video_not_found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const totalTarget = 200;
 
     const { count: existingCount = 0 } = await sb
