@@ -1331,6 +1331,7 @@ export type Database = {
           question_text: string
           question_type: string
           subject: string
+          video_id: string
         }[]
       }
       get_student_rank: {
