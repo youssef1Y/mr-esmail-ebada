@@ -219,6 +219,10 @@ serve(async (req) => {
       },
     }];
 
+    const excludedQuestionTexts = Array.isArray(excluded_questions)
+      ? excluded_questions.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 200)
+      : [];
+
     const systemPrompt = `أنت معلم تربية دينية إسلامية خبير. أنشئ أسئلة اختيار من متعدد بناءً على ملخص محتوى الفيديو التعليمي.
 
 القواعد:
@@ -230,21 +234,29 @@ serve(async (req) => {
 - لو الملخص يحتوي على آيات أو أحاديث، اسأل عنها
 - لو الملخص يحتوي على أحكام فقهية أو شروط أو أركان، اسأل عنها
 - الأسئلة بالعربية الفصحى
-- الإجابة الصحيحة يجب أن تكون واحدة من الخيارات الأربعة بالنص تماماً`;
+- الإجابة الصحيحة يجب أن تكون واحدة من الخيارات الأربعة بالنص تماماً
+- ممنوع تكرار أي سؤال سابق أو إعادة صياغته بشكل قريب
+- يجب تغطية نقاط جديدة ومختلفة من الملخص في كل دفعة`;
 
     const userPrompt = `بناءً على ملخص محتوى الفيديو التالي، أنشئ ${count} أسئلة اختيار من متعدد متنوعة وشاملة:
 
 عنوان الفيديو: ${video.title}
 المادة: ${video.subject}
 الصف: ${video.grade}
+بذرة التنويع لهذه الدفعة: ${typeof diversity_seed === "string" && diversity_seed.trim() ? diversity_seed.trim() : crypto.randomUUID()}
 
 ملخص محتوى الفيديو (مستخرج من مشاهدة الفيديو الفعلي):
 ${summaryRow.summary}
 
+أسئلة موجودة سابقاً ويُمنع تكرارها أو الاقتراب منها:
+${excludedQuestionTexts.length ? excludedQuestionTexts.map((text, index) => `${index + 1}. ${text}`).join("\n") : "لا يوجد"}
+
 مهم جداً: 
 - الأسئلة يجب أن تغطي أكبر قدر ممكن من المعلومات الموجودة في الملخص
 - استخرج اسم الدرس الصحيح من الملخص نفسه
-- لا تكرر نفس المعلومة في أكثر من سؤال`;
+- لا تكرر نفس المعلومة في أكثر من سؤال
+- اختر زوايا مختلفة تماماً عن الأسئلة السابقة`;
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

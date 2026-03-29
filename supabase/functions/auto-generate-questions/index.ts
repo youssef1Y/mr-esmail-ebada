@@ -89,8 +89,9 @@ serve(async (req) => {
 
     console.log(`Finished: total generated ${totalGenerated}, saved ${totalSaved}`);
 
-    // Mark video as questions generated
-    await sb.from("videos").update({ questions_generated: true }).eq("id", video_id);
+    if (totalSaved >= 100) {
+      await sb.from("videos").update({ questions_generated: true }).eq("id", video_id);
+    }
 
     return new Response(JSON.stringify({
       status: "success",
