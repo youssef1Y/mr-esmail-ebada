@@ -217,12 +217,21 @@ const QuestionBank = () => {
     fetchWsLessons();
   }, [grade, wsSubject, userId]);
 
+  // Fisher-Yates shuffle for true randomness
+  const fisherYatesShuffle = <T,>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
   // Shuffle options for each question so answer order is different every time
   const shuffleOptions = (qs: BankQuestion[]): BankQuestion[] => {
     return qs.map(q => {
       if (!q.options || q.options.length < 2) return q;
-      const shuffled = [...q.options].sort(() => Math.random() - 0.5);
-      return { ...q, options: shuffled };
+      return { ...q, options: fisherYatesShuffle(q.options) };
     });
   };
 
@@ -258,8 +267,8 @@ const QuestionBank = () => {
         return;
       }
 
-      // Shuffle questions AND their options for randomness
-      const shuffled = filtered.sort(() => Math.random() - 0.5);
+      // True random shuffle of questions AND their options
+      const shuffled = fisherYatesShuffle(filtered);
       const selected = shuffleOptions(shuffled.slice(0, questionCount));
       setQuestions(selected);
       setStarted(true);
@@ -324,7 +333,7 @@ const QuestionBank = () => {
       // Filter MCQs
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
-      const shuffledWs = filtered.sort(() => Math.random() - 0.5);
+      const shuffledWs = fisherYatesShuffle(filtered);
       const selected = shuffleOptions(shuffledWs.slice(0, wsQuestionCount));
       if (selected.length === 0) {
         toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة" });
