@@ -89,7 +89,7 @@ const QuestionBank = () => {
   const [wsLessonFilter, setWsLessonFilter] = useState<LessonFilter>("all");
   const [wsAvailableLessons, setWsAvailableLessons] = useState<string[]>([]);
   const [wsWatchedLessons, setWsWatchedLessons] = useState<{title: string; videoId: string}[]>([]);
-  const [wsQuestionCount, setWsQuestionCount] = useState(10);
+  const [wsQuestionCount, setWsQuestionCount] = useState(100);
   const [wsLoadingQuestions, setWsLoadingQuestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
