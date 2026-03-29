@@ -217,38 +217,6 @@ const QuestionBank = () => {
     fetchWsLessons();
   }, [grade, wsSubject, userId]);
 
-  // Helper: get video IDs based on filter
-  const getFilteredVideoIds = async (
-    filterType: LessonFilter,
-    selectedLesson: string,
-    subjectVal: string,
-    watched: {title: string; videoId: string}[]
-  ): Promise<string[]> => {
-    if (filterType === "watched") {
-      return watched.map(w => w.videoId);
-    }
-
-    if (filterType === "specific" && selectedLesson) {
-      const { data } = await supabase
-        .from("videos")
-        .select("id")
-        .eq("grade", grade)
-        .eq("subject", subjectVal)
-        .eq("title", selectedLesson);
-      return (data || []).map(v => v.id);
-    }
-
-    // "all" - get all videos for this grade/subject
-    const { data } = await supabase
-      .from("videos")
-      .select("id")
-      .eq("grade", grade)
-      .eq("subject", subjectVal);
-    return (data || []).map(v => v.id);
-  };
-
-  // Questions are now pre-generated when admin uploads videos (no on-the-fly generation needed)
-
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
