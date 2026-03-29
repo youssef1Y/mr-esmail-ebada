@@ -254,14 +254,13 @@ const QuestionBank = () => {
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
 
     setGenerating(true);
-    setGeneratingMessage("جاري البحث عن أسئلة...");
+    setGeneratingMessage("جاري تحميل الأسئلة...");
 
     try {
-      // Step 1: Try existing question bank
       const { data } = await supabase.rpc("get_practice_questions", { p_grade: grade, p_subject: subject });
       let filtered = (data as BankQuestion[]) || [];
 
-      // Apply lesson filter on existing questions
+      // Apply lesson filter
       if (filtered.length > 0) {
         if (lessonFilter === "watched" && watchedLessons.length > 0) {
           const watchedTitles = watchedLessons.map(w => w.title);
@@ -276,28 +275,8 @@ const QuestionBank = () => {
       // Filter MCQs only
       filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
 
-      // Step 2: If not enough, generate from videos
-      if (filtered.length < questionCount) {
-        setGeneratingMessage("جاري توليد أسئلة جديدة من الفيديوهات بالذكاء الاصطناعي... ⏳");
-        const videoIds = await getFilteredVideoIds(lessonFilter, lesson, subject, watchedLessons);
-
-        if (videoIds.length === 0) {
-          if (filtered.length === 0) {
-            toast({ title: "لا توجد فيديوهات", description: "لم يتم إضافة فيديوهات لهذه المادة بعد" });
-            setGenerating(false);
-            return;
-          }
-        } else {
-          const generated = await generateFromVideos(videoIds, questionCount - filtered.length);
-          filtered = [...filtered, ...generated];
-        }
-      }
-
-      // Filter MCQs again (in case generated questions are not MCQ)
-      filtered = filtered.filter(q => q.question_type === "mcq" && q.options && q.options.length >= 2);
-
       if (filtered.length === 0) {
-        toast({ title: "لا توجد أسئلة", description: "لم يتمكن النظام من توليد أسئلة. تأكد من وجود فيديوهات لهذه المادة" });
+        toast({ title: "لا توجد أسئلة بعد", description: "الأسئلة يتم توليدها تلقائياً عند إضافة الفيديوهات. انتظر قليلاً أو اختر مادة أخرى" });
         setGenerating(false);
         return;
       }
