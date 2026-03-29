@@ -13,6 +13,7 @@ interface BankQuestion {
   grade: string;
   subject: string;
   lesson: string | null;
+  video_id?: string | null;
   question_text: string;
   question_type: string;
   options: string[] | null;
