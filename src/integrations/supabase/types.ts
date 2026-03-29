@@ -700,6 +700,7 @@ export type Database = {
           question_text: string
           question_type: string
           subject: string
+          video_id: string | null
         }
         Insert: {
           correct_answer?: string | null
@@ -711,6 +712,7 @@ export type Database = {
           question_text: string
           question_type?: string
           subject: string
+          video_id?: string | null
         }
         Update: {
           correct_answer?: string | null
@@ -722,8 +724,17 @@ export type Database = {
           question_text?: string
           question_type?: string
           subject?: string
+          video_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_bank_files: {
         Row: {
