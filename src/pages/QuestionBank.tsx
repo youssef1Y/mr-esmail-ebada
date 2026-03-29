@@ -555,10 +555,10 @@ const QuestionBank = () => {
 
                     <div>
                       <label className="text-sm font-medium mb-1.5 block text-right">عدد الأسئلة</label>
-                      <div className="flex gap-2 justify-center">
-                        {[10, 15, 20].map(n => (
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {[100, 120, 150, 200].map(n => (
                           <button key={n} onClick={() => setQuestionCount(n)}
-                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all ${questionCount === n ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
+                            className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${questionCount === n ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
                             {n}
                           </button>
                         ))}
