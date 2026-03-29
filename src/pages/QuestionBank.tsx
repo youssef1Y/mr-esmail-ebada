@@ -217,6 +217,15 @@ const QuestionBank = () => {
     fetchWsLessons();
   }, [grade, wsSubject, userId]);
 
+  // Shuffle options for each question so answer order is different every time
+  const shuffleOptions = (qs: BankQuestion[]): BankQuestion[] => {
+    return qs.map(q => {
+      if (!q.options || q.options.length < 2) return q;
+      const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+      return { ...q, options: shuffled };
+    });
+  };
+
   const startPractice = async () => {
     if (!grade) { toast({ title: "خطأ", description: "اختر الصف أولاً", variant: "destructive" }); return; }
     if (!subject) { toast({ title: "خطأ", description: "اختر المادة أولاً", variant: "destructive" }); return; }
