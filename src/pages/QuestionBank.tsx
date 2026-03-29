@@ -490,8 +490,8 @@ const QuestionBank = () => {
                   activeTab === "worksheets" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <FileText className="w-4 h-4 inline-block ml-1" />
-                أوراق عمل وأسئلة
+                <BookOpen className="w-4 h-4 inline-block ml-1" />
+                ملفات المستر
               </button>
             </div>
           </div>
