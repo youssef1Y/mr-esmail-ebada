@@ -61,7 +61,7 @@ const QuestionBank = () => {
   const [total, setTotal] = useState(0);
   const [finished, setFinished] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [questionCount, setQuestionCount] = useState(100);
+  const [questionCount, setQuestionCount] = useState(10);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [userId, setUserId] = useState("");
@@ -575,7 +575,7 @@ const QuestionBank = () => {
                     <div>
                       <label className="text-sm font-medium mb-1.5 block text-right">عدد الأسئلة</label>
                       <div className="flex gap-2 justify-center flex-wrap">
-                        {[100, 120, 150, 200].map(n => (
+                        {[10, 15, 20, 25].map(n => (
                           <button key={n} onClick={() => setQuestionCount(n)}
                             className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${questionCount === n ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input hover:border-primary/50"}`}>
                             {n}
