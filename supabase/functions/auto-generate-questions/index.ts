@@ -21,7 +21,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if already generated
     const { data: video } = await sb
       .from("videos")
       .select("id, title, subject, grade, video_url, description, questions_generated")
@@ -35,23 +34,39 @@ serve(async (req) => {
       });
     }
 
-    if (video.questions_generated) {
-      console.log("Questions already generated for:", video.title);
-      return new Response(JSON.stringify({ status: "already_generated" }), {
+    const totalTarget = 200;
+
+    const { count: existingCount = 0 } = await sb
+      .from("question_bank")
+      .select("id", { count: "exact", head: true })
+      .eq("video_id", video_id);
+
+    if ((existingCount ?? 0) >= totalTarget && video.questions_generated) {
+      console.log("Questions already generated for:", video.title, existingCount);
+      return new Response(JSON.stringify({ status: "already_generated", saved_to_bank: existingCount }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.log(`Auto-generating questions for video: ${video.title}`);
 
-    let totalSaved = 0;
+    let totalSaved = existingCount ?? 0;
     let totalGenerated = 0;
     const batchSize = 20;
-    const totalTarget = 100;
-    const batches = Math.ceil(totalTarget / batchSize);
+    const batches = Math.ceil(Math.max(totalTarget - totalSaved, 0) / batchSize);
 
     for (let batch = 0; batch < batches; batch++) {
       try {
+        const { data: existingRows } = await sb
+          .from("question_bank")
+          .select("question_text")
+          .eq("video_id", video.id)
+          .limit(1000);
+
+        const excludedQuestions = (existingRows || [])
+          .map((row: { question_text?: string | null }) => row.question_text)
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
         const resp = await fetch(
           `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-video-questions`,
           {
@@ -64,6 +79,8 @@ serve(async (req) => {
               video_id: video.id,
               question_count: batchSize,
               save_to_bank: true,
+              diversity_seed: crypto.randomUUID(),
+              excluded_questions: excludedQuestions,
             }),
           }
         );
@@ -71,16 +88,13 @@ serve(async (req) => {
         const result = await resp.json();
         if (result.error) {
           console.error(`Batch ${batch + 1} error:`, result.error);
-          if (result.error === "rate_limited") {
-            console.log("Rate limited, stopping generation");
-            break;
-          }
+          if (result.error === "rate_limited") break;
           continue;
         }
 
         totalGenerated += result.questions?.length || 0;
         totalSaved += result.saved_to_bank || 0;
-        console.log(`Batch ${batch + 1}/${batches}: generated ${result.questions?.length || 0}, total so far: ${totalGenerated}`);
+        console.log(`Batch ${batch + 1}/${batches}: generated ${result.questions?.length || 0}, total saved: ${totalSaved}`);
       } catch (e) {
         console.error(`Batch ${batch + 1} failed:`, e);
       }
@@ -88,8 +102,9 @@ serve(async (req) => {
 
     console.log(`Finished: total generated ${totalGenerated}, saved ${totalSaved}`);
 
-    // Mark video as questions generated
-    await sb.from("videos").update({ questions_generated: true }).eq("id", video_id);
+    if (totalSaved >= 100) {
+      await sb.from("videos").update({ questions_generated: true }).eq("id", video_id);
+    }
 
     return new Response(JSON.stringify({
       status: "success",
