@@ -93,8 +93,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       status: "success",
-      questions_count: result.questions?.length || 0,
-      saved_to_bank: savedCount,
+      questions_count: totalGenerated,
+      saved_to_bank: totalSaved,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
