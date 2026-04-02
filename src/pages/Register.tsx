@@ -144,8 +144,12 @@ const Register = () => {
       let description = "تعذر إنشاء الحساب الآن. حاول مرة أخرى.";
       if (/already registered|already exists|user already/i.test(error.message)) {
         description = "هذا الرقم مسجل بالفعل. إذا كان الحساب القديم محذوفًا جرّب تسجيل الدخول مرة واحدة ثم أعد التسجيل.";
+      } else if (/weak_password|too short|at least/i.test(error.message)) {
+        description = "كلمة المرور قصيرة جدًا. استخدم 6 أحرف على الأقل.";
+      } else if (/password.*leaked|compromised|pwned|breached/i.test(error.message)) {
+        description = "كلمة المرور دي مسربة على الإنترنت ومش آمنة. اختار كلمة مرور تانية.";
       } else if (/password/i.test(error.message)) {
-        description = "كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.";
+        description = `مشكلة في كلمة المرور: ${error.message}`;
       } else if (/rate limit|too many/i.test(error.message)) {
         description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
       }
