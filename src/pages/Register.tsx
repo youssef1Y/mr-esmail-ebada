@@ -23,6 +23,30 @@ const governorates = [
 
 const madhabs = ["الفقه الشافعي", "الفقه المالكي", "الفقه الحنفي"];
 
+const getRegistrationErrorDescription = (message: string) => {
+  if (/already registered|already exists|user already|duplicate/i.test(message)) {
+    return "هذا الرقم مسجل بالفعل. إذا كان الحساب القديم محذوفًا جرّب تسجيل الدخول مرة واحدة ثم أعد التسجيل.";
+  }
+
+  if (/password.*(leaked|compromised|pwned|breached)|have.?i.?been.?pwned|hibp|security purposes/i.test(message)) {
+    return "كلمة المرور دي مسربة أو شائعة جدًا ومش آمنة. اختار كلمة مرور مختلفة وأقوى.";
+  }
+
+  if (/weak_password|password.*too short|minimum length|at least\s*\d+\s*characters/i.test(message)) {
+    return "كلمة المرور قصيرة جدًا. استخدم 6 أحرف على الأقل.";
+  }
+
+  if (/rate limit|too many/i.test(message)) {
+    return "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
+  }
+
+  if (/password/i.test(message)) {
+    return `مشكلة في كلمة المرور: ${message}`;
+  }
+
+  return "تعذر إنشاء الحساب الآن. حاول مرة أخرى.";
+};
+
 const passwordStrength = (password: string): { level: number; label: string } => {
   if (!password) return { level: 0, label: "" };
   const hasLetters = /[a-zA-Zأ-ي]/.test(password);
@@ -58,8 +82,8 @@ const Register = () => {
       toast({ title: "كلمة المرور غير متطابقة", description: "تأكد من كتابة كلمة المرور بنفس الطريقة في الحقلين", variant: "destructive" });
       return;
     }
-    if (form.password.length < 3) {
-      toast({ title: "كلمة مرور قصيرة جدًا", description: "كلمة المرور يجب أن تكون 3 أحرف على الأقل", variant: "destructive" });
+    if (form.password.length < 6) {
+      toast({ title: "كلمة مرور قصيرة جدًا", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
@@ -141,19 +165,12 @@ const Register = () => {
     setLoading(false);
 
     if (error) {
-      let description = "تعذر إنشاء الحساب الآن. حاول مرة أخرى.";
-      if (/already registered|already exists|user already/i.test(error.message)) {
-        description = "هذا الرقم مسجل بالفعل. إذا كان الحساب القديم محذوفًا جرّب تسجيل الدخول مرة واحدة ثم أعد التسجيل.";
-      } else if (/weak_password|too short|at least/i.test(error.message)) {
-        description = "كلمة المرور قصيرة جدًا. استخدم 6 أحرف على الأقل.";
-      } else if (/password.*leaked|compromised|pwned|breached/i.test(error.message)) {
-        description = "كلمة المرور دي مسربة على الإنترنت ومش آمنة. اختار كلمة مرور تانية.";
-      } else if (/password/i.test(error.message)) {
-        description = `مشكلة في كلمة المرور: ${error.message}`;
-      } else if (/rate limit|too many/i.test(error.message)) {
-        description = "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.";
-      }
-      toast({ title: "فشل إنشاء الحساب", description, variant: "destructive" });
+      console.error("Register error details:", error.message, error.status, error.code, error);
+      toast({
+        title: "فشل إنشاء الحساب",
+        description: getRegistrationErrorDescription(error.message),
+        variant: "destructive"
+      });
     } else {
       // Complete referral if ref code exists
       if (refCode) {
