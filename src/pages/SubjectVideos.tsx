@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X, Eye } from "lucide-react";
+import { ChevronRight, BookOpen, Search, Send, Trash2, MessageCircle, Lock, Play, CheckCircle2, ClipboardList, X, Eye, Target } from "lucide-react";
 import VideoPlayer from "@/components/VideoPlayer";
 
 import { StaggerContainer, StaggerItem } from "@/components/StaggerAnimation";
@@ -526,6 +526,14 @@ const SubjectVideos = () => {
                           </Button>
                         </Link>
                       )}
+                      {/* Practice Banner */}
+                      <Link 
+                        to={`/question-bank`} 
+                        className="mr-auto flex items-center gap-1.5 bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 text-primary px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-primary/20"
+                      >
+                        <Target className="w-3.5 h-3.5" />
+                        حل تمرينات على الدرس
+                      </Link>
                     </div>
 
                     {showComments === playingVideo.id && (
