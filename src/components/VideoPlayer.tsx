@@ -428,6 +428,23 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
         </div>
       )}
 
+      {/* Practice Reminder Toast */}
+      {practiceReminder && (
+        <div className="absolute top-3 left-3 right-3 z-40 animate-fade-in" dir="rtl">
+          <Link
+            to="/question-bank"
+            className="flex items-center gap-2 bg-primary/90 backdrop-blur-md text-primary-foreground rounded-xl px-3 py-2.5 shadow-lg hover:bg-primary transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Target className="w-5 h-5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold">متنساش يا بطل! 💪</p>
+              <p className="text-[10px] opacity-90">عايز تتمرن أكتر؟ روح بنك الأسئلة — أسئلة بالذكاء الاصطناعي في انتظارك</p>
+            </div>
+          </Link>
+        </div>
+      )}
+
       {/* Center Play/Pause (when paused & no error) */}
       {!playing && !error && !isBuffering && (
         <button
