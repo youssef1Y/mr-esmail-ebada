@@ -232,6 +232,20 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       if (v.buffered.length > 0) {
         setBuffered(v.buffered.end(v.buffered.length - 1));
       }
+      // Practice reminder at ~50% and ~90%
+      if (v.duration > 30) {
+        const pct = v.currentTime / v.duration;
+        if (pct >= 0.48 && pct <= 0.52 && !practiceShownRef.current.has("mid")) {
+          practiceShownRef.current.add("mid");
+          setPracticeReminder(true);
+          setTimeout(() => setPracticeReminder(false), 4000);
+        }
+        if (pct >= 0.88 && pct <= 0.95 && !practiceShownRef.current.has("end")) {
+          practiceShownRef.current.add("end");
+          setPracticeReminder(true);
+          setTimeout(() => setPracticeReminder(false), 4000);
+        }
+      }
     };
     const onLoadedMetadata = () => {
       setDuration(v.duration);
