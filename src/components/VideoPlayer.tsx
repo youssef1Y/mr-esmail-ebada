@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
-  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2
+  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2, Target
 } from "lucide-react";
 
 
