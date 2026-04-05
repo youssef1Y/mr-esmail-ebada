@@ -54,6 +54,8 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const [tapCount, setTapCount] = useState(0);
   const [tapSide, setTapSide] = useState<"left" | "right" | null>(null);
   const [isPiP, setIsPiP] = useState(false);
+  const [practiceReminder, setPracticeReminder] = useState(false);
+  const practiceShownRef = useRef<Set<string>>(new Set()); // tracks "mid"/"end"
 
   // ── Source refresh ──
   const refreshSource = useCallback(async () => {
