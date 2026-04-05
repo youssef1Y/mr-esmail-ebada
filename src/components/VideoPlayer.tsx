@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
-  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2
+  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2, Target
 } from "lucide-react";
 
 
@@ -53,6 +54,8 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
   const [tapCount, setTapCount] = useState(0);
   const [tapSide, setTapSide] = useState<"left" | "right" | null>(null);
   const [isPiP, setIsPiP] = useState(false);
+  const [practiceReminder, setPracticeReminder] = useState(false);
+  const practiceShownRef = useRef<Set<string>>(new Set()); // tracks "mid"/"end"
 
   // ── Source refresh ──
   const refreshSource = useCallback(async () => {
@@ -223,11 +226,26 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     const v = videoRef.current;
     if (!v) return;
     setError(false);
+    practiceShownRef.current.clear();
 
     const onTimeUpdate = () => {
       if (!seeking) setCurrentTime(v.currentTime);
       if (v.buffered.length > 0) {
         setBuffered(v.buffered.end(v.buffered.length - 1));
+      }
+      // Practice reminder at ~50% and ~90%
+      if (v.duration > 30) {
+        const pct = v.currentTime / v.duration;
+        if (pct >= 0.48 && pct <= 0.52 && !practiceShownRef.current.has("mid")) {
+          practiceShownRef.current.add("mid");
+          setPracticeReminder(true);
+          setTimeout(() => setPracticeReminder(false), 4000);
+        }
+        if (pct >= 0.88 && pct <= 0.95 && !practiceShownRef.current.has("end")) {
+          practiceShownRef.current.add("end");
+          setPracticeReminder(true);
+          setTimeout(() => setPracticeReminder(false), 4000);
+        }
       }
     };
     const onLoadedMetadata = () => {
@@ -408,6 +426,23 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
               {skipIndicator.amount} ثانية
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Practice Reminder Toast */}
+      {practiceReminder && (
+        <div className="absolute top-3 left-3 right-3 z-40 animate-fade-in" dir="rtl">
+          <Link
+            to="/question-bank"
+            className="flex items-center gap-2 bg-primary/90 backdrop-blur-md text-primary-foreground rounded-xl px-3 py-2.5 shadow-lg hover:bg-primary transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Target className="w-5 h-5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold">متنساش يا بطل! 💪</p>
+              <p className="text-[10px] opacity-90">عايز تتمرن أكتر؟ روح بنك الأسئلة — أسئلة بالذكاء الاصطناعي في انتظارك</p>
+            </div>
+          </Link>
         </div>
       )}
 
