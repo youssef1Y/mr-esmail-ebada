@@ -226,6 +226,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
     const v = videoRef.current;
     if (!v) return;
     setError(false);
+    practiceShownRef.current.clear();
 
     const onTimeUpdate = () => {
       if (!seeking) setCurrentTime(v.currentTime);
