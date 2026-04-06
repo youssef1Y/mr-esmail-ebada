@@ -240,11 +240,13 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
         const pct = v.currentTime / v.duration;
         if (pct >= 0.48 && pct <= 0.52 && !practiceShownRef.current.has("mid")) {
           practiceShownRef.current.add("mid");
+          playReminderSound();
           setPracticeReminder(true);
           setTimeout(() => setPracticeReminder(false), 4000);
         }
         if (pct >= 0.88 && pct <= 0.95 && !practiceShownRef.current.has("end")) {
           practiceShownRef.current.add("end");
+          playReminderSound();
           setPracticeReminder(true);
           setTimeout(() => setPracticeReminder(false), 4000);
         }
