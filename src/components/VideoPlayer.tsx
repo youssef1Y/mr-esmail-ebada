@@ -1,9 +1,28 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, Maximize, Minimize, RotateCcw, RotateCw,
-  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2, Target
+  Volume2, VolumeX, Volume1, Settings, Loader2, PictureInPicture2, Target, ChevronLeft
 } from "lucide-react";
+
+const playReminderSound = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    gain.gain.value = 0.08;
+    // Two-tone chime
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {}
+};
 
 
 interface VideoPlayerProps {
