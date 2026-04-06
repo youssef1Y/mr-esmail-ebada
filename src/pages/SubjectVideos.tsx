@@ -454,6 +454,9 @@ const SubjectVideos = () => {
               <VideoPlayer
                 src={resolvedUrls[playingVideo.id]}
                 title={playingVideo.title}
+                subject={playingVideo.subject}
+                grade={playingVideo.grade}
+                lesson={playingVideo.title}
                 
                 onRefreshSource={async () => {
                   const [refreshed] = await resolvePlayableVideoUrls([playingVideo]);
