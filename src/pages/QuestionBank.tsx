@@ -107,6 +107,18 @@ const QuestionBank = () => {
 
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
       if (profile && !adminUser) setGrade(profile.grade);
+      
+      // Pre-select from URL params
+      const urlSubject = searchParams.get("subject");
+      const urlGrade = searchParams.get("grade");
+      const urlLesson = searchParams.get("lesson");
+      if (urlSubject) setSubject(urlSubject);
+      if (urlGrade && adminUser) setGrade(urlGrade);
+      if (urlLesson) {
+        setLessonFilter("specific");
+        setLesson(urlLesson);
+      }
+      
       setLoading(false);
     };
     init();
