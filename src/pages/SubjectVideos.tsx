@@ -454,6 +454,9 @@ const SubjectVideos = () => {
               <VideoPlayer
                 src={resolvedUrls[playingVideo.id]}
                 title={playingVideo.title}
+                subject={playingVideo.subject}
+                grade={playingVideo.grade}
+                lesson={playingVideo.title}
                 
                 onRefreshSource={async () => {
                   const [refreshed] = await resolvePlayableVideoUrls([playingVideo]);
@@ -528,7 +531,7 @@ const SubjectVideos = () => {
                       )}
                       {/* Practice Banner */}
                       <Link 
-                        to={`/question-bank`} 
+                        to={`/question-bank?subject=${encodeURIComponent(playingVideo.subject)}&grade=${encodeURIComponent(playingVideo.grade)}&lesson=${encodeURIComponent(playingVideo.title)}`} 
                         className="mr-auto flex items-center gap-1.5 bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 text-primary px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-primary/20"
                       >
                         <Target className="w-3.5 h-3.5" />

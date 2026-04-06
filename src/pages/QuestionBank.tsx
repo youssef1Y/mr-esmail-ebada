@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, XCircle, RotateCcw, Library, Filter, Trophy, Target, Zap, ArrowLeft, ChevronRight, FileText, Eye, BookOpen, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,7 @@ type LessonFilter = "all" | "watched" | "specific";
 
 const QuestionBank = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"training" | "worksheets">("training");
   const [grade, setGrade] = useState("");
@@ -106,6 +107,18 @@ const QuestionBank = () => {
 
       const { data: profile } = await supabase.from("profiles").select("grade").eq("user_id", session.user.id).single();
       if (profile && !adminUser) setGrade(profile.grade);
+      
+      // Pre-select from URL params
+      const urlSubject = searchParams.get("subject");
+      const urlGrade = searchParams.get("grade");
+      const urlLesson = searchParams.get("lesson");
+      if (urlSubject) setSubject(urlSubject);
+      if (urlGrade && adminUser) setGrade(urlGrade);
+      if (urlLesson) {
+        setLessonFilter("specific");
+        setLesson(urlLesson);
+      }
+      
       setLoading(false);
     };
     init();

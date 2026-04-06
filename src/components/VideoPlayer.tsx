@@ -10,7 +10,9 @@ interface VideoPlayerProps {
   src: string;
   title?: string;
   onRefreshSource?: () => Promise<boolean>;
-  
+  subject?: string;
+  grade?: string;
+  lesson?: string;
 }
 
 const formatTime = (seconds: number) => {
@@ -24,7 +26,7 @@ const formatTime = (seconds: number) => {
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
+const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -433,7 +435,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       {practiceReminder && (
         <div className="absolute top-3 left-3 right-3 z-40 animate-fade-in" dir="rtl">
           <Link
-            to="/question-bank"
+            to={`/question-bank?subject=${encodeURIComponent(subject || '')}&grade=${encodeURIComponent(grade || '')}&lesson=${encodeURIComponent(lesson || title || '')}`}
             className="flex items-center gap-2 bg-primary/90 backdrop-blur-md text-primary-foreground rounded-xl px-3 py-2.5 shadow-lg hover:bg-primary transition-all"
             onClick={(e) => e.stopPropagation()}
           >
