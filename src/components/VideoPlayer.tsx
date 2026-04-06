@@ -434,21 +434,36 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
       )}
 
       {/* Practice Reminder Toast */}
-      {practiceReminder && (
-        <div className="absolute top-3 left-3 right-3 z-40 animate-fade-in" dir="rtl">
-          <Link
-            to={`/question-bank?subject=${encodeURIComponent(subject || '')}&grade=${encodeURIComponent(grade || '')}&lesson=${encodeURIComponent(lesson || title || '')}`}
-            className="flex items-center gap-2 bg-primary/90 backdrop-blur-md text-primary-foreground rounded-xl px-3 py-2.5 shadow-lg hover:bg-primary transition-all"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {practiceReminder && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="absolute top-3 left-3 right-3 z-40"
+            dir="rtl"
           >
-            <Target className="w-5 h-5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold">متنساش يا بطل! 💪</p>
-              <p className="text-[10px] opacity-90">عايز تتمرن أكتر؟ روح بنك الأسئلة — أسئلة بالذكاء الاصطناعي في انتظارك</p>
-            </div>
-          </Link>
-        </div>
-      )}
+            <Link
+              to={`/question-bank?subject=${encodeURIComponent(subject || '')}&grade=${encodeURIComponent(grade || '')}&lesson=${encodeURIComponent(lesson || title || '')}`}
+              className="flex items-center gap-2.5 bg-gradient-to-l from-primary via-primary/95 to-accent/80 backdrop-blur-md text-primary-foreground rounded-2xl px-4 py-3 shadow-2xl hover:shadow-primary/40 transition-all border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.div
+                animate={{ rotate: [0, -15, 15, -10, 10, 0], scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <Target className="w-6 h-6 flex-shrink-0 drop-shadow-lg" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">متنساش يا بطل! 💪</p>
+                <p className="text-[11px] opacity-90">عايز تتمرن أكتر؟ روح بنك الأسئلة — أسئلة بالذكاء الاصطناعي في انتظارك</p>
+              </div>
+              <ChevronLeft className="w-4 h-4 opacity-60 flex-shrink-0" />
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Center Play/Pause (when paused & no error) */}
       {!playing && !error && !isBuffering && (
