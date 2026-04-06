@@ -435,7 +435,7 @@ const VideoPlayer = ({ src, title, onRefreshSource }: VideoPlayerProps) => {
       {practiceReminder && (
         <div className="absolute top-3 left-3 right-3 z-40 animate-fade-in" dir="rtl">
           <Link
-            to="/question-bank"
+            to={`/question-bank?subject=${encodeURIComponent(subject || '')}&grade=${encodeURIComponent(grade || '')}&lesson=${encodeURIComponent(lesson || title || '')}`}
             className="flex items-center gap-2 bg-primary/90 backdrop-blur-md text-primary-foreground rounded-xl px-3 py-2.5 shadow-lg hover:bg-primary transition-all"
             onClick={(e) => e.stopPropagation()}
           >
