@@ -41,6 +41,7 @@ type LessonFilter = "all" | "watched" | "specific";
 
 const QuestionBank = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"training" | "worksheets">("training");
   const [grade, setGrade] = useState("");
