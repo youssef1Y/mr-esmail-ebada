@@ -662,6 +662,7 @@ const SubjectVideos = () => {
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
               const isCurrentlyPlaying = playingId === v.id;
+              const isWatched = watchedVideoIds.has(v.id);
               const globalIndex = videos.findIndex(vid => vid.id === v.id);
 
               return (
