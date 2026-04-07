@@ -246,6 +246,7 @@ const SubjectVideos = () => {
         .then(({ data }) => {
           if (!data || data.length === 0) {
             supabase.from("video_views").insert({ video_id: videoId, user_id: userId }).then(() => {});
+            setWatchedVideoIds(prev => new Set([...prev, videoId]));
           }
         });
     }
