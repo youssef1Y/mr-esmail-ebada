@@ -51,6 +51,8 @@ const SubjectVideos = () => {
 
   // View counts for admin
   const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
+  // Watched videos by current student
+  const [watchedVideoIds, setWatchedVideoIds] = useState<Set<string>>(new Set());
 
   // Homework gating
   const [videoHomework, setVideoHomework] = useState<Record<string, { id: string; description: string | null; questions: any[] }>>({});
@@ -140,16 +142,18 @@ const SubjectVideos = () => {
         console.log("Videos result:", { count: data?.length, data: data?.map(v => ({ id: v.id, title: v.title, access_type: v.access_type })) });
 
         if (data) {
+          // Always fetch viewed videos for the badge
+          const { data: viewedData } = await supabase
+            .from("video_views")
+            .select("video_id")
+            .eq("user_id", session.user.id);
+          const viewedIds = new Set((viewedData || []).map(v => v.video_id));
+          setWatchedVideoIds(viewedIds);
+
           let filtered: typeof data;
           if (isAdminUser || profileResult.data?.is_subscribed) {
             filtered = data;
           } else {
-            // Get videos the student previously watched
-            const { data: viewedData } = await supabase
-              .from("video_views")
-              .select("video_id")
-              .eq("user_id", session.user.id);
-            const viewedIds = new Set((viewedData || []).map(v => v.video_id));
             filtered = data.filter(v => v.access_type === "all" || viewedIds.has(v.id));
           }
 
@@ -242,6 +246,7 @@ const SubjectVideos = () => {
         .then(({ data }) => {
           if (!data || data.length === 0) {
             supabase.from("video_views").insert({ video_id: videoId, user_id: userId }).then(() => {});
+            setWatchedVideoIds(prev => new Set([...prev, videoId]));
           }
         });
     }
@@ -658,6 +663,7 @@ const SubjectVideos = () => {
               const hw = videoHomework[v.id];
               const hwSubmitted = hw ? submittedHomework.has(hw.id) : false;
               const isCurrentlyPlaying = playingId === v.id;
+              const isWatched = watchedVideoIds.has(v.id);
               const globalIndex = videos.findIndex(vid => vid.id === v.id);
 
               return (
@@ -732,6 +738,12 @@ const SubjectVideos = () => {
                               "bg-muted text-muted-foreground border-border"
                             }`}>
                               {v.madhab}
+                            </span>
+                          )}
+                          {isWatched && !isCurrentlyPlaying && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              تمت المشاهدة
                             </span>
                           )}
                           {isCurrentlyPlaying && (
