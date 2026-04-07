@@ -142,16 +142,18 @@ const SubjectVideos = () => {
         console.log("Videos result:", { count: data?.length, data: data?.map(v => ({ id: v.id, title: v.title, access_type: v.access_type })) });
 
         if (data) {
+          // Always fetch viewed videos for the badge
+          const { data: viewedData } = await supabase
+            .from("video_views")
+            .select("video_id")
+            .eq("user_id", session.user.id);
+          const viewedIds = new Set((viewedData || []).map(v => v.video_id));
+          setWatchedVideoIds(viewedIds);
+
           let filtered: typeof data;
           if (isAdminUser || profileResult.data?.is_subscribed) {
             filtered = data;
           } else {
-            // Get videos the student previously watched
-            const { data: viewedData } = await supabase
-              .from("video_views")
-              .select("video_id")
-              .eq("user_id", session.user.id);
-            const viewedIds = new Set((viewedData || []).map(v => v.video_id));
             filtered = data.filter(v => v.access_type === "all" || viewedIds.has(v.id));
           }
 
