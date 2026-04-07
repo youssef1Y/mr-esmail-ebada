@@ -53,6 +53,7 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
   const refreshingSourceRef = useRef(false);
   const doubleTapTimer = useRef<ReturnType<typeof setTimeout>>();
   const volumeSliderTimer = useRef<ReturnType<typeof setTimeout>>();
+  const practiceReminderTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -158,6 +159,13 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
     setMuted(v.muted);
   }, []);
 
+  const showPracticeReminder = useCallback(() => {
+    playReminderSound();
+    setPracticeReminder(true);
+    clearTimeout(practiceReminderTimer.current);
+    practiceReminderTimer.current = setTimeout(() => setPracticeReminder(false), 4000);
+  }, []);
+
   // ── Progress bar interaction ──
   const handleProgressInteraction = useCallback((clientX: number, commit: boolean) => {
     const bar = progressBarRef.current;
@@ -250,27 +258,25 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
     const v = videoRef.current;
     if (!v) return;
     setError(false);
+    setPracticeReminder(false);
     practiceShownRef.current.clear();
+    clearTimeout(practiceReminderTimer.current);
 
     const onTimeUpdate = () => {
       if (!seekingRef.current) setCurrentTime(v.currentTime);
       if (v.buffered.length > 0) {
         setBuffered(v.buffered.end(v.buffered.length - 1));
       }
-      // Practice reminder at ~50% and ~90%
-      if (v.duration > 30) {
+      // Practice reminder around mid and late playback, including short videos
+      if (v.duration >= 8) {
         const pct = v.currentTime / v.duration;
-        if (pct >= 0.48 && pct <= 0.52 && !practiceShownRef.current.has("mid")) {
+        if (pct >= 0.45 && !practiceShownRef.current.has("mid")) {
           practiceShownRef.current.add("mid");
-          playReminderSound();
-          setPracticeReminder(true);
-          setTimeout(() => setPracticeReminder(false), 4000);
+          showPracticeReminder();
         }
-        if (pct >= 0.88 && pct <= 0.95 && !practiceShownRef.current.has("end")) {
+        if (pct >= 0.85 && !practiceShownRef.current.has("end")) {
           practiceShownRef.current.add("end");
-          playReminderSound();
-          setPracticeReminder(true);
-          setTimeout(() => setPracticeReminder(false), 4000);
+          showPracticeReminder();
         }
       }
     };
@@ -350,8 +356,9 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
       v.removeEventListener("stalled", onStalled);
       v.removeEventListener("enterpictureinpicture", onEnterPiP);
       v.removeEventListener("leavepictureinpicture", onLeavePiP);
+      clearTimeout(practiceReminderTimer.current);
     };
-  }, [src, refreshSource]);
+  }, [src, refreshSource, showPracticeReminder]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
