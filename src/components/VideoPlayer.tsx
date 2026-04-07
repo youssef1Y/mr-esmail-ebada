@@ -351,7 +351,7 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
       v.removeEventListener("enterpictureinpicture", onEnterPiP);
       v.removeEventListener("leavepictureinpicture", onLeavePiP);
     };
-  }, [src, seeking, refreshSource]);
+  }, [src, refreshSource]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
