@@ -243,6 +243,9 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
   }, [playing]);
 
   // ── Video events ──
+  const seekingRef = useRef(false);
+  seekingRef.current = seeking;
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -250,7 +253,7 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
     practiceShownRef.current.clear();
 
     const onTimeUpdate = () => {
-      if (!seeking) setCurrentTime(v.currentTime);
+      if (!seekingRef.current) setCurrentTime(v.currentTime);
       if (v.buffered.length > 0) {
         setBuffered(v.buffered.end(v.buffered.length - 1));
       }
@@ -348,7 +351,7 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
       v.removeEventListener("enterpictureinpicture", onEnterPiP);
       v.removeEventListener("leavepictureinpicture", onLeavePiP);
     };
-  }, [src, seeking, refreshSource]);
+  }, [src, refreshSource]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
