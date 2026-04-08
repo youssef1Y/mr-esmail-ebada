@@ -164,19 +164,35 @@ const SubjectVideos = () => {
           console.log("Filtered videos:", { count: filtered.length });
           setVideos(filtered as VideoItem[]);
 
-          // Fetch view counts for admin
+          // Fetch view counts for all users (admin sees global, students see own)
           const videoIds = filtered.map(v => v.id);
-          if (isAdminUser && videoIds.length > 0) {
-            const { data: viewsData } = await supabase
-              .from("video_views")
-              .select("video_id")
-              .in("video_id", videoIds);
-            if (viewsData) {
-              const counts: Record<string, number> = {};
-              viewsData.forEach(v => {
-                counts[v.video_id] = (counts[v.video_id] || 0) + 1;
-              });
-              setViewCounts(counts);
+          if (videoIds.length > 0) {
+            if (isAdminUser) {
+              const { data: viewsData } = await supabase
+                .from("video_views")
+                .select("video_id")
+                .in("video_id", videoIds);
+              if (viewsData) {
+                const counts: Record<string, number> = {};
+                viewsData.forEach(v => {
+                  counts[v.video_id] = (counts[v.video_id] || 0) + 1;
+                });
+                setViewCounts(counts);
+              }
+            } else {
+              // Students: count their own views per video
+              const { data: viewsData } = await supabase
+                .from("video_views")
+                .select("video_id")
+                .eq("user_id", session.user.id)
+                .in("video_id", videoIds);
+              if (viewsData) {
+                const counts: Record<string, number> = {};
+                viewsData.forEach(v => {
+                  counts[v.video_id] = (counts[v.video_id] || 0) + 1;
+                });
+                setViewCounts(counts);
+              }
             }
           }
 
@@ -744,6 +760,9 @@ const SubjectVideos = () => {
                             <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800">
                               <CheckCircle2 className="w-2.5 h-2.5" />
                               تمت المشاهدة
+                              {viewCounts[v.id] && viewCounts[v.id] > 1 && (
+                                <span className="mr-0.5">({viewCounts[v.id]}×)</span>
+                              )}
                             </span>
                           )}
                           {isCurrentlyPlaying && (
