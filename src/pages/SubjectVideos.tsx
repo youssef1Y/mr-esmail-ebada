@@ -403,12 +403,17 @@ const SubjectVideos = () => {
   };
 
   const filteredVideos = videos.filter(v => {
+    if (activeTab === "watched" && !watchedVideoIds.has(v.id)) return false;
+    if (activeTab === "unwatched" && watchedVideoIds.has(v.id)) return false;
     if (!searchQuery) return true;
     const queries = expandSearch(searchQuery);
     const title = normalizeArabic(v.title);
     const desc = normalizeArabic(v.description || "");
     return queries.some(q => title.includes(q) || desc.includes(q));
   });
+
+  const watchedCount = videos.filter(v => watchedVideoIds.has(v.id)).length;
+  const unwatchedCount = videos.length - watchedCount;
 
 
 
