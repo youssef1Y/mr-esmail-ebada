@@ -42,6 +42,7 @@ const SubjectVideos = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "unwatched" | "watched">("all");
   const [userId, setUserId] = useState<string | null>(null);
 
   // Comments
