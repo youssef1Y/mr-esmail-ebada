@@ -42,6 +42,7 @@ const SubjectVideos = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "unwatched" | "watched">("all");
   const [userId, setUserId] = useState<string | null>(null);
 
   // Comments
@@ -402,12 +403,17 @@ const SubjectVideos = () => {
   };
 
   const filteredVideos = videos.filter(v => {
+    if (activeTab === "watched" && !watchedVideoIds.has(v.id)) return false;
+    if (activeTab === "unwatched" && watchedVideoIds.has(v.id)) return false;
     if (!searchQuery) return true;
     const queries = expandSearch(searchQuery);
     const title = normalizeArabic(v.title);
     const desc = normalizeArabic(v.description || "");
     return queries.some(q => title.includes(q) || desc.includes(q));
   });
+
+  const watchedCount = videos.filter(v => watchedVideoIds.has(v.id)).length;
+  const unwatchedCount = videos.length - watchedCount;
 
 
 
@@ -615,7 +621,7 @@ const SubjectVideos = () => {
         )}
 
         {/* Search */}
-        <div className="relative mb-5">
+        <div className="relative mb-3">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={searchQuery}
@@ -624,6 +630,34 @@ const SubjectVideos = () => {
             className="pr-10 h-11 rounded-xl"
           />
         </div>
+
+        {/* Tabs */}
+        {videos.length > 0 && (isSubscribed || isAdmin) && (
+          <div className="flex items-center gap-1.5 mb-4 p-1 bg-muted/50 rounded-xl border border-border overflow-x-auto">
+            {([
+              { key: "all", label: "الكل", count: videos.length },
+              { key: "unwatched", label: "لسه مشفتهاش", count: unwatchedCount },
+              { key: "watched", label: "اتفرجت عليها", count: watchedCount },
+            ] as const).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`flex-1 min-w-fit whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === t.key
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                }`}
+              >
+                {t.label}
+                <span className={`mr-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold ${
+                  activeTab === t.key ? "bg-primary-foreground/20" : "bg-background"
+                }`}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Video count */}
         {filteredVideos.length > 0 && (isSubscribed || isAdmin) && (
