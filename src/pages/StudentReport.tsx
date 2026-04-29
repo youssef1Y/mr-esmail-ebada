@@ -238,6 +238,11 @@ ${vhDetails.length > 0 ? `<h3>🎬 واجبات الفيديو (${stats.videoHom
                 ))}
               </div>
             )}
+            {expandedSection === "exams" && examDetails.length === 0 && (
+              <div className="border-t border-border px-4 py-6 text-center text-muted-foreground text-xs">
+                📝 لم تؤدِّ أي امتحانات بعد
+              </div>
+            )}
           </div>
 
           {/* Homework */}
@@ -264,6 +269,11 @@ ${vhDetails.length > 0 ? `<h3>🎬 واجبات الفيديو (${stats.videoHom
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+            {expandedSection === "hw" && hwDetails.length === 0 && (
+              <div className="border-t border-border px-4 py-6 text-center text-muted-foreground text-xs">
+                📋 لم تسلّم أي واجبات بعد
               </div>
             )}
           </div>
@@ -299,6 +309,11 @@ ${vhDetails.length > 0 ? `<h3>🎬 واجبات الفيديو (${stats.videoHom
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {expandedSection === "vh" && vhDetails.length === 0 && (
+              <div className="border-t border-border px-4 py-6 text-center text-muted-foreground text-xs">
+                🎬 لم تسلّم أي واجبات فيديو بعد
               </div>
             )}
           </div>

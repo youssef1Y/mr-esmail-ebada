@@ -89,9 +89,11 @@ const Profile = () => {
   };
 
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleDeleteAccount = async () => {
-    if (!confirm("هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
+    if (deleteConfirmText !== "احذف حسابي") return;
     setDeleting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -107,6 +109,7 @@ const Profile = () => {
       toast({ title: "خطأ", description: err.message || "فشل في حذف الحساب", variant: "destructive" });
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -230,10 +233,48 @@ const Profile = () => {
           <p className="text-muted-foreground text-xs mb-4">
             حذف الحساب سيؤدي إلى إزالة جميع بياناتك نهائيًا. هذا الإجراء لا يمكن التراجع عنه.
           </p>
-          <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 gap-1" onClick={handleDeleteAccount} disabled={deleting}>
-            <Trash2 className="w-3 h-3" />
-            {deleting ? "جاري الحذف..." : "حذف حسابي"}
-          </Button>
+
+          {!showDeleteConfirm ? (
+            <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 gap-1" onClick={() => setShowDeleteConfirm(true)}>
+              <Trash2 className="w-3 h-3" />
+              حذف حسابي
+            </Button>
+          ) : (
+            <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 text-right space-y-3">
+              <p className="text-sm font-bold text-destructive">⚠️ تأكيد الحذف النهائي</p>
+              <p className="text-xs text-muted-foreground">
+                اكتب <span className="font-bold text-destructive">احذف حسابي</span> للتأكيد:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder='اكتب: احذف حسابي'
+                className="w-full border border-destructive/40 rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-destructive/30"
+                dir="rtl"
+              />
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                  disabled={deleting}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirmText !== "احذف حسابي"}
+                  className="gap-1"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  {deleting ? "جاري الحذف..." : "تأكيد الحذف النهائي"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
