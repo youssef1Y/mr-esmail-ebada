@@ -29,15 +29,6 @@ export function useSubscriptionGuard(userId: string | null) {
           .from("profiles")
           .update({ is_subscribed: false })
           .eq("user_id", userId!);
-
-        // إشعار للطالب داخل المنصة
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          title: "انتهى اشتراكك",
-          message: "انتهت مدة اشتراكك. جدّد اشتراكك للاستمرار في المشاهدة.",
-          type: "subscription_expired",
-          is_read: false,
-        });
       }
     }
 
