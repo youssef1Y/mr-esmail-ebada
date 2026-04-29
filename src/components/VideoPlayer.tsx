@@ -430,18 +430,23 @@ const VideoPlayer = ({ src, title, onRefreshSource, subject, grade, lesson }: Vi
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
             <RotateCcw className="w-8 h-8" />
           </div>
-          <p className="text-sm font-medium">
-            {refreshingSource ? "جارٍ تحديث رابط الفيديو..." : "حدث خطأ في تحميل الفيديو"}
-          </p>
+          <div className="text-center px-6">
+            <p className="text-sm font-medium mb-1">
+              {refreshingSource ? "جارٍ تحديث رابط الفيديو..." : !navigator.onLine ? "لا يوجد اتصال بالإنترنت" : "حدث خطأ في تحميل الفيديو"}
+            </p>
+            <p className="text-xs text-white/60">
+              {!navigator.onLine ? "تحقق من الاتصال ثم أعد المحاولة" : "قد تكون مدة الرابط انتهت — سيتم تجديده تلقائياً"}
+            </p>
+          </div>
           <button
             onClick={async () => {
               const refreshed = await refreshSource();
               if (!refreshed) { setError(false); videoRef.current?.load(); }
             }}
-            disabled={refreshingSource}
+            disabled={refreshingSource || !navigator.onLine}
             className="bg-white text-black px-5 py-2.5 rounded-full text-sm font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
           >
-            {refreshingSource ? "جاري المحاولة..." : "إعادة المحاولة"}
+            {refreshingSource ? "جاري المحاولة..." : !navigator.onLine ? "لا يوجد اتصال" : "إعادة المحاولة"}
           </button>
         </div>
       )}

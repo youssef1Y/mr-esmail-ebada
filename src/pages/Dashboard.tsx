@@ -17,6 +17,7 @@ const AdminQuestionBankTab = lazy(() => import("@/components/AdminQuestionBankTa
 import { useBadgeCounts, RedBadge } from "@/components/DashboardBadgeIndicators";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { usePrayerNotifications } from "@/hooks/use-prayer-notifications";
+import { useSubscriptionGuard } from "@/hooks/use-subscription-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1406,6 +1407,9 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // ✅ تحقق تلقائي من انتهاء الاشتراك
+  useSubscriptionGuard(user?.id ?? null);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -3264,6 +3268,11 @@ const Dashboard = () => {
               </Button>
               <RedBadge count={badgeCounts.unreadMessages} />
             </Link>
+            <a href="https://wa.me/201097602493" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm" className="gap-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950">
+                <Phone className="w-4 h-4" /> واتساب مباشر
+              </Button>
+            </a>
           </motion.div>
           )}
 
