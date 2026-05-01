@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { BookOpen, ChevronRight, CheckCircle, XCircle, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,44 @@ const TakeExam = () => {
   const [result, setResult] = useState<{ score: number; total: number; details: { questionId: string; correct: boolean; correctAnswer: string | null }[] } | null>(null);
   const [alreadyTaken, setAlreadyTaken] = useState(false);
 
+  // ⏱️ Timer
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timerExpired, setTimerExpired] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  // Start timer when exam + duration loaded
   useEffect(() => {
+    const duration = (exam as any)?.duration_minutes;
+    if (!duration || result || alreadyTaken) return;
+    const seconds = duration * 60;
+    setTimeLeft(seconds);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          setTimerExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [exam, result, alreadyTaken]);
+
+  // Auto-submit when timer expires
+  useEffect(() => {
+    if (timerExpired && !submitting && !result) {
+      toast({ title: "⏰ انتهى الوقت!", description: "سيتم تسليم الامتحان تلقائياً الآن", variant: "destructive" });
+      handleSubmit();
+    }
+  }, [timerExpired]);
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
@@ -149,6 +186,18 @@ const TakeExam = () => {
             </div>
             <span className="font-bold text-sm">منصة الأستاذ إسماعيل</span>
           </div>
+
+          {/* ⏱️ Timer */}
+          {timeLeft !== null && !result && (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-sm font-bold transition-colors ${
+              timeLeft <= 60 ? "bg-destructive/10 text-destructive animate-pulse" :
+              timeLeft <= 300 ? "bg-orange-100 text-orange-600 dark:bg-orange-900/20" :
+              "bg-primary/10 text-primary"
+            }`}>
+              ⏱️ {formatTime(timeLeft)}
+            </div>
+          )}
+
           <Link to="/dashboard">
             <Button variant="ghost" size="sm" className="gap-1">
               <ChevronRight className="w-4 h-4" />

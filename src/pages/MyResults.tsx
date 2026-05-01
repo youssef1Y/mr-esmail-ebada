@@ -80,12 +80,21 @@ const MyResults = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full"
-        />
+      <div className="min-h-screen bg-background">
+        <div className="h-14 bg-card border-b border-border sticky top-0 z-50" />
+        <div className="container mx-auto px-4 py-6 max-w-2xl space-y-4">
+          <div className="h-7 w-40 bg-muted rounded-xl animate-pulse" />
+          {[1,2,3,4].map(i => (
+            <div key={i} className="bg-card border border-border rounded-2xl p-4 space-y-3 animate-pulse">
+              <div className="flex justify-between">
+                <div className="h-4 bg-muted rounded w-2/3" />
+                <div className="h-4 bg-muted rounded w-12" />
+              </div>
+              <div className="h-3 bg-muted rounded w-1/3" />
+              <div className="h-2 bg-muted rounded-full w-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

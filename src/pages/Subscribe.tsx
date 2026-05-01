@@ -188,7 +188,21 @@ const Subscribe = () => {
                 <span className="text-sm text-muted-foreground">
                   {receiptFile ? receiptFile.name : "اضغط لرفع صورة الإيصال"}
                 </span>
-                <input type="file" accept="image/*" className="hidden" onChange={e => setReceiptFile(e.target.files?.[0] || null)} />
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    toast({ title: "الملف كبير جداً", description: "الحد الأقصى لحجم الإيصال 5 ميجابايت", variant: "destructive" });
+                    e.target.value = "";
+                    return;
+                  }
+                  if (!["image/jpeg","image/jpg","image/png","image/webp"].includes(file.type)) {
+                    toast({ title: "نوع الملف غير مدعوم", description: "يرجى رفع صورة بصيغة JPG أو PNG أو WebP فقط", variant: "destructive" });
+                    e.target.value = "";
+                    return;
+                  }
+                  setReceiptFile(file);
+                }} />
               </label>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={submitting}>
