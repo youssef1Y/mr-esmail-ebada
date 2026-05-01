@@ -75,6 +75,8 @@ const TakeExam = () => {
       handleSubmit();
     }
   }, [timerExpired]);
+
+  useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth/login"); return; }
