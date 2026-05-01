@@ -44,6 +44,8 @@ const SubjectVideos = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "unwatched" | "watched">("all");
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedTerm, setSelectedTerm] = useState<number | null>(null); // null = use admin current term
+  const [currentTerm, setCurrentTerm] = useState<number>(1);
 
   // Comments
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
@@ -126,14 +128,15 @@ const SubjectVideos = () => {
 
         // Get current term
         const { data: termSetting } = await supabase.from("app_settings").select("value").eq("key", "current_term").single();
-        const currentTerm = parseInt(termSetting?.value || "1") || 1;
+        const currentTermVal = parseInt(termSetting?.value || "1") || 1;
+        setCurrentTerm(currentTermVal);
         
         const { data, error: videosError } = await supabase
           .from("videos")
           .select("*")
           .eq("grade", grade)
           .eq("subject", decodedSubject)
-          .filter("term", "eq", currentTerm)
+          .filter("term", "eq", currentTermVal)
           .order("sort_order", { ascending: true });
 
         if (videosError) {
@@ -230,6 +233,22 @@ const SubjectVideos = () => {
     };
     init();
   }, [subject, grade, navigate, resolvePlayableVideoUrls]);
+
+  // Reload videos when student switches term
+  useEffect(() => {
+    if (selectedTerm === null || !grade || !subject) return;
+    const decodedSubj = decodeURIComponent(subject);
+    supabase
+      .from("videos")
+      .select("*")
+      .eq("grade", grade)
+      .eq("subject", decodedSubj)
+      .filter("term", "eq", selectedTerm)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => {
+        if (data) setVideos(data as any);
+      });
+  }, [selectedTerm, grade, subject]);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -447,10 +466,28 @@ const SubjectVideos = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-          <p className="text-xs text-muted-foreground">جاري تحميل المحتوى...</p>
+      <div className="min-h-screen bg-background">
+        {/* Skeleton Header */}
+        <header className="bg-card/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-50 h-14" />
+        <div className="container mx-auto px-4 py-6 max-w-3xl space-y-4">
+          {/* Skeleton title */}
+          <div className="h-8 w-48 bg-muted rounded-xl animate-pulse" />
+          {/* Skeleton search */}
+          <div className="h-10 w-full bg-muted rounded-xl animate-pulse" />
+          {/* Skeleton tabs */}
+          <div className="flex gap-2">
+            {[1,2,3].map(i => <div key={i} className="h-8 w-20 bg-muted rounded-full animate-pulse" />)}
+          </div>
+          {/* Skeleton video cards */}
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="bg-card border border-border rounded-2xl p-4 flex gap-4 animate-pulse">
+              <div className="w-28 h-16 bg-muted rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -481,6 +518,9 @@ const SubjectVideos = () => {
         <div className="text-center mb-5">
           <h1 className="text-2xl font-bold font-amiri mb-1">{decodedSubject}</h1>
           <p className="text-sm text-muted-foreground">{grade}</p>
+          <span className="inline-flex items-center gap-1 mt-2 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full border border-primary/20">
+            📅 {currentTerm === 1 ? "الترم الأول" : "الترم الثاني"}
+          </span>
         </div>
 
         {/* Currently Playing Video - Sticky Section */}
@@ -630,6 +670,31 @@ const SubjectVideos = () => {
             className="pr-10 h-11 rounded-xl"
           />
         </div>
+
+        {/* Term Switcher */}
+        {(isSubscribed || isAdmin) && (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs text-muted-foreground font-medium">📅 الترم:</span>
+            <div className="flex gap-1.5">
+              {[1, 2].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setSelectedTerm(t === currentTerm && selectedTerm === null ? null : t)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                    (selectedTerm === t) || (selectedTerm === null && t === currentTerm)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                  }`}
+                >
+                  {t === 1 ? "الترم الأول" : "الترم الثاني"}
+                  {t === currentTerm && (
+                    <span className="mr-1 text-[9px] opacity-70">الحالي</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         {videos.length > 0 && (isSubscribed || isAdmin) && (

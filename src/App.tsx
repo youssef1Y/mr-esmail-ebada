@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
 import PageTransition from "@/components/PageTransition";
 import AIChatAssistant from "@/components/AIChatAssistant";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
 
 // Only eagerly load the landing page
@@ -106,18 +107,20 @@ const AuthenticatedChatAssistant = () => {
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AnimatedRoutes />
-          <AuthenticatedChatAssistant />
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="esmail-theme">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AnimatedRoutes />
+            <AuthenticatedChatAssistant />
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -527,6 +527,7 @@ const gradeOrder = [
 
 const AdminPromoteTab = ({ toast }: { toast: any }) => {
   const [promoting, setPromoting] = useState(false);
+  const [showPromoteConfirm, setShowPromoteConfirm] = useState(false);
   const [switchingTerm, setSwitchingTerm] = useState(false);
   const [currentTerm, setCurrentTerm] = useState<number>(1);
   const [preview, setPreview] = useState<{ grade: string; count: number; nextGrade: string }[]>([]);
@@ -565,7 +566,7 @@ const AdminPromoteTab = ({ toast }: { toast: any }) => {
   };
 
   const promoteAll = async () => {
-    if (!confirm("هل أنت متأكد من ترقية جميع الطلاب للصف التالي؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
+    setShowPromoteConfirm(false);
     setPromoting(true);
     try {
       for (let i = gradeOrder.length - 2; i >= 0; i--) {
@@ -642,13 +643,24 @@ const AdminPromoteTab = ({ toast }: { toast: any }) => {
           ))}
         </div>
 
-        <Button onClick={promoteAll} disabled={promoting} className="w-full gap-2">
+        <Button onClick={() => setShowPromoteConfirm(true)} disabled={promoting} className="w-full gap-2" variant="destructive">
           {promoting ? (
             <><div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full" /> جاري الترقية...</>
           ) : (
             <><ArrowRight className="w-4 h-4" /> ترقية جميع الطلاب للصف التالي</>
           )}
         </Button>
+
+        {showPromoteConfirm && (
+          <div className="mt-3 bg-destructive/5 border border-destructive/30 rounded-xl p-4 space-y-3">
+            <p className="text-sm font-bold text-destructive text-center">⚠️ تأكيد الترقية السنوية</p>
+            <p className="text-xs text-muted-foreground text-center">هذا الإجراء سيرفع جميع الطلاب للصف التالي ولا يمكن التراجع عنه</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowPromoteConfirm(false)}>إلغاء</Button>
+              <Button variant="destructive" size="sm" className="flex-1" onClick={promoteAll}>تأكيد الترقية</Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1317,6 +1329,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [studentPoints, setStudentPoints] = useState(0);
+  const [studentCurrentTerm, setStudentCurrentTerm] = useState<number>(1);
 
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1458,6 +1471,9 @@ const Dashboard = () => {
           const total = pointsData.reduce((sum, p) => sum + p.points, 0);
           setStudentPoints(total);
         }
+      }),
+      supabase.from("app_settings").select("value").eq("key", "current_term").single().then(({ data: termData }) => {
+        if (termData) setStudentCurrentTerm(parseInt(termData.value) || 1);
       }),
     ]);
   };
@@ -3179,8 +3195,11 @@ const Dashboard = () => {
                 {profile?.is_subscribed ? "مشترك" : "غير مشترك"}
               </span>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-col items-center gap-2">
               <StudentLevelBadge points={studentPoints} showProgress />
+              <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full border border-primary/20">
+                📅 {studentCurrentTerm === 1 ? "الترم الأول" : "الترم الثاني"}
+              </span>
             </div>
           </motion.div>
         </motion.div>
@@ -3275,6 +3294,28 @@ const Dashboard = () => {
             </a>
           </motion.div>
           )}
+
+        {/* 🔔 Subscription Expired Banner */}
+        {!adminUnlocked && profile && !profile.is_subscribed && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 bg-destructive/10 border border-destructive/30 rounded-2xl p-4 flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-bold text-sm text-destructive">اشتراكك منتهي أو غير مفعّل</p>
+                <p className="text-xs text-muted-foreground">جدّد اشتراكك للوصول لجميع الفيديوهات والامتحانات</p>
+              </div>
+            </div>
+            <a href="/subscribe">
+              <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-white shrink-0">
+                جدّد الآن
+              </Button>
+            </a>
+          </motion.div>
+        )}
 
         {/* Push Notification Banner */}
         {!adminUnlocked && <PushNotificationBanner />}

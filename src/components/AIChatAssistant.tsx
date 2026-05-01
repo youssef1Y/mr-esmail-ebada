@@ -116,7 +116,7 @@ const AIChatAssistant = () => {
   }, [open]);
 
 
-  const sendMsg = useCallback(async (text?: string) => {
+  const sendMsg = useCallback(async (text?: string, retryCount = 0) => {
     const msg = (text || input).trim();
     if (!msg || loading || summarizing) return;
     setInput("");
@@ -147,10 +147,18 @@ const AIChatAssistant = () => {
       onDone: () => {
         setLoading(false);
       },
-      onError: (e) => {
+      onError: async (e) => {
+        // Retry once on network/rate-limit errors
+        if (retryCount < 1 && (e.includes("429") || e.includes("network") || e.includes("fetch"))) {
+          setMessages((prev) => prev.slice(0, -1)); // remove pending assistant msg
+          setLoading(false);
+          await new Promise(r => setTimeout(r, 2000));
+          sendMsg(msg, retryCount + 1);
+          return;
+        }
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: `⚠️ ${e}` },
+          { role: "assistant", content: `⚠️ ${e}\n\nيمكنك المحاولة مرة أخرى أو إعادة تحميل الصفحة.` },
         ]);
         setLoading(false);
       },
